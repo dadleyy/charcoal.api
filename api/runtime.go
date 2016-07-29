@@ -1,8 +1,7 @@
 package api
 
-import "github.com/jinzhu/gorm"
-import _ "github.com/jinzhu/gorm/dialects/mysql"
+import "github.com/meritoss/meritoss.api/api/db"
 
 type Runtime struct {
-	DB *gorm.DB
+	DB db.Client
 }
