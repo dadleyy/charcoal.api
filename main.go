@@ -11,6 +11,8 @@ import "github.com/meritoss/meritoss.api/api/routes/users"
 
 func main() {
 	flag.Parse()
+
+	iris.UseFunc(middleware.Logger)
 	iris.UseFunc(middleware.Runtime)
 	iris.Get("/users", middleware.Blueprints, users.Index)
 	iris.Post("/users", users.Create)
