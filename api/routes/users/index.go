@@ -3,6 +3,7 @@ package users
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 import "github.com/meritoss/meritoss.api/api"
+import "github.com/meritoss/meritoss.api/api/middleware"
 import "github.com/meritoss/meritoss.api/api/db/dal/user"
 
 func Index(ctx *iris.Context) {
@@ -14,7 +15,14 @@ func Index(ctx *iris.Context) {
 		return
 	}
 
-	result, err := user.Find(runtime)
+	blueprint, ok := ctx.Get("blueprint").(middleware.Blueprint)
+
+	if !ok || len(blueprint.Filters) < 1 {
+		ctx.EmitError(iris.StatusBadRequest)
+		return
+	}
+
+	result, err := user.Find(runtime, blueprint)
 
 	if err != nil {
 		glog.Errorf("error finding users: %s", err.Error())
