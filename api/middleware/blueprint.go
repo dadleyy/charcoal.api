@@ -6,7 +6,6 @@ import "errors"
 import "strings"
 import "strconv"
 
-import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
 const (
@@ -72,6 +71,10 @@ func parseFilter(key string, value string) (Filter, error) {
 		fieldop = "!="
 	case "lk":
 		fieldop = "like"
+	case "gte":
+		fieldop = ">="
+	case "lte":
+		fieldop = "<="
 	case "in":
 		fieldop = "in"
 		fieldval = fmt.Sprintf("(%s)", fieldval)
@@ -92,13 +95,9 @@ func parseFilter(key string, value string) (Filter, error) {
 // it that is a `Blueprint` struct defined above. these are useful in resource lookup 
 // routes (e.g GET /users)
 func Blueprints(ctx *iris.Context) {
-	glog.Info("parsing blueprint")
-
 	blueprint := Blueprint{Page: DEFAULT_PAGE, Limit: DEFAULT_LIMIT}
 
-	params := ctx.URLParams()
-
-	for key, value := range params {
+	for key, value := range ctx.URLParams() {
 		cleankey := strings.TrimSpace(strings.ToLower(key))
 		cleanval := strings.TrimSpace(value)
 
