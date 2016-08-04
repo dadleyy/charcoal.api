@@ -8,11 +8,7 @@ import "github.com/jinzhu/gorm"
 const DSN_STR = "%v:%v@tcp(%v:%v)/%v"
 
 type Client struct {
-	DB *gorm.DB
-}
-
-func (c *Client) Close() {
-	c.DB.Close()
+	*gorm.DB
 }
 
 func Get() (Client, error) {
