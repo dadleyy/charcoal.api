@@ -14,6 +14,7 @@ func main() {
 
 	iris.UseFunc(middleware.Logger)
 	iris.UseFunc(middleware.Runtime)
+	iris.UseFunc(middleware.JsonAPI)
 	iris.Get("/users", middleware.Blueprints, users.Index)
 	iris.Post("/users", users.Create)
 	iris.Listen(":8080")
