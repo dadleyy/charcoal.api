@@ -11,9 +11,13 @@ type MetaData struct {
 	Time time.Time
 }
 
+type BucketResult interface {
+	ToJson() map[string]interface{}
+}
+
 type Bucket struct {
 	Meta MetaData
-	Results []interface{}
+	Results []BucketResult
 	Errors []error
 }
 
@@ -22,6 +26,7 @@ type bucketAlias Bucket
 type bucketJson struct {
 	*bucketAlias
 	Errors []string
+	Results []interface{}
 	Status string
 }
 
@@ -48,6 +53,12 @@ func (b *Bucket) Render(ctx *iris.Context) {
 		}
 
 		status = iris.StatusBadRequest
+	}
+
+	if len(b.Results) >= 1 {
+		for _, r := range b.Results {
+			json.Results = append(json.Results, r.ToJson())
+		}
 	}
 
 	ctx.JSON(status, json)
