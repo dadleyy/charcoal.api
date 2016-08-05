@@ -18,14 +18,16 @@ func hash(password string) ([]byte, error) {
 }
 
 // validEmail
-func validEmail(runtime *api.Runtime, email string) bool {
+func validEmail(runtime *api.Runtime, user models.User) bool {
 	var existing models.User
 
-	if missing := runtime.DB.Where("email = ?", email).Find(&existing).RecordNotFound(); !missing {
+	result := runtime.DB.Where("email = ?", user.Email).Find(&existing)
+
+	if missing := result.RecordNotFound(); !missing && user.ID != existing.ID {
 		return false
 	}
 
-	return govalidator.IsEmail(email)
+	return govalidator.IsEmail(user.Email)
 }
 
 
@@ -85,7 +87,7 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 				continue
 			}
 
-			if key == "email" && !validEmail(runtime, stringval) {
+			if key == "email" && !validEmail(runtime, user) {
 				return errors.New("invalid email")
 			}
 
@@ -116,7 +118,7 @@ func CreateUser(runtime *api.Runtime, user *models.User) error {
 		return errors.New("passwords must be at least 6 characters long")
 	}
 
-	if valid := validEmail(runtime, user.Email); !valid {
+	if valid := validEmail(runtime, *user); !valid {
 		return errors.New(fmt.Sprintf("invalid email: %s", user.Email))
 	}
 
