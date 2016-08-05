@@ -1,5 +1,6 @@
 package dal
 
+import "fmt"
 import "errors"
 import "golang.org/x/crypto/bcrypt"
 
@@ -21,6 +22,11 @@ func CreateUser(runtime *api.Runtime, user *models.User) error {
 
 	if len(user.Password) < 6 {
 		return errors.New("passwords must be at least 6 characters long")
+	}
+
+	var existing models.User
+	if missing := runtime.DB.Where("email = ?", user.Email).Find(&existing).RecordNotFound(); !missing {
+		return errors.New(fmt.Sprintf("duplicate email: %s", user.Email))
 	}
 
 	hashed, err := hash(user.Password)
