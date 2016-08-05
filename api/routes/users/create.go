@@ -8,6 +8,7 @@ import "github.com/meritoss/meritoss.api/api"
 import "github.com/meritoss/meritoss.api/api/models"
 import "github.com/meritoss/meritoss.api/api/responses"
 import "github.com/meritoss/meritoss.api/api/middleware"
+import "github.com/meritoss/meritoss.api/api/db/dal/user"
 
 func Create(ctx *iris.Context) {
 	runtime, ok := ctx.Get("runtime").(api.Runtime)
@@ -24,30 +25,21 @@ func Create(ctx *iris.Context) {
 		return
 	}
 
+	var target models.User
 
-	var user models.User
-
-	if err := ctx.ReadJSON(&user); err != nil {
+	if err := ctx.ReadJSON(&target); err != nil {
 		bucket.Errors = append(bucket.Errors, errors.New("invalid json data for user"))
 		return
 	}
 
-	if len(user.Name) < 2 {
-		bucket.Errors = append(bucket.Errors, errors.New("user name must be at least 2 characters long"))
+	if err := user.Create(&runtime, &target); err != nil {
+		bucket.Errors = append(bucket.Errors, err)
 		return
 	}
 
-	if err := runtime.DB.Save(&user).Error; err != nil {
-		glog.Errorf("error saving user: %s\n", err.Error())
-		bucket.Errors = append(bucket.Errors, errors.New("unable to save user"))
-		return
-	}
-
-	bucket.Results = append(bucket.Results, user)
+	bucket.Results = append(bucket.Results, target)
 	bucket.Meta.Total = 1
 
-	glog.Infof("adding user %d to bucket. count: %d\n", user.ID, len(bucket.Results))
-
-
+	glog.Infof("created user %d\n", target.ID)
 	ctx.Next()
 }
