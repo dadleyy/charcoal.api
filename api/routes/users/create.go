@@ -5,10 +5,10 @@ import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
 import "github.com/meritoss/meritoss.api/api"
+import "github.com/meritoss/meritoss.api/api/dal"
 import "github.com/meritoss/meritoss.api/api/models"
 import "github.com/meritoss/meritoss.api/api/responses"
 import "github.com/meritoss/meritoss.api/api/middleware"
-import "github.com/meritoss/meritoss.api/api/db/dal/user"
 
 func Create(ctx *iris.Context) {
 	runtime, ok := ctx.Get("runtime").(api.Runtime)
@@ -32,7 +32,7 @@ func Create(ctx *iris.Context) {
 		return
 	}
 
-	if err := user.Create(&runtime, &target); err != nil {
+	if err := dal.CreateUser(&runtime, &target); err != nil {
 		bucket.Errors = append(bucket.Errors, err)
 		return
 	}

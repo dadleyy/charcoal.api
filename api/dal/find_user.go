@@ -1,11 +1,11 @@
-package user
+package dal
 
 import "github.com/golang/glog"
 import "github.com/meritoss/meritoss.api/api"
 import "github.com/meritoss/meritoss.api/api/middleware"
 import "github.com/meritoss/meritoss.api/api/models"
 
-func Find(runtime api.Runtime, blueprint middleware.Blueprint) ([]models.User, error) {
+func FindUser(runtime api.Runtime, blueprint middleware.Blueprint) ([]models.User, error) {
 	var users []models.User;
 
 	limit, offset := blueprint.Limit, blueprint.Limit * blueprint.Page

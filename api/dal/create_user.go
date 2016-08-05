@@ -1,4 +1,4 @@
-package user
+package dal
 
 import "errors"
 import "golang.org/x/crypto/bcrypt"
@@ -10,7 +10,7 @@ func hash(password string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 }
 
-func Create(runtime *api.Runtime, user *models.User) error {
+func CreateUser(runtime *api.Runtime, user *models.User) error {
 	if len(user.Name) < 2 {
 		return errors.New("invalid name")
 	}
