@@ -30,7 +30,7 @@ func Get() (Client, error) {
 	}
 
 	// turn off gorm logging
-	db.LogMode(false)
+	// db.LogMode(false)
 
 	return Client{db}, nil
 }
