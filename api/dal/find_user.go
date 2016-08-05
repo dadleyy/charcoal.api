@@ -5,8 +5,9 @@ import "github.com/meritoss/meritoss.api/api"
 import "github.com/meritoss/meritoss.api/api/middleware"
 import "github.com/meritoss/meritoss.api/api/models"
 
-func FindUser(runtime api.Runtime, blueprint middleware.Blueprint) ([]models.User, error) {
-	var users []models.User;
+func FindUser(runtime api.Runtime, blueprint middleware.Blueprint) ([]models.User, int, error) {
+	var users []models.User
+	var total int
 
 	limit, offset := blueprint.Limit, blueprint.Limit * blueprint.Page
 
@@ -17,7 +18,12 @@ func FindUser(runtime api.Runtime, blueprint middleware.Blueprint) ([]models.Use
 		head = head.Where(filter.Reduce())
 	}
 
-	head.Find(&users).Commit()
+	result := head.Find(&users).Count(&total).Commit()
 
-	return users, nil
+	if result.Error != nil {
+		glog.Errorf("error in FindUser: %s\n", result.Error.Error())
+		return users, -1, result.Error
+	}
+
+	return users, total, nil
 }

@@ -5,7 +5,7 @@ import "fmt"
 import "errors"
 import "github.com/jinzhu/gorm"
 
-const DSN_STR = "%v:%v@tcp(%v:%v)/%v"
+const DSN_STR = "%v:%v@tcp(%v:%v)/%v?parseTime=true"
 
 type Client struct {
 	*gorm.DB

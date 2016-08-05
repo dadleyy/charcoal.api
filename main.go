@@ -17,5 +17,6 @@ func main() {
 	iris.UseFunc(middleware.JsonAPI)
 	iris.Get("/users", middleware.Blueprints, users.Index)
 	iris.Post("/users", users.Create)
+	iris.Patch("/users/:id", users.Update)
 	iris.Listen(":8080")
 }

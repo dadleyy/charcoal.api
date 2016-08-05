@@ -1,34 +1,28 @@
 package users
 
-import "github.com/golang/glog"
 import "github.com/kataras/iris"
+
 import "github.com/meritoss/meritoss.api/api"
 import "github.com/meritoss/meritoss.api/api/dal"
 import "github.com/meritoss/meritoss.api/api/middleware"
 
 func Index(ctx *iris.Context) {
-	runtime, ok := ctx.Get("runtime").(api.Runtime)
+	runtime, _ := ctx.Get("runtime").(api.Runtime)
+	bucket, _ := ctx.Get("jsonapi").(*middleware.Bucket)
+	blueprint, _ := ctx.Get("blueprint").(middleware.Blueprint)
 
-	if !ok {
-		glog.Error("unable to retreive runtime from request context")
-		ctx.Panic()
-		return
-	}
-
-	blueprint, ok := ctx.Get("blueprint").(middleware.Blueprint)
-
-	if !ok || len(blueprint.Filters) < 1 {
-		ctx.EmitError(iris.StatusBadRequest)
-		return
-	}
-
-	result, err := dal.FindUser(runtime, blueprint)
+	result, total, err := dal.FindUser(runtime, blueprint)
 
 	if err != nil {
-		glog.Errorf("error finding users: %s", err.Error())
-		ctx.Panic()
+		bucket.Errors = append(bucket.Errors, err)
 		return
 	}
 
-	ctx.JSON(iris.StatusOK, iris.Map{"results": result})
+	for _, user := range result {
+		bucket.Results = append(bucket.Results, user)
+	}
+
+	bucket.Meta.Total = total
+
+	ctx.Next()
 }
