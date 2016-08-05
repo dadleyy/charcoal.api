@@ -7,9 +7,9 @@ import "github.com/golang/glog"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/asaskevich/govalidator"
 
-import "github.com/meritoss/meritoss.api/api"
-import "github.com/meritoss/meritoss.api/api/models"
-import "github.com/meritoss/meritoss.api/api/middleware"
+import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/api/middleware"
 
 type Updates map[string]interface{}
 

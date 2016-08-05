@@ -1,6 +1,6 @@
 package api
 
-import "github.com/meritoss/meritoss.api/api/db"
+import "github.com/sizethree/meritoss.api/api/db"
 
 type Runtime struct {
 	DB db.Client

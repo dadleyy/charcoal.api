@@ -5,9 +5,9 @@ import "strconv"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/meritoss/meritoss.api/api"
-import "github.com/meritoss/meritoss.api/api/dal"
-import "github.com/meritoss/meritoss.api/api/middleware"
+import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/api/dal"
+import "github.com/sizethree/meritoss.api/api/middleware"
 
 
 func Update(ctx *iris.Context) {

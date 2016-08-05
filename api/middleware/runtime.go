@@ -1,8 +1,8 @@
 package middleware
 
 import "github.com/kataras/iris"
-import "github.com/meritoss/meritoss.api/api"
-import "github.com/meritoss/meritoss.api/api/db"
+import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/api/db"
 
 // runtime
 //
