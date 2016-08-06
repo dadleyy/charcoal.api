@@ -7,6 +7,7 @@ import _ "github.com/joho/godotenv/autoload"
 
 import "github.com/sizethree/meritoss.api/api/middleware"
 import "github.com/sizethree/meritoss.api/api/routes/users"
+import "github.com/sizethree/meritoss.api/api/routes/oauth"
 
 
 func main() {
@@ -15,6 +16,8 @@ func main() {
 	iris.UseFunc(middleware.Logger)
 	iris.UseFunc(middleware.Runtime)
 	iris.UseFunc(middleware.JsonAPI)
+
+	iris.Get("/oauth/github", oauth.Github)
 
 	iris.Get("/users", middleware.Blueprints, users.Index)
 	iris.Post("/users", users.Create)
