@@ -7,6 +7,7 @@ import "github.com/kataras/iris"
 
 import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/dal"
+import "github.com/sizethree/meritoss.api/api/models"
 import "github.com/sizethree/meritoss.api/api/middleware"
 
 
@@ -36,6 +37,19 @@ func Update(ctx *iris.Context) {
 		ctx.Next()
 		return
 	}
+
+	var user models.User
+	head := runtime.DB.Where("ID = ?", userid).Find(&user)
+
+	if head.Error != nil {
+		glog.Errorf("failed getting user user: %s\n", head.Error.Error())
+		bucket.Errors = append(bucket.Errors, head.Error)
+		ctx.Next()
+		return
+	}
+
+	bucket.Results = append(bucket.Results, user)
+	bucket.Meta.Total = 1
 
 	ctx.Next()
 }

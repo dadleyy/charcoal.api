@@ -83,8 +83,8 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 					return errors.New("unable to hash password")
 				}
 
-				head = head.Update(key, hashed)
-				continue
+				// cast our hashed byte array to a string and update the stringval
+				stringval = string(hashed)
 			}
 
 			if key == "email" && !validEmail(runtime, stringval, user) {
@@ -92,6 +92,8 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 				return errors.New("invalid email")
 			}
 
+			// at this point we've validated the value as either a password, email or name. apply the
+			// update to the database and continue onto the next key/value
 			head = head.Update(key, stringval)
 		}
 	}
