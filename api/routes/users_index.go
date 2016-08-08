@@ -1,28 +1,35 @@
 package routes
 
+import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
 import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/dal"
-import "github.com/sizethree/meritoss.api/api/middleware"
 
-func FindUsers(ctx *iris.Context) {
-	runtime, _ := ctx.Get("runtime").(api.Runtime)
-	bucket, _ := ctx.Get("jsonapi").(*middleware.Bucket)
-	blueprint, _ := ctx.Get("blueprint").(*api.Blueprint)
+func FindUsers(context *iris.Context) {
+	runtime, ok := context.Get("runtime").(*api.Runtime)
 
-	result, total, err := dal.FindUser(&runtime, blueprint)
+	if !ok {
+		glog.Error("bad runtime")
+		context.Panic()
+		context.StopExecution()
+		return
+	}
+
+	blueprint, _ := context.Get("blueprint").(*api.Blueprint)
+
+	result, total, err := dal.FindUser(&runtime.DB, blueprint)
 
 	if err != nil {
-		bucket.Errors = append(bucket.Errors, err)
+		runtime.Errors = append(runtime.Errors, err)
 		return
 	}
 
 	for _, user := range result {
-		bucket.Results = append(bucket.Results, user)
+		runtime.Results = append(runtime.Results, user)
 	}
 
-	bucket.Meta.Total = total
+	runtime.Meta.Total = total
 
-	ctx.Next()
+	context.Next()
 }

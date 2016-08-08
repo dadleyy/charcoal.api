@@ -6,14 +6,18 @@ import "crypto/rand"
 import "encoding/hex"
 import "github.com/golang/glog"
 
-import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/api/db"
 import "github.com/sizethree/meritoss.api/api/models"
 
 type ClientFacade struct {
 	Name string
 }
 
-func CreateClient(runtime *api.Runtime, facade *ClientFacade) (models.Client, error) {
+// CreateClient
+//
+// given a database connection and a client facade, creates and returns a new client
+// object, otherwise returns a non-nill error
+func CreateClient(dbclient *db.Client, facade *ClientFacade) (models.Client, error) {
 	var client models.Client
 
 	name := strings.TrimSpace(facade.Name)
@@ -38,7 +42,7 @@ func CreateClient(runtime *api.Runtime, facade *ClientFacade) (models.Client, er
 		ClientID: hex.EncodeToString(tokenbuffer),
 	}
 
-	if e := runtime.DB.Save(&client).Error; e != nil {
+	if e := dbclient.Save(&client).Error; e != nil {
 		glog.Errorf("unable to save client: %s\n", e.Error())
 		return client, e
 	}

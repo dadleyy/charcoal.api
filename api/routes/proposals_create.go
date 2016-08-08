@@ -6,31 +6,34 @@ import "github.com/kataras/iris"
 
 import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/dal"
-import "github.com/sizethree/meritoss.api/api/middleware"
 
-func CreateProposal(ctx *iris.Context) {
-	runtime, _ := ctx.Get("runtime").(api.Runtime)
-	bucket, _ := ctx.Get("jsonapi").(*middleware.Bucket)
+func CreateProposal(context *iris.Context) {
+	runtime, ok := context.Get("runtime").(*api.Runtime)
+
+	if !ok {
+		glog.Error("bad runtime found while finding clients")
+		context.Panic()
+		context.StopExecution()
+		return
+	}
 
 	var target dal.ProposalFacade
 
-	if err := ctx.ReadJSON(&target); err != nil {
-		bucket.Errors = append(bucket.Errors, errors.New("invalid json data for user"))
+	if err := context.ReadJSON(&target); err != nil {
+		runtime.Errors = append(runtime.Errors, errors.New("invalid json data for user"))
 		return
 	}
 
-	target.ID = 0
-
-	proposal, err := dal.CreateProposal(&runtime, &target);
+	proposal, err := dal.CreateProposal(&runtime.DB, &target);
 
 	if err != nil {
-		bucket.Errors = append(bucket.Errors, err)
+		runtime.Errors = append(runtime.Errors, err)
 		return
 	}
 
-	bucket.Results = append(bucket.Results, proposal)
-	bucket.Meta.Total = 1
+	runtime.Results = append(runtime.Results, proposal)
+	runtime.Meta.Total = 1
 
 	glog.Infof("created proposal %d\n", proposal.ID)
-	ctx.Next()
+	context.Next()
 }

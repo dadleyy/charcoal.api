@@ -10,12 +10,13 @@ import "golang.org/x/crypto/bcrypt"
 import "github.com/asaskevich/govalidator"
 
 import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/api/db"
 import "github.com/sizethree/meritoss.api/api/models"
 
-type Updates map[string]interface{}
-
 type UserFacade struct {
-	*models.User
+	Name string
+	Email string
+	Password string
 }
 
 func hash(password string) ([]byte, error) {
@@ -23,10 +24,10 @@ func hash(password string) ([]byte, error) {
 }
 
 // validEmail
-func validEmail(runtime *api.Runtime, target string, user models.User) bool {
+func validEmail(client *db.Client, target string, user models.User) bool {
 	var existing models.User
 
-	result := runtime.DB.Where("email = ?", target).Find(&existing)
+	result := client.Where("email = ?", target).Find(&existing)
 
 	if missing := result.RecordNotFound(); !missing && user.ID != existing.ID {
 		return false
@@ -35,15 +36,16 @@ func validEmail(runtime *api.Runtime, target string, user models.User) bool {
 	return govalidator.IsEmail(target)
 }
 
-
 // FindUser
-func FindUser(runtime *api.Runtime, blueprint *api.Blueprint) ([]models.User, int, error) {
+// 
+// given a database client and a blueprint, returns an array of models, an integer representing
+// the total count of users matched by the blueprint and optionally an error
+func FindUser(client *db.Client, blueprint *api.Blueprint) ([]models.User, int, error) {
 	var users []models.User
-	var total int
 
-	head := blueprint.Apply(runtime)
+	total, e := blueprint.Apply(&users, client)
 
-	if e := head.Find(&users).Count(&total).Error; e != nil {
+	if e != nil {
 		glog.Errorf("error in FindUser: %s\n", e.Error())
 		return users, -1, e
 	}
@@ -52,10 +54,12 @@ func FindUser(runtime *api.Runtime, blueprint *api.Blueprint) ([]models.User, in
 }
 
 // UpdateUser
-func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
+//
+// given a database client, this function attempts to load in
+func UpdateUser(client *db.Client, updates *Updates, userid int) error {
 	var user models.User
 
-	head := runtime.DB.Where("ID = ?", userid).Find(&user)
+	head := client.Where("ID = ?", userid).Find(&user)
 
 	for key, value := range *updates {
 		key = strings.ToLower(strings.TrimSpace(key))
@@ -83,7 +87,7 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 				stringval = string(hashed)
 			}
 
-			if key == "email" && !validEmail(runtime, stringval, user) {
+			if key == "email" && !validEmail(client, stringval, user) {
 				glog.Errorf("attempted to update an email to invalud value on user %d\n", user.ID)
 				return errors.New("invalid email")
 			}
@@ -102,15 +106,15 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 	return nil
 }
 
-func AuthorizeClient(runtime *api.Runtime, userid uint, clientid uint) error {
+func AuthorizeClient(dbclient *db.Client, userid uint, clientid uint) error {
 	var client models.Client
 	var user models.User
 
-	if result := runtime.DB.Where("ID = ?", userid).First(&user); result.RecordNotFound() || result.Error != nil {
+	if result := dbclient.Where("ID = ?", userid).First(&user); result.RecordNotFound() || result.Error != nil {
 		return result.Error
 	}
 
-	if result := runtime.DB.Where("ID = ?", clientid).First(&client); result.RecordNotFound() || result.Error != nil {
+	if result := dbclient.Where("ID = ?", clientid).First(&client); result.RecordNotFound() || result.Error != nil {
 		return result.Error
 	}
 
@@ -128,7 +132,7 @@ func AuthorizeClient(runtime *api.Runtime, userid uint, clientid uint) error {
 		Token: hex.EncodeToString(tokenbuffer),
 	}
 
-	if e := runtime.DB.Save(&newtoken).Error; e != nil {
+	if e := dbclient.Save(&newtoken).Error; e != nil {
 		return e
 	}
 
@@ -138,7 +142,7 @@ func AuthorizeClient(runtime *api.Runtime, userid uint, clientid uint) error {
 }
 
 // CreateUser
-func CreateUser(runtime *api.Runtime, facade *UserFacade) (models.User, error) {
+func CreateUser(client *db.Client, facade *UserFacade) (models.User, error) {
 	var user models.User
 
 	if len(facade.Name) < 2 {
@@ -153,7 +157,7 @@ func CreateUser(runtime *api.Runtime, facade *UserFacade) (models.User, error) {
 		return user, errors.New("passwords must be at least 6 characters long")
 	}
 
-	if valid := validEmail(runtime, facade.Email, user); !valid {
+	if valid := validEmail(client, facade.Email, user); !valid {
 		return user, errors.New(fmt.Sprintf("invalid email: %s", facade.Email))
 	}
 
@@ -169,11 +173,11 @@ func CreateUser(runtime *api.Runtime, facade *UserFacade) (models.User, error) {
 		Password: string(hashed),
 	}
 
-	if err := runtime.DB.Save(&user).Error; err != nil {
+	if err := client.Save(&user).Error; err != nil {
 		return user, err
 	}
 
-	if err = AuthorizeClient(runtime, user.ID, 1); err != nil {
+	if err = AuthorizeClient(client, user.ID, 1); err != nil {
 		return user, err
 	}
 

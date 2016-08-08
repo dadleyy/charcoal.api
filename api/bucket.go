@@ -1,7 +1,6 @@
-package middleware
+package api
 
 import "time"
-
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
@@ -62,11 +61,4 @@ func (b *Bucket) Render(ctx *iris.Context) {
 	}
 
 	ctx.JSON(status, json)
-}
-
-func JsonAPI(ctx *iris.Context) {
-	bucket := Bucket{}
-	ctx.Set("jsonapi", &bucket)
-	defer bucket.Render(ctx)
-	ctx.Next()
 }

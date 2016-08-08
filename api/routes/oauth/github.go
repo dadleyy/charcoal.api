@@ -10,14 +10,13 @@ import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
 import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/middleware"
 
 const token_url string = "https://github.com/login/oauth/access_token"
 
 type OauthResponse map[string]string
 
 func Github(ctx *iris.Context) {
-	bucket, _ := ctx.Get("jsonapi").(*middleware.Bucket)
+	bucket, _ := ctx.Get("jsonapi").(*api.Bucket)
 	runtime, _ := ctx.Get("runtime").(api.Runtime)
 	code := ctx.URLParam("code")
 

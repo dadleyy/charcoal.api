@@ -10,7 +10,7 @@ import "github.com/sizethree/meritoss.api/api/db"
 // each request so that the handler can access things like the orm by retreiving the 
 // value from the context: 
 //
-// runtime, ok := ctx.Get("runtime").(api.Runtime)
+// runtime, ok := context.Get("runtime").(api.Runtime)
 // 
 // where api.Runtime is a struct that could look like:
 //
@@ -20,22 +20,26 @@ import "github.com/sizethree/meritoss.api/api/db"
 // 
 // In this example, we're using the "github.com/jinzhu/gorm" package to handle db
 // related communication and modeling.
-func Runtime(ctx *iris.Context) {
+func Runtime(context *iris.Context) {
+	var runtime api.Runtime
+
 	// attempt to connect to the mysql database
 	client, err := db.Get()
 
 	// if there was an issue opening the connection, send a 500 error
 	if err != nil {
-		ctx.Panic()
+		context.Panic()
 		return
 	}
 
+	runtime = api.Runtime{Bucket: &api.Bucket{}, DB: client}
+
 	// after the all middleware has finished, be sure to close our db connection
-	defer client.Close()
+	defer runtime.Finish(context)
 
 	// inject our runtime into the user context for this request
-	ctx.Set("runtime", api.Runtime{client})
+	context.Set("runtime", &runtime)
 
 	// move on now that it is exposed
-	ctx.Next()
+	context.Next()
 }

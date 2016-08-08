@@ -4,20 +4,24 @@ import "errors"
 import "github.com/golang/glog"
 
 import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/api/db"
 import "github.com/sizethree/meritoss.api/api/models"
 
 type ProposalFacade struct {
-	*models.Proposal
+	Summary string
+	Content string
 	Author uint
 }
 
-func FindProposals(runtime *api.Runtime, blueprint* api.Blueprint) ([]models.Proposal, int, error) {
+// FindProposals
+// 
+// given a database client and a blueprint, returns the list of appro
+func FindProposals(client *db.Client, blueprint* api.Blueprint) ([]models.Proposal, int, error) {
 	var proposals []models.Proposal
-	var total int
 
-	head := blueprint.Apply(runtime)
+	total, e := blueprint.Apply(&proposals, client)
 
-	if e := head.Find(&proposals).Count(&total).Error; e != nil {
+	if e != nil {
 		glog.Errorf("errror %s\n", e.Error())
 		return proposals, -1, e
 	}
@@ -25,11 +29,15 @@ func FindProposals(runtime *api.Runtime, blueprint* api.Blueprint) ([]models.Pro
 	return proposals, total, nil
 }
 
-func CreateProposal(runtime *api.Runtime, facade *ProposalFacade) (models.Proposal, error) {
+
+// CreateProposal
+//
+// given a client and a proposal facade, attempts to create a single proposal
+func CreateProposal(client *db.Client, facade *ProposalFacade) (models.Proposal, error) {
 	var author models.User
 	var proposal models.Proposal
 
-	head := runtime.DB.Where("ID = ?", facade.Author).Find(&author)
+	head := client.Where("ID = ?", facade.Author).Find(&author)
 
 	if e := head.Error; e != nil {
 		glog.Errorf("error when finding author %d, %s\n", facade.Author, e.Error())
@@ -47,7 +55,7 @@ func CreateProposal(runtime *api.Runtime, facade *ProposalFacade) (models.Propos
 		Content: facade.Content,
 	}
 
-	if err := runtime.DB.Set("gorm:save_associations", false).Save(&proposal).Error; err != nil {
+	if err := client.Set("gorm:save_associations", false).Save(&proposal).Error; err != nil {
 		glog.Errorf("unable to associate proposal with author: %s\n", err.Error())
 		return proposal, err
 	}

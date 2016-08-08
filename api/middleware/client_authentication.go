@@ -33,10 +33,17 @@ func ClientAuthentication(context *iris.Context) {
 		return
 	}
 
-	runtime, _ := context.Get("runtime").(api.Runtime)
+	runtime, ok := context.Get("runtime").(*api.Runtime)
+
+	if !ok {
+		glog.Error("bad runtime found while looking up auth header")
+		context.Panic()
+		context.StopExecution()
+		return
+	}
+
 	var token models.ClientToken
 	var client models.Client
-	// var user models.User
 
 	if e := runtime.DB.Where("token = ?", parts[0]).First(&token).Error; e != nil {
 		glog.Infof("(client auth) unable to find token by %s, moving on\n", parts[0])
@@ -56,7 +63,12 @@ func ClientAuthentication(context *iris.Context) {
 		return
 	}
 
-	glog.Infof("found token with client %d and user %d\n", token.Client, token.User)
+	if e := runtime.DB.Where("ID = ?", token.User).First(&runtime.User).Error; e != nil {
+		glog.Infof("(client auth) unable to find user %d\n", token.User)
+		context.Next()
+		return
+	}
 
+	glog.Infof("found user %s\n", runtime.User.Email)
 	context.Next()
 }
