@@ -3,6 +3,8 @@ package dal
 import "fmt"
 import "errors"
 import "strings"
+import "crypto/rand"
+import "encoding/hex"
 import "github.com/golang/glog"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/asaskevich/govalidator"
@@ -100,6 +102,40 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 	return nil
 }
 
+func AuthorizeClient(runtime *api.Runtime, userid uint, clientid uint) error {
+	var client models.Client
+	var user models.User
+
+	if result := runtime.DB.Where("ID = ?", userid).First(&user); result.RecordNotFound() || result.Error != nil {
+		return result.Error
+	}
+
+	if result := runtime.DB.Where("ID = ?", clientid).First(&client); result.RecordNotFound() || result.Error != nil {
+		return result.Error
+	}
+
+	// generate a random token buffer of 20 character length (10 bytes * 2 hex characters per byte)
+	tokenbuffer := make([]byte, 10)
+	_, err := rand.Read(tokenbuffer)
+
+	if err != nil {
+		return err
+	}
+
+	newtoken := models.ClientToken{
+		Client: client.ID,
+		User: user.ID,
+		Token: hex.EncodeToString(tokenbuffer),
+	}
+
+	if e := runtime.DB.Save(&newtoken).Error; e != nil {
+		return e
+	}
+
+	glog.Infof("found user %d and client %d, generating token: %s\n", user.ID, client.ID, newtoken.Token)
+
+	return nil
+}
 
 // CreateUser
 func CreateUser(runtime *api.Runtime, facade *UserFacade) (models.User, error) {
@@ -134,6 +170,10 @@ func CreateUser(runtime *api.Runtime, facade *UserFacade) (models.User, error) {
 	}
 
 	if err := runtime.DB.Save(&user).Error; err != nil {
+		return user, err
+	}
+
+	if err = AuthorizeClient(runtime, user.ID, 1); err != nil {
 		return user, err
 	}
 

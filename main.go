@@ -19,12 +19,15 @@ func main() {
 
 	iris.Get("/oauth/github", oauth.Github)
 
-	iris.Get("/users", middleware.Blueprints, routes.FindUsers)
+	iris.Get("/users", middleware.ClientAuthentication, middleware.Blueprints, routes.FindUsers)
 	iris.Post("/users", routes.CreateUser)
-	iris.Patch("/users/:id", routes.UpdateUser)
+	iris.Patch("/users/:id", middleware.ClientAuthentication, routes.UpdateUser)
 
-	iris.Get("/proposals", middleware.Blueprints, routes.FindProposals)
-	iris.Post("/proposals", routes.CreateProposal)
+	iris.Get("/clients", middleware.ClientAuthentication, middleware.Blueprints, routes.FindClients)
+	iris.Post("/clients", middleware.ClientAuthentication, routes.CreateClient)
+
+	iris.Get("/proposals", middleware.ClientAuthentication, middleware.Blueprints, routes.FindProposals)
+	iris.Post("/proposals", middleware.ClientAuthentication, routes.CreateProposal)
 	// iris.Patch("/users/:id", users.Update)
 
 	iris.Listen(":8080")
