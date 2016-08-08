@@ -7,6 +7,7 @@ type User struct {
 	Name string
 	Email string
 	Password string
+	Proposals []Proposal `gorm:"ForeignKey:ID;"`
 }
 
 func (u User) ToJson() map[string]interface{} {

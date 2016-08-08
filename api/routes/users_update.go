@@ -1,4 +1,4 @@
-package users
+package routes
 
 import "errors"
 import "strconv"
@@ -11,7 +11,7 @@ import "github.com/sizethree/meritoss.api/api/models"
 import "github.com/sizethree/meritoss.api/api/middleware"
 
 
-func Update(ctx *iris.Context) {
+func UpdateUser(ctx *iris.Context) {
 	runtime, _ := ctx.Get("runtime").(api.Runtime)
 	bucket, _ := ctx.Get("jsonapi").(*middleware.Bucket)
 
@@ -38,6 +38,9 @@ func Update(ctx *iris.Context) {
 		return
 	}
 
+	// at this point we've completed our update of the user successfully. in order to 
+	// give the user useful information, find and add the user to the request's jsonapi
+	// bucket.
 	var user models.User
 	head := runtime.DB.Where("ID = ?", userid).Find(&user)
 

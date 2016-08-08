@@ -9,9 +9,12 @@ import "github.com/asaskevich/govalidator"
 
 import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/models"
-import "github.com/sizethree/meritoss.api/api/middleware"
 
 type Updates map[string]interface{}
+
+type UserFacade struct {
+	*models.User
+}
 
 func hash(password string) ([]byte, error) {
 	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
@@ -32,24 +35,15 @@ func validEmail(runtime *api.Runtime, target string, user models.User) bool {
 
 
 // FindUser
-func FindUser(runtime api.Runtime, blueprint middleware.Blueprint) ([]models.User, int, error) {
+func FindUser(runtime *api.Runtime, blueprint *api.Blueprint) ([]models.User, int, error) {
 	var users []models.User
 	var total int
 
-	limit, offset := blueprint.Limit, blueprint.Limit * blueprint.Page
+	head := blueprint.Apply(runtime)
 
-	head := runtime.DB.Begin().Limit(limit).Offset(offset)
-
-	for _, filter := range blueprint.Filters {
-		glog.Infof("adding filter \"%s\"\n", filter.Reduce())
-		head = head.Where(filter.Reduce())
-	}
-
-	result := head.Find(&users).Count(&total).Commit()
-
-	if result.Error != nil {
-		glog.Errorf("error in FindUser: %s\n", result.Error.Error())
-		return users, -1, result.Error
+	if e := head.Find(&users).Count(&total).Error; e != nil {
+		glog.Errorf("error in FindUser: %s\n", e.Error())
+		return users, -1, e
 	}
 
 	return users, total, nil
@@ -108,34 +102,40 @@ func UpdateUser(runtime *api.Runtime, updates *Updates, userid int) error {
 
 
 // CreateUser
-func CreateUser(runtime *api.Runtime, user *models.User) error {
-	if len(user.Name) < 2 {
-		return errors.New("invalid name")
+func CreateUser(runtime *api.Runtime, facade *UserFacade) (models.User, error) {
+	var user models.User
+
+	if len(facade.Name) < 2 {
+		return user, errors.New("invalid name")
 	}
 
-	if len(user.Email) < 2 {
-		return errors.New("invalid email")
+	if len(facade.Email) < 2 {
+		return user, errors.New("invalid email")
 	}
 
-	if len(user.Password) < 6 {
-		return errors.New("passwords must be at least 6 characters long")
+	if len(facade.Password) < 6 {
+		return user, errors.New("passwords must be at least 6 characters long")
 	}
 
-	if valid := validEmail(runtime, user.Email, *user); !valid {
-		return errors.New(fmt.Sprintf("invalid email: %s", user.Email))
+	if valid := validEmail(runtime, facade.Email, user); !valid {
+		return user, errors.New(fmt.Sprintf("invalid email: %s", facade.Email))
 	}
 
-	hashed, err := hash(user.Password)
+	hashed, err := hash(facade.Password)
 
 	if err != nil {
-		return err
+		return user, err
 	}
 
-	user.Password = string(hashed)
-
-	if err := runtime.DB.Save(user).Error; err != nil {
-		return err
+	user = models.User{
+		Email: facade.Email,
+		Name: facade.Name,
+		Password: string(hashed),
 	}
 
-	return nil
+	if err := runtime.DB.Save(&user).Error; err != nil {
+		return user, err
+	}
+
+	return user, nil
 }
