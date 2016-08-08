@@ -15,6 +15,7 @@ func FindProposals(context *iris.Context) {
 	result, total, err := dal.FindProposals(&runtime, blueprint)
 
 	if err != nil {
+		glog.Errorf("failed finding valid proposals: %s\n", err.Error())
 		bucket.Errors = append(bucket.Errors, err)
 		return
 	}
@@ -25,6 +26,5 @@ func FindProposals(context *iris.Context) {
 
 	bucket.Meta.Total = total
 
-	glog.Infof("searching for proposals\n")
 	context.Next()
 }
