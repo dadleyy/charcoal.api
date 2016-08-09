@@ -23,11 +23,13 @@ func main() {
 	iris.Patch("/users/:id", middleware.RequireAuth, routes.UpdateUser)
 
 	iris.Get("/clients", middleware.Blueprints, routes.FindClients)
-	iris.Post("/clients", routes.CreateClient)
+	iris.Post("/clients", middleware.RequireAuth, routes.CreateClient)
 
 	iris.Get("/proposals", middleware.Blueprints, routes.FindProposals)
 	iris.Post("/proposals", middleware.RequireAuth, routes.CreateProposal)
 	// iris.Patch("/users/:id", users.Update)
+
+	iris.Get("/clienttokens", middleware.RequireAuth, routes.FindClientTokens)
 
 	iris.Listen(":8080")
 }
