@@ -6,6 +6,7 @@ import "crypto/rand"
 import "encoding/hex"
 import "github.com/golang/glog"
 
+import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/db"
 import "github.com/sizethree/meritoss.api/api/models"
 
@@ -49,3 +50,20 @@ func CreateClient(dbclient *db.Client, facade *ClientFacade) (models.Client, err
 
 	return client, nil
 }
+
+// FindClient
+// 
+// given a database client and a blueprint, returns the list of appropriate clients
+func FindClients(dbclient *db.Client, blueprint* api.Blueprint) ([]models.Client, int, error) {
+	var clients []models.Client
+
+	total, e := blueprint.Apply(&clients, dbclient)
+
+	if e != nil {
+		glog.Errorf("errror applying clients blueprint %s\n", e.Error())
+		return clients, -1, e
+	}
+
+	return clients, total, nil
+}
+

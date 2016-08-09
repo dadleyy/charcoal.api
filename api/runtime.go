@@ -8,6 +8,7 @@ type Runtime struct {
 	*Bucket
 	DB db.Client
 	User models.User
+	Client models.Client
 }
 
 func (runtime *Runtime) Finish(context *iris.Context) {

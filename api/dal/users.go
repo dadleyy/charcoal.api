@@ -3,8 +3,6 @@ package dal
 import "fmt"
 import "errors"
 import "strings"
-import "crypto/rand"
-import "encoding/hex"
 import "github.com/golang/glog"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/asaskevich/govalidator"
@@ -119,18 +117,13 @@ func AuthorizeClient(dbclient *db.Client, userid uint, clientid uint) error {
 	}
 
 	// generate a random token buffer of 20 character length (10 bytes * 2 hex characters per byte)
-	tokenbuffer := make([]byte, 10)
-	_, err := rand.Read(tokenbuffer)
+	tokenstr, err := RandomToken(10)
 
 	if err != nil {
 		return err
 	}
 
-	newtoken := models.ClientToken{
-		Client: client.ID,
-		User: user.ID,
-		Token: hex.EncodeToString(tokenbuffer),
-	}
+	newtoken := models.ClientToken{Client: client.ID, User: user.ID, Token: tokenstr}
 
 	if e := dbclient.Save(&newtoken).Error; e != nil {
 		return e

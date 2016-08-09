@@ -21,6 +21,7 @@ func CreateUser(context *iris.Context) {
 
 	if err := context.ReadJSON(&target); err != nil {
 		runtime.Errors = append(runtime.Errors, errors.New("invalid json data for user"))
+		context.Next()
 		return
 	}
 

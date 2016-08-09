@@ -18,16 +18,17 @@ func FindClients(context *iris.Context) {
 
 	blueprint, _ := context.Get("blueprint").(*api.Blueprint)
 
-	result, total, err := dal.FindProposals(&runtime.DB, blueprint)
+	result, total, err := dal.FindClients(&runtime.DB, blueprint)
 
 	if err != nil {
-		glog.Errorf("failed finding valid proposals: %s\n", err.Error())
+		glog.Errorf("failed finding valid clients: %s\n", err.Error())
 		runtime.Errors = append(runtime.Errors, err)
+		context.Next()
 		return
 	}
 
-	for _, proposal := range result {
-		runtime.Results = append(runtime.Results, proposal)
+	for _, client := range result {
+		runtime.Results = append(runtime.Results, client)
 	}
 
 	runtime.Meta.Total = total

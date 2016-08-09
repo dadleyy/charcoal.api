@@ -22,7 +22,7 @@ func FindProposals(client *db.Client, blueprint* api.Blueprint) ([]models.Propos
 	total, e := blueprint.Apply(&proposals, client)
 
 	if e != nil {
-		glog.Errorf("errror %s\n", e.Error())
+		glog.Errorf("errror applying proposal blueprint %s\n", e.Error())
 		return proposals, -1, e
 	}
 

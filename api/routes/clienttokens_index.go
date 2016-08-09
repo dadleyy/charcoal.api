@@ -17,7 +17,7 @@ func FindClientTokens(context *iris.Context) {
 	}
 
 	user := runtime.User.ID
-	glog.Infof("looking up client tokens for user %d\n")
+	glog.Infof("looking up client tokens for user %d\n", user)
 
 	results, total, e := dal.ClientTokensForUser(&runtime.DB, user)
 

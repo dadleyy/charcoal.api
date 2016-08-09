@@ -30,6 +30,7 @@ func main() {
 	// iris.Patch("/users/:id", users.Update)
 
 	iris.Get("/clienttokens", middleware.RequireAuth, routes.FindClientTokens)
+	iris.Post("/clienttokens", middleware.RequireAuth, routes.CreateClientToken)
 
 	iris.Listen(":8080")
 }

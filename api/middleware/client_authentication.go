@@ -43,7 +43,6 @@ func ClientAuthentication(context *iris.Context) {
 	}
 
 	var token models.ClientToken
-	var client models.Client
 
 	if e := runtime.DB.Where("token = ?", parts[0]).First(&token).Error; e != nil {
 		glog.Infof("(client auth) unable to find token by %s, moving on\n", parts[0])
@@ -51,11 +50,13 @@ func ClientAuthentication(context *iris.Context) {
 		return
 	}
 
-	if e := runtime.DB.Where("client_id = ?", parts[1]).First(&client).Error; e != nil {
+	if e := runtime.DB.Where("client_id = ?", parts[1]).First(&runtime.Client).Error; e != nil {
 		glog.Infof("(client auth) unable to find client by %s, moving on\n", parts[1])
 		context.Next()
 		return
 	}
+
+	client := runtime.Client
 
 	if client.ID != token.Client {
 		glog.Infof("(client auth) mismatch: client was %d but token#%d points at %d\n", client.ID, token.ID, token.Client)
