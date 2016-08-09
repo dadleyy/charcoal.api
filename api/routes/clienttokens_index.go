@@ -23,15 +23,17 @@ func FindClientTokens(context *iris.Context) {
 
 	if e != nil {
 		glog.Errorf("failed looking up tokens: %s\n", e.Error())
-		runtime.Errors = append(runtime.Errors, e)
+		runtime.Error(e)
 		context.Next()
 		return
 	}
 
+	// add each token to the result
 	for _, token := range results {
-		runtime.Results = append(runtime.Results, token)
+		runtime.Result(token)
 	}
-	runtime.Meta.Total = total
+
+	runtime.Meta("total", total)
 
 	context.Next()
 }

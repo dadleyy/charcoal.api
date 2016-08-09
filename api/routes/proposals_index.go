@@ -22,15 +22,14 @@ func FindProposals(context *iris.Context) {
 
 	if err != nil {
 		glog.Errorf("failed finding valid proposals: %s\n", err.Error())
-		runtime.Errors = append(runtime.Errors, err)
+		runtime.Error(err)
 		return
 	}
 
 	for _, proposal := range result {
-		runtime.Results = append(runtime.Results, proposal)
+		runtime.Result(proposal)
 	}
 
-	runtime.Meta.Total = total
-
+	runtime.Meta("total", total)
 	context.Next()
 }

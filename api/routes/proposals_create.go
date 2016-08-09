@@ -20,19 +20,19 @@ func CreateProposal(context *iris.Context) {
 	var target dal.ProposalFacade
 
 	if err := context.ReadJSON(&target); err != nil {
-		runtime.Errors = append(runtime.Errors, errors.New("invalid json data for user"))
+		runtime.Error(errors.New("invalid json data for user"))
 		return
 	}
 
-	proposal, err := dal.CreateProposal(&runtime.DB, &target);
+	proposal, err := dal.CreateProposal(&runtime.DB, &target)
 
 	if err != nil {
-		runtime.Errors = append(runtime.Errors, err)
+		runtime.Error(err)
 		return
 	}
 
-	runtime.Results = append(runtime.Results, proposal)
-	runtime.Meta.Total = 1
+	runtime.Result(proposal)
+	runtime.Meta("total", 1)
 
 	glog.Infof("created proposal %d\n", proposal.ID)
 	context.Next()

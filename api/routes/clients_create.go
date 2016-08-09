@@ -26,22 +26,26 @@ func CreateClient(context *iris.Context) {
 	// prepare our facade for iris to load into
 	var target dal.ClientFacade
 
+	// if we fail at reading json into the structure prescribed by the data access layer,
+	// add the error we receive to our runtime and continue on.
 	if e := context.ReadJSON(&target); e != nil {
-		runtime.Errors = append(runtime.Errors, e)
+		runtime.Error(e)
+		context.Next()
 		return
 	}
 
 	// attempt to create the new client
 	client, e := dal.CreateClient(&runtime.DB, &target);
 
+	// if we fail at creating a client - move on
 	if e != nil {
-		runtime.Errors = append(runtime.Errors, e)
+		runtime.Error(e)
+		context.Next()
 		return
 	}
 
-	runtime.Results = append(runtime.Results, client)
-	runtime.Meta.Total = 1
-
+	runtime.Result(client)
+	runtime.Meta("total", 1)
 	glog.Infof("created client %d\n", client.ID)
 	context.Next()
 }

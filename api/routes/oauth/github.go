@@ -15,16 +15,22 @@ const token_url string = "https://github.com/login/oauth/access_token"
 
 type OauthResponse map[string]string
 
-func Github(ctx *iris.Context) {
-	bucket, _ := ctx.Get("jsonapi").(*api.Bucket)
-	runtime, _ := ctx.Get("runtime").(api.Runtime)
-	code := ctx.URLParam("code")
+func Github(context *iris.Context) {
+	runtime, ok := context.Get("runtime").(*api.Runtime)
+	code := context.URLParam("code")
+
+	if !ok {
+		glog.Error("bad runtime")
+		context.Panic()
+		context.StopExecution()
+		return
+	}
 
 	client_id, secret := os.Getenv("GITHUB_CLIENT_ID"), os.Getenv("GITHUB_CLIENT_SECRET")
 
 	if len(code) < 2 {
-		bucket.Errors = append(bucket.Errors, errors.New("invalid user id"))
-		ctx.Next()
+		runtime.Error(errors.New("invalid user id"))
+		context.Next()
 		return
 	}
 
@@ -44,8 +50,8 @@ func Github(ctx *iris.Context) {
 	request.Header.Set("Accept", "application/json")
 
 	if err != nil {
-		bucket.Errors = append(bucket.Errors, errors.New("problem connecting to github"))
-		ctx.Next()
+		runtime.Error(errors.New("problem connecting to github"))
+		context.Next()
 		return
 	}
 
@@ -57,15 +63,15 @@ func Github(ctx *iris.Context) {
 
 	if err != nil {
 		apierr := errors.New(fmt.Sprintf("bad github api response: %s", err.Error()))
-		bucket.Errors = append(bucket.Errors, apierr)
-		ctx.Next()
+		runtime.Error(apierr)
+		context.Next()
 		return
 	}
 
 	if response.Status != "200 OK" {
 		apierr := errors.New(fmt.Sprintf("bad github api response: %s"))
-		bucket.Errors = append(bucket.Errors, apierr)
-		ctx.Next()
+		runtime.Error(apierr)
+		context.Next()
 		return
 	}
 
@@ -76,8 +82,8 @@ func Github(ctx *iris.Context) {
 	err = json.NewDecoder(response.Body).Decode(&rdata)
 
 	if err != nil {
-		bucket.Errors = append(bucket.Errors, errors.New("fuck!"))
-		ctx.Next()
+		runtime.Error(errors.New("invalid json data"))
+		context.Next()
 		return
 	}
 

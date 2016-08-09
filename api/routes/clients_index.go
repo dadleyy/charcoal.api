@@ -22,16 +22,19 @@ func FindClients(context *iris.Context) {
 
 	if err != nil {
 		glog.Errorf("failed finding valid clients: %s\n", err.Error())
-		runtime.Errors = append(runtime.Errors, err)
+		runtime.Error(err)
 		context.Next()
 		return
 	}
 
+	// add each client to our results
 	for _, client := range result {
-		runtime.Results = append(runtime.Results, client)
+		runtime.Result(client)
 	}
 
-	runtime.Meta.Total = total
+	// add the total we received
+	runtime.Meta("total", total)
 
+	// move on
 	context.Next()
 }

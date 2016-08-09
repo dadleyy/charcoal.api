@@ -20,7 +20,7 @@ func CreateUser(context *iris.Context) {
 	var target dal.UserFacade
 
 	if err := context.ReadJSON(&target); err != nil {
-		runtime.Errors = append(runtime.Errors, errors.New("invalid json data for user"))
+		runtime.Error(errors.New("invalid json data for user"))
 		context.Next()
 		return
 	}
@@ -28,12 +28,12 @@ func CreateUser(context *iris.Context) {
 	user, err := dal.CreateUser(&runtime.DB, &target)
 
 	if err != nil {
-		runtime.Errors = append(runtime.Errors, err)
+		runtime.Error(err)
 		return
 	}
 
-	runtime.Results = append(runtime.Results, user)
-	runtime.Meta.Total = 1
+	runtime.Result(user)
+	runtime.Meta("total", 1)
 
 	glog.Infof("created user %d\n", user.ID)
 	context.Next()

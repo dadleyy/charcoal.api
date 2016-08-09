@@ -20,13 +20,13 @@ func CreateClientToken(context *iris.Context) {
 	var target dal.ClientTokenFacade
 
 	if err := context.ReadJSON(&target); err != nil {
-		runtime.Errors = append(runtime.Errors, errors.New("invalid json data for user"))
+		runtime.Error(errors.New("invalid json data for user"))
 		context.Next()
 		return
 	}
 
 	if target.User != runtime.User.ID {
-		runtime.Errors = append(runtime.Errors, errors.New("unauthorized user"))
+		runtime.Error(errors.New("unauthorized user"))
 		context.Next()
 		return
 	}
@@ -38,11 +38,11 @@ func CreateClientToken(context *iris.Context) {
 	result, e := dal.CreateClientToken(&runtime.DB, &target)
 
 	if e != nil {
-		runtime.Errors = append(runtime.Errors, e)
+		runtime.Error(e)
 		context.Next()
 		return
 	}
 
-	runtime.Results = append(runtime.Results, result)
+	runtime.Result(result)
 	context.Next()
 }

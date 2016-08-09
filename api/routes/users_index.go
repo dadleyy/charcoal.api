@@ -21,15 +21,14 @@ func FindUsers(context *iris.Context) {
 	result, total, err := dal.FindUser(&runtime.DB, blueprint)
 
 	if err != nil {
-		runtime.Errors = append(runtime.Errors, err)
+		runtime.Error(err)
 		return
 	}
 
 	for _, user := range result {
-		runtime.Results = append(runtime.Results, user)
+		runtime.Result(user)
 	}
 
-	runtime.Meta.Total = total
-
+	runtime.Meta("total", total)
 	context.Next()
 }

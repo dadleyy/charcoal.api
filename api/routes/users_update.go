@@ -28,13 +28,13 @@ func UpdateUser(context *iris.Context) {
 	userid, err := strconv.Atoi(context.Param("id"))
 
 	if err != nil {
-		runtime.Errors = append(runtime.Errors, errors.New("invalid user id"))
+		runtime.Error(errors.New("invalid user id"))
 		context.Next()
 		return
 	}
 
 	if userid != int(runtime.User.ID) {
-		runtime.Errors = append(runtime.Errors, errors.New("attempt to update different user"))
+		runtime.Error(errors.New("attempt to update different user"))
 		context.Next()
 		return
 	}
@@ -42,14 +42,14 @@ func UpdateUser(context *iris.Context) {
 	var updates dal.Updates
 
 	if err := context.ReadJSON(&updates); err != nil {
-		runtime.Errors = append(runtime.Errors, errors.New("invalid json data for user"))
+		runtime.Error(errors.New("invalid json data for user"))
 		context.Next()
 		return
 	}
 
 	if e := dal.UpdateUser(&runtime.DB, &updates, userid); e != nil {
 		glog.Errorf("unable to update user: %s\n", e.Error())
-		runtime.Errors = append(runtime.Errors, e)
+		runtime.Error(e)
 		context.Next()
 		return
 	}
@@ -57,12 +57,12 @@ func UpdateUser(context *iris.Context) {
 	var user models.User
 
 	if e := runtime.DB.Where("id = ?", userid).First(&user).Error; e != nil {
-		runtime.Errors = append(runtime.Errors, e)
+		runtime.Error(e)
 		context.Next()
 		return
 	}
 
-	runtime.Results = append(runtime.Results, user)
+	runtime.Result(user)
 
 	context.Next()
 }

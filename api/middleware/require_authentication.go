@@ -10,8 +10,8 @@ func RequireAuth(context *iris.Context) {
 
 	if !ok || runtime.User.ID < 1 {
 		glog.Errorf("[authentication error] user authentication required for %s", context.Path())
-		runtime.Errors = append(runtime.Errors, errors.New("not found"))
-		runtime.Finish(context)
+		runtime.Error(errors.New("not found"))
+		runtime.Render(context)
 		return
 	}
 
