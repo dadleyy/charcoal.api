@@ -4,8 +4,8 @@ import "errors"
 import "crypto/rand"
 import "encoding/hex"
 
-import "github.com/sizethree/meritoss.api/api/db"
-import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/db"
+import "github.com/sizethree/meritoss.api/models"
 
 type ClientTokenFacade struct {
 	Client uint

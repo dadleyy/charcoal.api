@@ -3,11 +3,11 @@ package routes
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/dal"
+import "github.com/sizethree/meritoss.api/dal"
+import "github.com/sizethree/meritoss.api/middleware"
 
 func FindProposals(context *iris.Context) {
-	runtime, ok := context.Get("runtime").(*api.Runtime)
+	runtime, ok := context.Get("runtime").(*middleware.Runtime)
 
 	if !ok {
 		glog.Error("bad runtime")
@@ -16,7 +16,7 @@ func FindProposals(context *iris.Context) {
 		return
 	}
 
-	blueprint, _ := context.Get("blueprint").(*api.Blueprint)
+	blueprint, _ := context.Get("blueprint").(*middleware.Blueprint)
 
 	result, total, err := dal.FindProposals(&runtime.DB, blueprint)
 

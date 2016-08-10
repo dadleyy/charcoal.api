@@ -3,8 +3,8 @@ package routes
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/dal"
+import "github.com/sizethree/meritoss.api/dal"
+import "github.com/sizethree/meritoss.api/middleware"
 
 
 // CreateClient
@@ -14,7 +14,7 @@ import "github.com/sizethree/meritoss.api/api/dal"
 // will attempt to load in json data as a `ClientFacade` and use the `dal.CreateClient`
 // function to persist that information to the clients table
 func CreateClient(context *iris.Context) {
-	runtime, ok := context.Get("runtime").(*api.Runtime)
+	runtime, ok := context.Get("runtime").(*middleware.Runtime)
 
 	if !ok {
 		glog.Error("bad runtime")

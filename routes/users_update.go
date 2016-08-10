@@ -5,9 +5,9 @@ import "strconv"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/dal"
-import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/dal"
+import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/meritoss.api/middleware"
 
 // UpdateUser
 //
@@ -16,7 +16,7 @@ import "github.com/sizethree/meritoss.api/api/models"
 // attempts to load in a set of updates per data access layer definition and use the
 // dal.UpdateUser function to apply those updates to the persistance
 func UpdateUser(context *iris.Context) {
-	runtime, ok := context.Get("runtime").(*api.Runtime)
+	runtime, ok := context.Get("runtime").(*middleware.Runtime)
 
 	if !ok {
 		glog.Error("bad runtime")

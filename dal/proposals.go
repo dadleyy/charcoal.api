@@ -3,9 +3,9 @@ package dal
 import "errors"
 import "github.com/golang/glog"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/db"
-import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/db"
+import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/meritoss.api/middleware"
 
 type ProposalFacade struct {
 	Summary string
@@ -16,7 +16,7 @@ type ProposalFacade struct {
 // FindProposals
 // 
 // given a database client and a blueprint, returns the list of appro
-func FindProposals(client *db.Client, blueprint* api.Blueprint) ([]models.Proposal, int, error) {
+func FindProposals(client *db.Client, blueprint* middleware.Blueprint) ([]models.Proposal, int, error) {
 	var proposals []models.Proposal
 
 	total, e := blueprint.Apply(&proposals, client)

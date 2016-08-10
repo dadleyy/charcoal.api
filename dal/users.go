@@ -7,9 +7,9 @@ import "github.com/golang/glog"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/asaskevich/govalidator"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/db"
-import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/db"
+import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/meritoss.api/middleware"
 
 type UserFacade struct {
 	Name string
@@ -39,7 +39,7 @@ func validEmail(client *db.Client, target string, user models.User) bool {
 // 
 // given a database client and a blueprint, returns an array of models, an integer representing
 // the total count of users matched by the blueprint and optionally an error
-func FindUser(client *db.Client, blueprint *api.Blueprint) ([]models.User, int, error) {
+func FindUser(client *db.Client, blueprint *middleware.Blueprint) ([]models.User, int, error) {
 	var users []models.User
 
 	total, e := blueprint.Apply(&users, client)

@@ -7,13 +7,44 @@ import "strings"
 import "strconv"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/db"
 
 const (
 	DEFAULT_PAGE = 0
 	DEFAULT_LIMIT = 100
 	MAX_LIMIT = 300
 )
+
+type Filter struct {
+	Key string
+	Operation string
+	Value string
+}
+
+type Blueprint struct {
+	Page int
+	Limit int
+	Filters []Filter
+}
+
+func (f *Filter) Reduce() string {
+	return fmt.Sprintf("%s %s %s", f.Key, f.Operation, f.Value)
+}
+
+func (print *Blueprint) Apply(out interface{}, client *db.Client) (int, error) {
+	var total int
+	limit, offset := print.Limit, print.Limit * print.Page
+
+	result := client.Begin().Limit(limit).Offset(offset)
+
+	for _, filter := range print.Filters {
+		result = result.Where(filter.Reduce())
+	}
+
+	e := result.Find(out).Count(&total).Error
+
+	return total, e
+}
 
 // intOr
 // 
@@ -28,11 +59,11 @@ func intOr(value string, backup int) int {
 	return ival
 }
 
-func parseFilter(key string, value string) (api.Filter, error) {
+func parseFilter(key string, value string) (Filter, error) {
 	fieldkey := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(key, "filter["), "]"))
 
 	if len(fieldkey) < 1 {
-		return api.Filter{}, errors.New("BAD_FILTER_KEY")
+		return Filter{}, errors.New("BAD_FILTER_KEY")
 	}
 
 	// to find out the value and the operation, we need to split the string by "(" since 
@@ -40,7 +71,7 @@ func parseFilter(key string, value string) (api.Filter, error) {
 	parts := strings.Split(value, "(")
 
 	if len(parts) != 2 || strings.HasSuffix(parts[1], ")") != true {
-		return api.Filter{}, errors.New("BAD_OPERATION")
+		return Filter{}, errors.New("BAD_OPERATION")
 	}
 
 	fieldval, fieldop := strings.TrimSuffix(parts[1], ")"), ""
@@ -68,19 +99,19 @@ func parseFilter(key string, value string) (api.Filter, error) {
 	// make sure that our filter's value exists and our operation is either 2 or 3 characters
 	// long; these are the lengths of our operations
 	if lv, lo := len(fieldval), len(fieldop); lv < 1 || lo < 1 {
-		return api.Filter{}, errors.New("BAD_OPERATION_PARTS")
+		return Filter{}, errors.New("BAD_OPERATION_PARTS")
 	}
 
-	return api.Filter{fieldkey, fieldop, fieldval}, nil
+	return Filter{fieldkey, fieldop, fieldval}, nil
 }
 
-// Blueprints
+// InjectBlueprint
 // 
 // given an iris context, this function will register a user value `blueprints` into 
 // it that is a `Blueprint` struct defined above. these are useful in resource lookup 
 // routes (e.g GET /users)
-func Blueprints(ctx *iris.Context) {
-	blueprint := api.Blueprint{Page: DEFAULT_PAGE, Limit: DEFAULT_LIMIT}
+func InjectBlueprint(ctx *iris.Context) {
+	blueprint := Blueprint{Page: DEFAULT_PAGE, Limit: DEFAULT_LIMIT}
 
 	for key, value := range ctx.URLParams() {
 		cleankey := strings.TrimSpace(strings.ToLower(key))

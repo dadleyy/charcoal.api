@@ -6,9 +6,9 @@ import "crypto/rand"
 import "encoding/hex"
 import "github.com/golang/glog"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/db"
-import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/db"
+import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/meritoss.api/middleware"
 
 type ClientFacade struct {
 	Name string
@@ -54,7 +54,7 @@ func CreateClient(dbclient *db.Client, facade *ClientFacade) (models.Client, err
 // FindClient
 // 
 // given a database client and a blueprint, returns the list of appropriate clients
-func FindClients(dbclient *db.Client, blueprint* api.Blueprint) ([]models.Client, int, error) {
+func FindClients(dbclient *db.Client, blueprint* middleware.Blueprint) ([]models.Client, int, error) {
 	var clients []models.Client
 
 	total, e := blueprint.Apply(&clients, dbclient)

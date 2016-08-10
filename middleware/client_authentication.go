@@ -6,11 +6,10 @@ import "encoding/base64"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/api"
-import "github.com/sizethree/meritoss.api/api/models"
+import "github.com/sizethree/meritoss.api/models"
 
 func ClientAuthentication(context *iris.Context) {
-	runtime, ok := context.Get("runtime").(*api.Runtime)
+	runtime, ok := context.Get("runtime").(*Runtime)
 
 	if !ok {
 		glog.Error("bad runtime found while looking up auth header")

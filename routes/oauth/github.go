@@ -9,14 +9,14 @@ import "encoding/json"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/api"
+import "github.com/sizethree/meritoss.api/middleware"
 
 const token_url string = "https://github.com/login/oauth/access_token"
 
 type OauthResponse map[string]string
 
 func Github(context *iris.Context) {
-	runtime, ok := context.Get("runtime").(*api.Runtime)
+	runtime, ok := context.Get("runtime").(*middleware.Runtime)
 	code := context.URLParam("code")
 
 	if !ok {
