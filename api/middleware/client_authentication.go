@@ -1,5 +1,6 @@
 package middleware
 
+import "errors"
 import "strings"
 import "encoding/base64"
 import "github.com/golang/glog"
@@ -9,7 +10,30 @@ import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/models"
 
 func ClientAuthentication(context *iris.Context) {
+	runtime, ok := context.Get("runtime").(*api.Runtime)
+
+	if !ok {
+		glog.Error("bad runtime found while looking up auth header")
+		context.Panic()
+		context.StopExecution()
+		return
+	}
+
 	header := context.RequestHeader("X-CLIENT-AUTH")
+	clientid := context.RequestHeader("X-CLIENT-ID")
+
+	if len(clientid) < 1 {
+		glog.Infof("(client auth) unacceptable request - no client id found")
+		runtime.Render(context)
+		return
+	}
+
+	if e := runtime.DB.Where("client_id = ?", clientid).First(&runtime.Client).Error; e != nil {
+		glog.Infof("(client auth) unacceptable request - bad client id")
+		runtime.Error(errors.New("invalid client id"))
+		runtime.Render(context)
+		return
+	}
 
 	if len(header) < 1 {
 		glog.Infof("no client header found, continuing\n");
@@ -33,25 +57,10 @@ func ClientAuthentication(context *iris.Context) {
 		return
 	}
 
-	runtime, ok := context.Get("runtime").(*api.Runtime)
-
-	if !ok {
-		glog.Error("bad runtime found while looking up auth header")
-		context.Panic()
-		context.StopExecution()
-		return
-	}
-
 	var token models.ClientToken
 
 	if e := runtime.DB.Where("token = ?", parts[0]).First(&token).Error; e != nil {
 		glog.Infof("(client auth) unable to find token by %s, moving on\n", parts[0])
-		context.Next()
-		return
-	}
-
-	if e := runtime.DB.Where("client_id = ?", parts[1]).First(&runtime.Client).Error; e != nil {
-		glog.Infof("(client auth) unable to find client by %s, moving on\n", parts[1])
 		context.Next()
 		return
 	}

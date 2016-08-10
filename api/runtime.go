@@ -31,7 +31,7 @@ type bucketJson struct {
 //
 // Defines a context that is created for every request that is available to each handler.
 type Runtime struct {
-	Bucket ResponseBucket
+	Bucket *ResponseBucket
 	DB db.Client
 	User models.User
 	Client models.Client
@@ -68,7 +68,7 @@ func (runt *Runtime) Render(context *iris.Context) {
 
 	json := bucketJson{
 		Status: "OK",
-		bucketAlias: (*bucketAlias)(&runt.Bucket),
+		bucketAlias: (*bucketAlias)(runt.Bucket),
 	}
 
 	// start of with an OK status

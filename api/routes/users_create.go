@@ -6,6 +6,7 @@ import "github.com/kataras/iris"
 
 import "github.com/sizethree/meritoss.api/api"
 import "github.com/sizethree/meritoss.api/api/dal"
+import "github.com/sizethree/meritoss.api/api/models"
 
 func CreateUser(context *iris.Context) {
 	runtime, ok := context.Get("runtime").(*api.Runtime)
@@ -17,7 +18,7 @@ func CreateUser(context *iris.Context) {
 		return
 	}
 
-	var target dal.UserFacade
+	target := dal.UserFacade{ReferrerClient: runtime.Client}
 
 	if err := context.ReadJSON(&target); err != nil {
 		runtime.Error(errors.New("invalid json data for user"))
@@ -32,8 +33,15 @@ func CreateUser(context *iris.Context) {
 		return
 	}
 
+	// now that the user is created, try finding the client token that is
+	// associated with the client that created the user and the user that
+	// was created so that we can add that to the meta data.
+	var token models.ClientToken
+	runtime.DB.Where("client = ? AND user = ?", runtime.Client.ID, user.ID).First(&token)
+
 	runtime.Result(user)
 	runtime.Meta("total", 1)
+	runtime.Meta("token", token.Token)
 
 	glog.Infof("created user %d\n", user.ID)
 	context.Next()

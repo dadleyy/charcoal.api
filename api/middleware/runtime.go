@@ -35,7 +35,7 @@ func Runtime(context *iris.Context) {
 
 	// initialize the runtime struct with the gorm client; all other properties will
 	// be default initialized
-	runtime = api.Runtime{DB: client}
+	runtime = api.Runtime{Bucket: &api.ResponseBucket{Meta: make(api.MetaData)}, DB: client}
 
 	// after the all middleware has completed, let the runtime do whatever it needs to
 	// do in order to complete this request.

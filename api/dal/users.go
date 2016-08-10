@@ -15,6 +15,7 @@ type UserFacade struct {
 	Name string
 	Email string
 	Password string
+	ReferrerClient models.Client
 }
 
 func hash(password string) ([]byte, error) {
@@ -170,7 +171,7 @@ func CreateUser(client *db.Client, facade *UserFacade) (models.User, error) {
 		return user, err
 	}
 
-	if err = AuthorizeClient(client, user.ID, 1); err != nil {
+	if err = AuthorizeClient(client, user.ID, facade.ReferrerClient.ID); err != nil {
 		return user, err
 	}
 
