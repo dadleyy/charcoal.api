@@ -23,6 +23,7 @@ func ClientAuthentication(context *iris.Context) {
 
 	if len(clientid) < 1 {
 		glog.Infof("(client auth) unacceptable request - no client id found")
+		runtime.Error(errors.New("missing client id"))
 		runtime.Render(context)
 		return
 	}

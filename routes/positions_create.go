@@ -7,7 +7,7 @@ import "github.com/kataras/iris"
 import "github.com/sizethree/meritoss.api/dal"
 import "github.com/sizethree/meritoss.api/middleware"
 
-func CreateProposal(context *iris.Context) {
+func CreatePosition(context *iris.Context) {
 	runtime, ok := context.Get("runtime").(*middleware.Runtime)
 
 	if !ok {
@@ -17,7 +17,7 @@ func CreateProposal(context *iris.Context) {
 		return
 	}
 
-	var target dal.ProposalFacade
+	var target dal.PositionFacade
 
 	if err := context.ReadJSON(&target); err != nil {
 		runtime.Error(errors.New("invalid json data for user"))
@@ -25,20 +25,18 @@ func CreateProposal(context *iris.Context) {
 		return
 	}
 
-	// force the current user to be the author of the proposal
-	target.Author = runtime.User.ID
+	target.User = runtime.User.ID
 
-	proposal, err := dal.CreateProposal(&runtime.DB, &target)
+	position, err := dal.CreatePosition(&runtime.DB, &target)
 
 	if err != nil {
+		glog.Errorf("unable to create position: %s", err.Error())
 		runtime.Error(err)
 		context.Next()
 		return
 	}
 
-	runtime.Result(proposal)
-	runtime.Meta("total", 1)
-
-	glog.Infof("created proposal %d\n", proposal.ID)
+	runtime.Result(position)
+	glog.Infof("creating position!")
 	context.Next()
 }

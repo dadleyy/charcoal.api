@@ -29,6 +29,9 @@ func main() {
 	iris.Post("/proposals", middleware.RequireAuth, routes.CreateProposal)
 	// iris.Patch("/users/:id", users.Update)
 
+	iris.Get("/positions", middleware.InjectBlueprint, routes.FindPositions)
+	iris.Post("/positions", middleware.RequireAuth, middleware.InjectBlueprint, routes.CreatePosition)
+
 	iris.Get("/clienttokens", middleware.RequireAuth, routes.FindClientTokens)
 	iris.Post("/clienttokens", middleware.RequireAuth, routes.CreateClientToken)
 
