@@ -9,12 +9,43 @@ type PositionFacade struct {
 	User uint
 	Location int
 	Proposal uint
+	ID uint
 }
 
 func (pos *PositionFacade) IsDuplicate(dbclient *db.Client) bool {
 	var existing models.Position
 	result := dbclient.Where("user =  ? AND proposal = ?", pos.User, pos.Proposal).First(&existing)
 	return result.RecordNotFound() != true
+}
+
+func (pos *PositionFacade) ValidLocation() bool {
+	return (pos.Location <= 1) && (pos.Location >= -1)
+}
+
+func UpdatePosition(dbclient *db.Client, facade *PositionFacade) error {
+	user, id, location := facade.User, facade.ID, facade.Location
+
+	// make sure we have a real position
+	var position models.Position
+	if e := dbclient.Where("id = ?", id).First(&position).Error; e != nil {
+		return nil
+	}
+
+	// make sure the position matches that of the user doing the update
+	if position.User != user {
+		return errors.New("not allowed")
+	}
+
+	if !facade.ValidLocation() {
+		return errors.New("invalid location")
+	}
+
+	position.Location = location
+	if e := dbclient.Save(&position).Error; e != nil {
+		return e
+	}
+
+	return nil
 }
 
 func CreatePosition(dbclient *db.Client, facade *PositionFacade) (models.Position, error) {
@@ -29,7 +60,7 @@ func CreatePosition(dbclient *db.Client, facade *PositionFacade) (models.Positio
 		return position, errors.New("invalid proposal id")
 	}
 
-	if location < -1 || location > 1 {
+	if facade.ValidLocation() == false {
 		return position, errors.New("invalid location")
 	}
 
