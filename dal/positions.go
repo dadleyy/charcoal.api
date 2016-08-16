@@ -63,11 +63,7 @@ func UpdatePosition(dbclient *db.Client, facade *PositionFacade) error {
 		User: position.User,
 	}
 
-	if e := dbclient.Save(&history).Error; e != nil {
-		return e
-	}
-
-	return nil
+	return dbclient.Save(&history).Error
 }
 
 func CreatePosition(dbclient *db.Client, facade *PositionFacade) (models.Position, error) {
