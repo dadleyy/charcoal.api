@@ -1,6 +1,7 @@
 package dal
 
 import "errors"
+import "github.com/golang/glog"
 
 import "github.com/sizethree/meritoss.api/db"
 import "github.com/sizethree/meritoss.api/models"
@@ -40,8 +41,29 @@ func UpdatePosition(dbclient *db.Client, facade *PositionFacade) error {
 		return errors.New("invalid location")
 	}
 
+	// save the position's current location
+	previous := position.Location
+
+	// if the last location is the same as this one, avoid doing anything
+	if previous == location {
+		return nil
+	}
+
+	// update the positon's location
 	position.Location = location
 	if e := dbclient.Save(&position).Error; e != nil {
+		return e
+	}
+
+	glog.Infof("position changed successfully, creating position history item")
+	history := models.PositionHistory{
+		Before: previous,
+		After: location,
+		Proposal: position.Proposal,
+		User: position.User,
+	}
+
+	if e := dbclient.Save(&history).Error; e != nil {
 		return e
 	}
 
