@@ -27,7 +27,7 @@ func UpdatePosition(context *iris.Context) {
 		return
 	}
 
-	var updates struct{Location int}
+	var updates map[string]int
 
 	if err := context.ReadJSON(&updates); err != nil {
 		runtime.Error(errors.New("invalid json data for position"))
@@ -35,9 +35,17 @@ func UpdatePosition(context *iris.Context) {
 		return
 	}
 
+	location, ok := updates["location"]
+
+	if !ok {
+		runtime.Error(errors.New("missing location value"))
+		context.Next()
+		return
+	}
+
 	facade := dal.PositionFacade{
 		User: runtime.User.ID,
-		Location: updates.Location,
+		Location: location,
 		ID: uint(position_id),
 	}
 
@@ -47,6 +55,6 @@ func UpdatePosition(context *iris.Context) {
 		return
 	}
 
-	glog.Infof("updating position %d to %d", position_id, updates.Location)
+	glog.Infof("updating position %d to %d", position_id, location)
 	context.Next()
 }

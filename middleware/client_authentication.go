@@ -8,6 +8,7 @@ import "github.com/kataras/iris"
 
 import "github.com/sizethree/meritoss.api/models"
 
+//
 func ClientAuthentication(context *iris.Context) {
 	runtime, ok := context.Get("runtime").(*Runtime)
 
