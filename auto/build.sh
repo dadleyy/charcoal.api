@@ -97,7 +97,7 @@ function install {
   cp -r * $DEST
 
   printf "Installing dependencies...\n"
-  go get -u github.com/kardianos/govendor
+  go get -v -u github.com/kardianos/govendor
 
   local GOVEND=$(which govendor)
 
