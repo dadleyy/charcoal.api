@@ -63,6 +63,7 @@ func UpdateUser(context *iris.Context) {
 	}
 
 	runtime.Result(user)
+	runtime.Meta("total", 1)
 
 	context.Next()
 }

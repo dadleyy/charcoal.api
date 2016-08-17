@@ -27,7 +27,7 @@ func main() {
 
 	iris.Get("/proposals", middleware.InjectBlueprint, routes.FindProposals)
 	iris.Post("/proposals", middleware.RequireAuth, routes.CreateProposal)
-	// iris.Patch("/users/:id", users.Update)
+	iris.Patch("/proposals/:id", middleware.RequireAuth, routes.UpdateProposal)
 
 	iris.Get("/positions", middleware.InjectBlueprint, routes.FindPositions)
 	iris.Post("/positions", middleware.RequireAuth, routes.CreatePosition)

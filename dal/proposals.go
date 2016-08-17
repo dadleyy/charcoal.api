@@ -25,6 +25,46 @@ func (prop *ProposalFacade) Error() error {
 	return nil
 }
 
+func UpdateProposal(dbclient *db.Client, updates *Updates, id int, user uint) error {
+	var proposal models.Proposal
+
+	head := dbclient.Where("id = ?", id).First(&proposal)
+
+	if head.Error != nil {
+		return head.Error
+	}
+
+	if user != proposal.Author {
+		return errors.New("unauthorized")
+	}
+
+	summary, ok := (*updates)["summary"]
+
+	if ok {
+		str, ok := summary.(string)
+
+		if !ok || len(str) < 1 {
+			return errors.New("invalid summary value")
+		}
+
+		head = head.Update("summary", str)
+	}
+
+	content, ok := (*updates)["content"]
+
+	if ok {
+		str, ok := content.(string)
+
+		if !ok || len(str) < 1 {
+			return errors.New("invalid content value")
+		}
+
+		head = head.Update("content", str)
+	}
+
+	return nil
+}
+
 // FindProposals
 // 
 // given a database client and a blueprint, returns the list of appro
