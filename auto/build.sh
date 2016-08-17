@@ -80,6 +80,7 @@ function upgrade {
   export PATH=$GOPATH:$PATH
 
   printf "Installed go v$VERSION into $INSTALL_DIR, new environment information:\n"
+  environment
   rm -rf $DOWNLOAD_DIR
 }
 
@@ -98,6 +99,13 @@ function install {
   printf "Installing dependencies...\n"
   go get -u github.com/kardianos/govendor
 
+  local GOVEND=$(which govendor)
+
+  if [ -z $GOVEND ]; then
+    printf "Unable to find govendor executable!"
+    exit 1
+  fi
+
   cd $DEST
   govendor sync +e,^local
   go build -o $EXE
@@ -110,6 +118,7 @@ function install {
 
 if [ -z $1 ]; then
   upgrade
+  printf "\n ------- \n"
   install
 else
   echo $1
