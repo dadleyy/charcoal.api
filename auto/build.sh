@@ -96,8 +96,11 @@ function install {
   mkdir -p $DEST
   cp -r * $DEST
 
-  printf "Installing dependencies...\n"
+  printf "Installing govendor to install dependencies...\n"
   go get -v -u github.com/kardianos/govendor
+
+  printf "Contents of $GOPATH:\n"
+  ls -lah $GOPATH
 
   local GOVEND=$(which govendor)
 
