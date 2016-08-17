@@ -32,8 +32,15 @@ function upgrade {
   local VERSION=1.6.3
   local DISTRO=$(distro)
 
+  local MERITOSS_ROOT=$(echo $HOME)/.meritoss
+
+  if [ ! -z $APP_RUNTIME_DIR ]; then
+    printf "Using app runtime dir: $APP_RUNTIME_DIR\n"
+    MERITOSS_ROOT=$APP_RUNTIME_DIR
+  fi
+
   local DOWNLOAD_DIR=./build/go-$VERSION
-  local INSTALL_DIR=$(echo $HOME)/.meritoss/go-$VERSION
+  local INSTALL_DIR=$MERITOSS_ROOT/go-$VERSION
 
   if [ -z $DISTRO ]; then
     printf "Unable to determine distro file from \"`uname`\", exiting.\n"
