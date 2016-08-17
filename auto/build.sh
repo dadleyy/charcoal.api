@@ -6,6 +6,10 @@ function distro {
   local UNAME=`uname`
   local DISTRO=""
 
+  if [ $UNAME == "Linux" ]; then
+    DISTRO="linux-amd64"
+  fi
+
   if [ $UNAME == "Darwin" ]; then
     DISTRO="darwin-amd64"
   fi
