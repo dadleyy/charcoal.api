@@ -1,5 +1,7 @@
 package main
 
+import "os"
+import "fmt"
 import "flag"
 import "github.com/kataras/iris"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
@@ -11,6 +13,11 @@ import "github.com/sizethree/meritoss.api/routes/oauth"
 
 func main() {
 	flag.Parse()
+	port := os.Getenv("PORT")
+
+	if len(port) < 1  {
+		port = "8080"
+	}
 
 	iris.UseFunc(middleware.Logger)
 	iris.UseFunc(middleware.InjectRuntime)
@@ -36,5 +43,5 @@ func main() {
 	iris.Get("/clienttokens", middleware.RequireAuth, routes.FindClientTokens)
 	iris.Post("/clienttokens", middleware.RequireAuth, routes.CreateClientToken)
 
-	iris.Listen(":8080")
+	iris.Listen(fmt.Sprintf(":%s", port))
 }
