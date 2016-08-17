@@ -34,7 +34,7 @@ function upgrade {
   local INSTALL_DIR=$(echo $HOME)/.meritoss/go-$VERSION
 
   if [ -z $DISTRO ]; then
-    printf "Unable to determine distro file, exiting.\n"
+    printf "Unable to determine distro file from \"`uname`\", exiting.\n"
     exit 1
   fi
 
