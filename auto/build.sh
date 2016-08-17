@@ -71,13 +71,13 @@ function upgrade {
   mkdir -p $INSTALL_DIR
 
   # prepare our root and bin path env vars
-  export GOROOT=$INSTALL_DIR
-  export GOPATH=$GOROOT/bin
+  export GOROOT=$INSTALL_DIR/go-source
+  export GOPATH=$INSTALL_DIR/go-home
 
   rm -rf $GOROOT
   mv $DOWNLOAD_DIR/go $GOROOT
 
-  export PATH=$GOPATH:$PATH
+  export PATH=$GOROOT/bin:$GOPATH/bin:$PATH
 
   printf "Installed go v$VERSION into $INSTALL_DIR, new environment information:\n"
   environment
