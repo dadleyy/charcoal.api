@@ -17,14 +17,15 @@ function distro {
   echo $DISTRO
 }
 
-function version {
+function environment {
   cat <<EOM
 Golang Environment:
-  go version: $(go version)
-  GOPATH:     $GOPATH
-  GOROOT:     $GOROOT
-  PATH:       $PATH
-  HOME:       $HOME
+  go version:  $(go version)
+  GOPATH:      $GOPATH
+  GOROOT:      $GOROOT
+  PATH:        $PATH
+  HOME:        $HOME
+  RUNTIME_DIR: $APP_RUNTIME_DIR
 EOM
 }
 
@@ -48,7 +49,7 @@ function upgrade {
   fi
 
   # print our current version info
-  version
+  environment
 
   # generate the string that represents the artifact file
   local ARTIFACT=go$VERSION.$DISTRO.tar.gz
@@ -88,7 +89,7 @@ function install {
   local CWD=$(pwd)
 
   printf "Installing project into $DEST\n"
-  version
+  environment
 
   rm -rf $DEST
   mkdir -p $DEST
