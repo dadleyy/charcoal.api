@@ -6,9 +6,7 @@
 .env
 /env
 meritoss.api
-/vendor/github.com
-/vendor/golang.org
-/vendor/gopkg.in
+vendor/*/
 
 # Folders
 _obj
