@@ -13,6 +13,18 @@ type ProposalFacade struct {
 	Author uint
 }
 
+func (prop *ProposalFacade) Error() error {
+	if len(prop.Summary) < 1 {
+		return errors.New("proposal summaries cannot be empty")
+	}
+
+	if len(prop.Content) < 1 {
+		return errors.New("proposal content fields cannot be empty")
+	}
+
+	return nil
+}
+
 // FindProposals
 // 
 // given a database client and a blueprint, returns the list of appro
@@ -28,7 +40,6 @@ func FindProposals(client *db.Client, blueprint* middleware.Blueprint) ([]models
 
 	return proposals, total, nil
 }
-
 
 // CreateProposal
 //
@@ -47,6 +58,10 @@ func CreateProposal(client *db.Client, facade *ProposalFacade) (models.Proposal,
 	if head.RecordNotFound() {
 		glog.Errorf("missing or error when finding author %d\n", facade.Author)
 		return proposal, errors.New("bad author")
+	}
+
+	if e := facade.Error(); e != nil {
+		return proposal, facade.Error()
 	}
 
 	proposal = models.Proposal{
