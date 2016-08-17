@@ -23,6 +23,8 @@ Golang Environment:
   go version: $(go version)
   GOPATH:     $GOPATH
   GOROOT:     $GOROOT
+  PATH:       $PATH
+  HOME:       $HOME
 EOM
 }
 
