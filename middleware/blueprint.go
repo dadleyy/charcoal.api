@@ -7,7 +7,7 @@ import "strings"
 import "strconv"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/db"
+import "github.com/sizethree/miritos.api/db"
 
 const (
 	DEFAULT_PAGE = 0

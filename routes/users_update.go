@@ -5,9 +5,9 @@ import "strconv"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/dal"
-import "github.com/sizethree/meritoss.api/models"
-import "github.com/sizethree/meritoss.api/middleware"
+import "github.com/sizethree/miritos.api/dal"
+import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/middleware"
 
 // UpdateUser
 //

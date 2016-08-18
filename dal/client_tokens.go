@@ -4,8 +4,8 @@ import "errors"
 import "crypto/rand"
 import "encoding/hex"
 
-import "github.com/sizethree/meritoss.api/db"
-import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/models"
 
 type ClientTokenFacade struct {
 	Client uint
@@ -44,7 +44,7 @@ func CreateClientToken(dbclient *db.Client, facade *ClientTokenFacade) (models.C
 		return token, errors.New("invalid user")
 	}
 
-	// will eventually want to support "referrer" clients that can behave as the main meritoss client
+	// will eventually want to support "referrer" clients that can behave as the main miritos client
 	// but for now this is fine.
 	if facade.Referrer.ID != 1 {
 		return token, errors.New("unauthorized client")

@@ -7,9 +7,9 @@ import "github.com/golang/glog"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/asaskevich/govalidator"
 
-import "github.com/sizethree/meritoss.api/db"
-import "github.com/sizethree/meritoss.api/models"
-import "github.com/sizethree/meritoss.api/middleware"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/middleware"
 
 type UserFacade struct {
 	Name string

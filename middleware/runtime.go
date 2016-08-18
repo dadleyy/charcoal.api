@@ -3,8 +3,8 @@ package middleware
 import "time"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
-import "github.com/sizethree/meritoss.api/db"
-import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/models"
 
 type MetaData map[string]interface{}
 

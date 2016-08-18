@@ -33,7 +33,7 @@ function upgrade {
   local VERSION=1.6.3
   local DISTRO=$(distro)
 
-  local MERITOSS_ROOT=$(echo $HOME)/.meritoss
+  local MERITOSS_ROOT=$(echo $HOME)/.miritos
 
   if [ ! -z $APP_RUNTIME_DIR ]; then
     printf "Using app runtime dir: $APP_RUNTIME_DIR\n"
@@ -85,8 +85,8 @@ function upgrade {
 }
 
 function install {
-  local DEST=$GOROOT/src/github.com/sizethree/meritoss.api
-  local EXE=meritoss.api
+  local DEST=$GOROOT/src/github.com/sizethree/miritos.api
+  local EXE=miritos.api
   local CWD=$(pwd)
 
   printf "Installing project into $DEST\n"

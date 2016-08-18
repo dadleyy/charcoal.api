@@ -7,9 +7,9 @@ import "github.com/kataras/iris"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 import _ "github.com/joho/godotenv/autoload"
 
-import "github.com/sizethree/meritoss.api/routes"
-import "github.com/sizethree/meritoss.api/middleware"
-import "github.com/sizethree/meritoss.api/routes/oauth"
+import "github.com/sizethree/miritos.api/routes"
+import "github.com/sizethree/miritos.api/middleware"
+import "github.com/sizethree/miritos.api/routes/oauth"
 
 func main() {
 	flag.Parse()

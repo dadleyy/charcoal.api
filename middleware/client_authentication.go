@@ -6,7 +6,7 @@ import "encoding/base64"
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/miritos.api/models"
 
 //
 func ClientAuthentication(context *iris.Context) {

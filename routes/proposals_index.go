@@ -3,8 +3,8 @@ package routes
 import "github.com/golang/glog"
 import "github.com/kataras/iris"
 
-import "github.com/sizethree/meritoss.api/dal"
-import "github.com/sizethree/meritoss.api/middleware"
+import "github.com/sizethree/miritos.api/dal"
+import "github.com/sizethree/miritos.api/middleware"
 
 func FindProposals(context *iris.Context) {
 	runtime, ok := context.Get("runtime").(*middleware.Runtime)

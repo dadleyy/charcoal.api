@@ -3,9 +3,9 @@ package dal
 import "errors"
 import "github.com/golang/glog"
 
-import "github.com/sizethree/meritoss.api/db"
-import "github.com/sizethree/meritoss.api/models"
-import "github.com/sizethree/meritoss.api/middleware"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/middleware"
 
 type ProposalFacade struct {
 	Summary string

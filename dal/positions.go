@@ -3,8 +3,8 @@ package dal
 import "errors"
 import "github.com/golang/glog"
 
-import "github.com/sizethree/meritoss.api/db"
-import "github.com/sizethree/meritoss.api/models"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/models"
 
 type PositionFacade struct {
 	User uint

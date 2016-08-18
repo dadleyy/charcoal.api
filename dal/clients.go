@@ -6,9 +6,9 @@ import "crypto/rand"
 import "encoding/hex"
 import "github.com/golang/glog"
 
-import "github.com/sizethree/meritoss.api/db"
-import "github.com/sizethree/meritoss.api/models"
-import "github.com/sizethree/meritoss.api/middleware"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/middleware"
 
 type ClientFacade struct {
 	Name string

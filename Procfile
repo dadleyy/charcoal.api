@@ -1,1 +1,1 @@
-web: meritoss.api -logtostderr=true -stderrthreshold=INFO
+web: miritos.api -logtostderr=true -stderrthreshold=INFO
