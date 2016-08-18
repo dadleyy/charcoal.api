@@ -2,6 +2,17 @@
 
 set +x
 
+cat <<EOM
++
++
++ miritos api build.sh
++
++ downloads the latest version of golang, installs package
++ dependencies using the \"govendor\" tool, and builds the
++ miritos.api executable.
++ 
+EOM
+
 function distro {
   local UNAME=`uname`
   local DISTRO=""
@@ -97,10 +108,7 @@ function install {
   cp -r * $DEST
 
   printf "Installing govendor to install dependencies...\n"
-  go get -v -u github.com/kardianos/govendor
-
-  printf "Contents of $GOPATH:\n"
-  ls -lah $GOPATH
+  go get -u github.com/kardianos/govendor
 
   local GOVEND=$(which govendor)
 
