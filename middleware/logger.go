@@ -2,7 +2,7 @@ package middleware
 
 import "time"
 import "github.com/golang/glog"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 
 func Logger(ctx *iris.Context) {
 	start := time.Now()

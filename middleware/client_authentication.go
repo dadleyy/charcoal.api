@@ -4,7 +4,7 @@ import "errors"
 import "strings"
 import "encoding/base64"
 import "github.com/golang/glog"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 
 import "github.com/sizethree/miritos.api/models"
 

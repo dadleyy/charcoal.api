@@ -2,7 +2,7 @@ package middleware
 
 import "errors"
 import "github.com/golang/glog"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 
 func RequireAuth(context *iris.Context) {
 	runtime, ok := context.Get("runtime").(*Runtime)
