@@ -7,9 +7,7 @@ cat <<EOM
 +
 + miritos api build.sh
 +
-+ downloads the latest version of golang, installs package
-+ dependencies using the \"govendor\" tool, and builds the
-+ miritos.api executable.
++ downloads the latest version of golang, installs dependencies
 + 
 EOM
 
@@ -41,7 +39,7 @@ EOM
 }
 
 function upgrade {
-  local VERSION=1.6.3
+  local VERSION=1.7
   local DISTRO=$(distro)
 
   local MERITOSS_ROOT=$(echo $HOME)/.miritos
@@ -112,18 +110,8 @@ function install {
   mkdir -p $DEST
   cp -r * $DEST
 
-  printf "Installing govendor to install dependencies...\n"
-  go get -u github.com/kardianos/govendor
-
-  local GOVEND=$(which govendor)
-
-  if [ -z $GOVEND ]; then
-    printf "Unable to find govendor executable!"
-    exit 1
-  fi
-
   cd $DEST
-  govendor sync +all
+  go get -v ./...
   go build -o $EXE
   chmod +x $EXE
 
