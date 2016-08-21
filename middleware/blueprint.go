@@ -5,7 +5,7 @@ import "math"
 import "errors"
 import "strings"
 import "strconv"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 
 import "github.com/sizethree/miritos.api/db"
 

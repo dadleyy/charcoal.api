@@ -51,6 +51,11 @@ function upgrade {
     MERITOSS_ROOT=$APP_RUNTIME_DIR
   fi
 
+  if [ ! -z $APP_DEPLOY_DIR ]; then
+    printf "Using app deploy dir: $APP_DEPLOY_DIR\n"
+    MERITOSS_ROOT=$APP_DEPLOY_DIR
+  fi
+
   local DOWNLOAD_DIR=./build/go-$VERSION
   local INSTALL_DIR=$MERITOSS_ROOT/go-$VERSION
 
@@ -118,7 +123,7 @@ function install {
   fi
 
   cd $DEST
-  govendor sync +e,^local
+  govendor sync +all
   go build -o $EXE
   chmod +x $EXE
 

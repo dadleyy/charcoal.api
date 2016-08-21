@@ -7,7 +7,7 @@ import "errors"
 import "net/http"
 import "encoding/json"
 import "github.com/golang/glog"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 
 import "github.com/sizethree/miritos.api/middleware"
 

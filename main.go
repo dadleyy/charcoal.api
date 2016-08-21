@@ -3,7 +3,7 @@ package main
 import "os"
 import "fmt"
 import "flag"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 import _ "github.com/joho/godotenv/autoload"
 
@@ -15,7 +15,7 @@ func main() {
 	flag.Parse()
 	port := os.Getenv("PORT")
 
-	if len(port) < 1  {
+	if len(port) < 1 {
 		port = "8080"
 	}
 

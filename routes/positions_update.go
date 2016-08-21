@@ -3,7 +3,7 @@ package routes
 import "errors"
 import "strconv"
 import "github.com/golang/glog"
-import "github.com/kataras/iris"
+import "github.com/dadleyy/iris"
 
 import "github.com/sizethree/miritos.api/dal"
 import "github.com/sizethree/miritos.api/middleware"
