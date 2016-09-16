@@ -1,16 +1,11 @@
 package main
 
 import "os"
-import "fmt"
 import "flag"
-import "net/http"
 
-import "github.com/labstack/echo"
-import "github.com/labstack/echo/engine/standard"
-
-func index(context echo.Context) error {
-	return context.String(http.StatusOK, "Hello, World!\n")
-}
+import _ "github.com/joho/godotenv/autoload"
+import "github.com/sizethree/miritos.api/routes"
+import "github.com/sizethree/miritos.api/middleware"
 
 func main() {
 	flag.Parse()
@@ -20,9 +15,13 @@ func main() {
 		port = "8080"
 	}
 
-	server := echo.New()
+	server := Server()
 
-	server.Get("/", index)
+	server.Use(middleware.Inject)
 
-	server.Run(standard.New(fmt.Sprintf(":%s", port)))
+	server.GET("/system", routes.System)
+
+	server.Logger().Infof("starting server on port %s", port)
+
+	Run(server, port)
 }
