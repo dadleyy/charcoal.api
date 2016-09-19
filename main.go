@@ -21,6 +21,10 @@ func main() {
 
 	server.GET("/system", routes.System)
 
+	server.POST("/users", routes.CreateUser)
+	server.GET("/users", routes.FindUser)
+	server.PATCH("/users/:id", routes.UpdateUser)
+
 	server.Logger().Infof("starting server on port %s", port)
 
 	Run(server, port)
