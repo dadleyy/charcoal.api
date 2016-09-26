@@ -16,6 +16,33 @@ type Miritos struct {
 	Results ResultList
 }
 
+type Body map[string]string
+
+func (body *Body) String(key string) (string, bool) {
+	result, exists := (*body)[key]
+	return result, exists
+}
+
+func (body *Body) Int(key string) (int, bool) {
+	result, exists := (*body)[key]
+
+	if exists != true {
+		return -1, false
+	}
+
+	if value, err := strconv.Atoi(result); err == nil {
+		return value, true
+	}
+
+	return -1, false
+}
+
+func (runtime *Miritos) Body() (Body, error) {
+	body := make(Body)
+	err := runtime.Bind(&body)
+	return body, err
+}
+
 func (runtime *Miritos) Result(result Result) {
 	runtime.Results = append(runtime.Results, result)
 }
@@ -91,11 +118,17 @@ func (runtime *Miritos) Finish() error {
 		runtime.Meta["filters"] = filters
 	}
 
+	results := make([]interface{}, len(runtime.Results))
+
+	for i, result := range runtime.Results {
+		results[i] = result.Marshal()
+	}
+
 	response := struct {
 		Meta MetaData `json:"meta"`
 		Status string `json:"status"`
-		Results ResultList `json:"results"`
-	}{runtime.Meta, "SUCCESS", runtime.Results}
+		Results []interface{} `json:"results"`
+	}{runtime.Meta, "SUCCESS", results}
 
 	return runtime.JSON(http.StatusOK, response)
 }
