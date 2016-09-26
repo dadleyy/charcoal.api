@@ -25,6 +25,11 @@ func main() {
 	server.GET("/users", routes.FindUser)
 	server.PATCH("/users/:id", routes.UpdateUser)
 
+	server.POST("/photos", routes.CreatePhoto)
+	server.GET("/photos", routes.FindPhotos)
+	server.PATCH("/photos/:id", routes.UpdatePhoto)
+
+
 	server.Logger().Infof("starting server on port %s", port)
 
 	Run(server, port)
