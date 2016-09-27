@@ -1,9 +1,13 @@
 package routes
 
+import "fmt"
+import "errors"
 import "github.com/labstack/echo"
-
+import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
-import "github.com/sizethree/miritos.api/services"
+
+const MIN_PHOTO_LABEL_LENGTH int = 4
+const MIN_PHOTO_LABEL_MESSAGE string = "must provide a \"label\" at least %d characters long"
 
 func CreatePhoto(ectx echo.Context) error {
 	runtime, _ := ectx.(*context.Miritos)
@@ -11,29 +15,42 @@ func CreatePhoto(ectx echo.Context) error {
 	file, err := runtime.FormFile("photo")
 	label := runtime.FormValue("label")
 
+	if len(label) < MIN_PHOTO_LABEL_LENGTH {
+		message := fmt.Sprintf(MIN_PHOTO_LABEL_MESSAGE, MIN_PHOTO_LABEL_LENGTH)
+		return runtime.ErrorOut(errors.New(message))
+	}
+
+	runtime.Logger().Infof("creating photo \"%s\"", label)
+
 	if err != nil {
-		runtime.Error(err)
-		return nil
+		return runtime.ErrorOut(err)
 	}
 
 	source, err := file.Open()
 
 	if err != nil {
-		runtime.Error(err)
-		return nil
+		return runtime.ErrorOut(err)
 	}
 
-	result, err := services.UploadFile(source)
+	ormfile, err := runtime.PersistFile(source)
 
 	if err != nil {
-		runtime.Error(err)
-		return nil
+		return runtime.ErrorOut(err)
 	}
 
-	defer source.Close()
+	source.Close()
+	runtime.Logger().Infof("successfully saved file \"%s\", updating photo orm", ormfile.Key)
 
-	runtime.Logger().Infof("creating photo \"%s\"", label)
-	runtime.Result(&result)
+	photo := models.Photo{
+		Label: label,
+		File: ormfile.ID,
+	}
+
+	if err := runtime.DB.Create(&photo).Error; err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	runtime.Result(&photo)
 
 	return nil
 }

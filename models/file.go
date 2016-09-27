@@ -1,10 +1,10 @@
 package models
 
-import "github.com/jinzhu/gorm"
-
 type File struct {
-	gorm.Model
-	Key string `json:"key"`
+	Common
+	Key string
+	Status string
+	Mime string
 }
 
 func (file *File) Marshal() interface{} {

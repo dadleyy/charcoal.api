@@ -1,10 +1,9 @@
 package models
 
 import "time"
-import "github.com/jinzhu/gorm"
 
 type User struct {
-	gorm.Model
+	Common
 	Name string
 	Email string
 	Password string
@@ -14,8 +13,8 @@ type UserMarshal struct {
 	ID uint `json:"id"`
 	Name string `json:"name"`
 	Email string `json:"email"`
-	UpdatedAt time.Time `json:"updated"`
-	CreatedAt time.Time `json:"created"`
+	UpdatedAt time.Time `json:"updated_at"`
+	CreatedAt time.Time `json:"created_at"`
 }
 
 func (user *User) Marshal() interface{} {

@@ -18,6 +18,7 @@ func main() {
 	server := Server()
 
 	server.Use(middleware.Inject)
+	server.Use(middleware.ClientAuthentication)
 
 	server.GET("/system", routes.System)
 

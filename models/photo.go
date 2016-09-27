@@ -1,9 +1,9 @@
 package models
 
-import "github.com/jinzhu/gorm"
-
 type Photo struct {
-	gorm.Model
+	Common
+	Label string `json:"label"`
+	File uint `json:"file"`
 }
 
 func (photo *Photo) Marshal() interface{} {

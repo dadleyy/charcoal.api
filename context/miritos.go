@@ -5,6 +5,7 @@ import "strconv"
 import "strings"
 import "net/http"
 import "github.com/labstack/echo"
+import "github.com/sizethree/miritos.api/models"
 
 const DEFAULT_LIMIT int = 100
 
@@ -14,6 +15,7 @@ type Miritos struct {
 	Errors ErrorList
 	Meta MetaData
 	Results ResultList
+	FS FileSaver
 }
 
 func (runtime *Miritos) Body() (Body, error) {
@@ -30,8 +32,23 @@ func (runtime *Miritos) SetMeta(key string, value interface{}) {
 	runtime.Meta[key] = value
 }
 
-func (runtime *Miritos) Error(err error) {
+func (runtime *Miritos) ErrorOut(err error) error {
 	runtime.Errors = append(runtime.Errors, err)
+	return nil
+}
+
+func (runtime *Miritos) PersistFile(target File) (models.File, error) {
+	temp, err := runtime.FS.Upload(target)
+
+	if err != nil {
+		return temp, err
+	}
+
+	if err := runtime.DB.Create(&temp).Error; err != nil {
+		return temp, err
+	}
+
+	return temp, err
 }
 
 func (runtime *Miritos) Blueprint() Blueprint {

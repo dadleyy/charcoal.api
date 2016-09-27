@@ -1,9 +1,7 @@
 package models
 
-import "github.com/jinzhu/gorm"
-
 type Activity struct {
-	gorm.Model
+	Common
 }
 
 func (item *Activity) Marshal() interface{} {
