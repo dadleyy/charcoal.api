@@ -20,8 +20,6 @@ func CreatePhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(errors.New(message))
 	}
 
-	runtime.Logger().Infof("creating photo \"%s\"", label)
-
 	if err != nil {
 		return runtime.ErrorOut(err)
 	}

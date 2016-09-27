@@ -18,17 +18,21 @@ func main() {
 	server := Server()
 
 	server.Use(middleware.Inject)
-	server.Use(middleware.ClientAuthentication)
 
 	server.GET("/system", routes.System)
 
-	server.POST("/users", routes.CreateUser)
-	server.GET("/users", routes.FindUser)
-	server.PATCH("/users/:id", routes.UpdateUser)
+	google := server.Group("/oauth/google")
 
-	server.POST("/photos", routes.CreatePhoto)
-	server.GET("/photos", routes.FindPhotos)
-	server.PATCH("/photos/:id", routes.UpdatePhoto)
+	google.GET("/prompt", routes.GoogleOauthRedirect)
+	google.GET("/auth", routes.GoogleOauthReceiveCode)
+
+	server.POST("/users", routes.CreateUser, middleware.ClientAuthentication)
+	server.GET("/users", routes.FindUser, middleware.ClientAuthentication)
+	server.PATCH("/users/:id", routes.UpdateUser, middleware.ClientAuthentication)
+
+	server.POST("/photos", routes.CreatePhoto, middleware.ClientAuthentication)
+	server.GET("/photos", routes.FindPhotos, middleware.ClientAuthentication)
+	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.ClientAuthentication)
 
 
 	server.Logger().Infof("starting server on port %s", port)

@@ -41,7 +41,7 @@ func Inject(handler echo.HandlerFunc) echo.HandlerFunc {
 			store = filestore.TempStore{}
 		}
 
-		app := &context.Miritos{ctx, &client, errors, meta, results, store}
+		app := &context.Miritos{Context: ctx, DB: &client, Errors: errors, Meta: meta, Results: results, FS: store}
 
 		result := handler(app)
 

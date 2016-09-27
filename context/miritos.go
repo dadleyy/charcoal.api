@@ -16,12 +16,20 @@ type Miritos struct {
 	Meta MetaData
 	Results ResultList
 	FS FileSaver
+	Client models.Client
+	Finished bool
 }
 
 func (runtime *Miritos) Body() (Body, error) {
 	body := make(Body)
 	err := runtime.Bind(&body)
 	return body, err
+}
+
+func (runtime *Miritos) RequestHeader(name string) string {
+	request := runtime.Request()
+	headers := request.Header()
+	return headers.Get(name)
 }
 
 func (runtime *Miritos) Result(result Result) {
@@ -87,6 +95,10 @@ func (runtime *Miritos) Blueprint() Blueprint {
 func (runtime *Miritos) Finish() error {
 	runtime.Meta["time"] = time.Now()
 	runtime.DB.Close()
+
+	if runtime.Response().Committed() {
+		return nil
+	}
 
 	if ecount := len(runtime.Errors); ecount >= 1 {
 		elist := make([]string, ecount)
