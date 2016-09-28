@@ -6,7 +6,3 @@ type ClientToken struct {
 	Token string `json:"token"`
 	Client uint `json:"client"`
 }
-
-func (target *ClientToken) Marshal() interface{} {
-	return target
-}

@@ -4,6 +4,7 @@ import "errors"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/services"
 
 func UserAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
 	auth := func(ctx echo.Context) error {
@@ -25,20 +26,20 @@ func UserAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
 			return runtime.ErrorOut(errors.New("NO_BEARER_TOKEN"))
 		}
 
+		clientmgr := services.UserClientManager{runtime.DB}
+
+		if err := clientmgr.Validate(bearer, &client); err != nil {
+			runtime.Logger().Error(err)
+			return runtime.ErrorOut(errors.New("BAD_BEARER"))
+		}
+
 		var token models.ClientToken
-
-		where := runtime.DB.Where("token = ?", bearer)
-
-		if err := where.First(&token).Error; err != nil{
-			return runtime.ErrorOut(errors.New("NO_BEARER_TOKEN"))
+		if err := runtime.DB.Where("token = ?", bearer).First(&token).Error; err != nil {
+			return runtime.ErrorOut(err)
 		}
 
-		if token.Client != client.ID {
-			return runtime.ErrorOut(errors.New("BAD_BEARER_TOKEN"))
-		}
-
-		if err := runtime.DB.First(&runtime.User).Error; err != nil {
-			return runtime.ErrorOut(errors.New("INVALID_USER"))
+		if err := runtime.DB.First(&runtime.User, token.User).Error; err != nil {
+			return runtime.ErrorOut(err)
 		}
 
 		return handler(runtime)

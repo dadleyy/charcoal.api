@@ -5,6 +5,7 @@
 *.so
 .env
 /env
+.keys
 meritoss.api
 vendor/*/
 
