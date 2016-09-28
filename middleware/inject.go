@@ -7,6 +7,8 @@ import "github.com/labstack/echo"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/session"
+import "github.com/sizethree/miritos.api/filestore"
 
 const DSN_STR = "%v:%v@tcp(%v:%v)/%v?parseTime=true"
 
@@ -31,7 +33,30 @@ func Inject(handler echo.HandlerFunc) echo.HandlerFunc {
 		results := make(context.ResultList, 0)
 
 		client := context.Database{db}
-		app := &context.Miritos{ctx, &client, errors, meta, results}
+		var store context.FileSaver
+		var sessions context.SessionStore
+
+		switch os.Getenv("FS_ENGINE") {
+		case "s3":
+			store = filestore.S3FileStore{}
+		default:
+			store = filestore.TempStore{}
+		}
+
+		switch os.Getenv("SESSION_ENGINE") {
+		default:
+			sessions = session.RedisStore{}
+		}
+
+		app := &context.Miritos{
+			Context: ctx,
+			DB: &client,
+			Errors: errors,
+			Meta: meta,
+			Results: results,
+			FS: store,
+			Session: sessions,
+		}
 
 		result := handler(app)
 

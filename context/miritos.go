@@ -5,6 +5,7 @@ import "strconv"
 import "strings"
 import "net/http"
 import "github.com/labstack/echo"
+import "github.com/sizethree/miritos.api/models"
 
 const DEFAULT_LIMIT int = 100
 
@@ -14,33 +15,21 @@ type Miritos struct {
 	Errors ErrorList
 	Meta MetaData
 	Results ResultList
-}
-
-type Body map[string]string
-
-func (body *Body) String(key string) (string, bool) {
-	result, exists := (*body)[key]
-	return result, exists
-}
-
-func (body *Body) Int(key string) (int, bool) {
-	result, exists := (*body)[key]
-
-	if exists != true {
-		return -1, false
-	}
-
-	if value, err := strconv.Atoi(result); err == nil {
-		return value, true
-	}
-
-	return -1, false
+	FS FileSaver
+	Client models.Client
+	Session SessionStore
 }
 
 func (runtime *Miritos) Body() (Body, error) {
 	body := make(Body)
 	err := runtime.Bind(&body)
 	return body, err
+}
+
+func (runtime *Miritos) RequestHeader(name string) string {
+	request := runtime.Request()
+	headers := request.Header()
+	return headers.Get(name)
 }
 
 func (runtime *Miritos) Result(result Result) {
@@ -51,8 +40,23 @@ func (runtime *Miritos) SetMeta(key string, value interface{}) {
 	runtime.Meta[key] = value
 }
 
-func (runtime *Miritos) Error(err error) {
+func (runtime *Miritos) ErrorOut(err error) error {
 	runtime.Errors = append(runtime.Errors, err)
+	return nil
+}
+
+func (runtime *Miritos) PersistFile(target File) (models.File, error) {
+	temp, err := runtime.FS.Upload(target)
+
+	if err != nil {
+		return temp, err
+	}
+
+	if err := runtime.DB.Create(&temp).Error; err != nil {
+		return temp, err
+	}
+
+	return temp, err
 }
 
 func (runtime *Miritos) Blueprint() Blueprint {
@@ -92,6 +96,11 @@ func (runtime *Miritos) Finish() error {
 	runtime.Meta["time"] = time.Now()
 	runtime.DB.Close()
 
+	if runtime.Response().Committed() {
+		runtime.Logger().Infof("miritos response already sent, avoiding duplicate...")
+		return nil
+	}
+
 	if ecount := len(runtime.Errors); ecount >= 1 {
 		elist := make([]string, ecount)
 
@@ -118,17 +127,11 @@ func (runtime *Miritos) Finish() error {
 		runtime.Meta["filters"] = filters
 	}
 
-	results := make([]interface{}, len(runtime.Results))
-
-	for i, result := range runtime.Results {
-		results[i] = result.Marshal()
-	}
-
 	response := struct {
 		Meta MetaData `json:"meta"`
 		Status string `json:"status"`
-		Results []interface{} `json:"results"`
-	}{runtime.Meta, "SUCCESS", results}
+		Results ResultList `json:"results"`
+	}{runtime.Meta, "SUCCESS", runtime.Results}
 
 	return runtime.JSON(http.StatusOK, response)
 }

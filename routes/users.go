@@ -22,7 +22,6 @@ func FindUser(ectx echo.Context) error {
 		return err
 	}
 
-
 	for _, user := range users {
 		runtime.Result(&user)
 	}
@@ -53,29 +52,25 @@ func CreateUser(ectx echo.Context) error {
 	name, exists := body.String("name")
 
 	if exists != true {
-		runtime.Error(errors.New("must provide a valid \"name\""))
-		return nil
+		return runtime.ErrorOut(errors.New("must provide a valid \"name\""))
 	}
 
 	email, exists := body.String("email")
 
 	if exists != true {
-		runtime.Error(errors.New("must provide a valid \"email\""))
-		return nil
+		return runtime.ErrorOut(errors.New("must provide a valid \"email\""))
 	}
 
 	password, exists := body.String("email")
 
 	if exists != true {
-		runtime.Error(errors.New("must provide a valid \"password\""))
-		return nil
+		return runtime.ErrorOut(errors.New("must provide a valid \"password\""))
 	}
 
 	hashed, err := hash(password)
 
 	if err != nil {
-		runtime.Error(errors.New("unable to hash password"))
-		return nil
+		return runtime.ErrorOut(errors.New("unable to hash password"))
 	}
 
 	user := models.User{
@@ -85,8 +80,7 @@ func CreateUser(ectx echo.Context) error {
 	}
 
 	if err = runtime.DB.Create(&user).Error; err != nil {
-		runtime.Error(err)
-		return nil
+		return runtime.ErrorOut(err)
 	}
 
 	runtime.Result(&user)

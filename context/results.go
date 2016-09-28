@@ -1,7 +1,5 @@
 package context
 
-type Result interface {
-	Marshal() interface{}
-}
+type Result interface {}
 
 type ResultList []Result
