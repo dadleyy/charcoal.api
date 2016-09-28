@@ -2,6 +2,7 @@ package middleware
 
 import "errors"
 import "github.com/labstack/echo"
+import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
 
 func UserAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
@@ -24,7 +25,17 @@ func UserAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
 			return runtime.ErrorOut(errors.New("NO_BEARER_TOKEN"))
 		}
 
-		runtime.Logger().Infof("looking up user auth info based on client[%d]", client.ID)
+		var token models.ClientToken
+
+		where := runtime.DB.Where("token = ?", bearer)
+
+		if err := where.First(&token).Error; err != nil{
+			return runtime.ErrorOut(errors.New("NO_BEARER_TOKEN"))
+		}
+
+		if token.Client != client.ID {
+			return runtime.ErrorOut(errors.New("BAD_BEARER_TOKEN"))
+		}
 
 		return nil
 	}

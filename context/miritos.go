@@ -97,7 +97,7 @@ func (runtime *Miritos) Finish() error {
 	runtime.DB.Close()
 
 	if runtime.Response().Committed() {
-		runtime.Logger().Infof("already sent, avoiding duplicate")
+		runtime.Logger().Infof("miritos response already sent, avoiding duplicate...")
 		return nil
 	}
 

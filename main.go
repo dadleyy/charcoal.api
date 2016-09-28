@@ -21,6 +21,7 @@ func main() {
 
 	server.GET("/system", routes.System)
 	server.GET("/auth", routes.PrintAuth, middleware.UserAuthentication)
+	server.GET("/auth/tokens", routes.PrintClientTokens, middleware.ClientAuthentication)
 
 	google := server.Group("/oauth/google")
 

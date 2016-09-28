@@ -4,15 +4,26 @@ import "os"
 import "fmt"
 import "errors"
 import "net/url"
+import "net/http"
+import "encoding/json"
 import "golang.org/x/oauth2"
 import "github.com/labstack/echo"
 import "golang.org/x/oauth2/google"
+import "github.com/sizethree/miritos.api/auth"
+import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
 const ERR_BAD_AUTH_CODE = "BAD_AUTH_CODE"
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 const GOOGLE_TOKEN_ENDPOINT = "https://www.googleapis.com/oauth2/v4/token"
+const GOOGLE_INFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
+
+type GoogleUserInfo struct {
+	ID string `json:"id"`
+	Email string `json:"email"`
+	Name string `json:"name"`
+}
 
 func GoogleOauthRedirect(ectx echo.Context) error {
 	clientid := os.Getenv("GOOGLE_CLIENT_ID")
@@ -70,7 +81,76 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
-	runtime.Logger().Infof("google auth callback received token[%s] refresh[%s]", token.AccessToken, token.RefreshToken)
 
+	lookup, err := url.Parse(GOOGLE_INFO_ENDPOINT)
+
+	if err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	queries := make(url.Values)
+	queries.Set("access_token", token.AccessToken)
+	lookup.RawQuery = queries.Encode()
+
+	response, err := http.Get(lookup.String())
+
+	if err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	var info GoogleUserInfo
+	err = json.NewDecoder(response.Body).Decode(&info)
+
+	if err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	response.Body.Close()
+
+	if err := len(info.ID) < 1; err {
+		return runtime.ErrorOut(errors.New("BAD_USERINFO"))
+	}
+
+	auth_client := auth.Client{runtime.DB}
+
+	user := models.User{
+		Email: info.Email,
+		Name: info.Name,
+	}
+
+	if err := runtime.DB.First(&runtime.Client, 1).Error; err != nil {
+		return runtime.ErrorOut(errors.New("NO_SYSTEM_CLIENT"))
+	}
+
+	err = auth_client.AssociateClient(&user, &runtime.Client)
+
+	if err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	google := models.GoogleAccount{
+		GoogleID: info.ID,
+		User: user.ID,
+	}
+
+	var count uint
+
+	if err := runtime.DB.Model(&google).Count(&count).Error; err != nil {
+		return err
+	}
+
+	google.AccessToken = token.AccessToken
+
+	if count >= 1 {
+		err = runtime.DB.Model(&google).Updates(&google).Error
+	} else {
+		err = runtime.DB.Create(&google).Error
+	}
+
+	if err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	runtime.Redirect(301, os.Getenv("THIRD_PARTY_LOGIN_REDIRECT_URL"))
 	return nil
 }
