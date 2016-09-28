@@ -1,37 +1,34 @@
 package routes
 
 import "os"
-import "fmt"
 import "errors"
 import "net/url"
 import "net/http"
-import "encoding/json"
-import "golang.org/x/oauth2"
+import "encoding/base64"
 import "github.com/labstack/echo"
-import "golang.org/x/oauth2/google"
-import "github.com/sizethree/miritos.api/auth"
-import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/services"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
 const ERR_BAD_AUTH_CODE = "BAD_AUTH_CODE"
+const ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH = "NO_ASSOICATED_CLIENT"
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
-const GOOGLE_TOKEN_ENDPOINT = "https://www.googleapis.com/oauth2/v4/token"
-const GOOGLE_INFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
-
-type GoogleUserInfo struct {
-	ID string `json:"id"`
-	Email string `json:"email"`
-	Name string `json:"name"`
-}
 
 func GoogleOauthRedirect(ectx echo.Context) error {
+	runtime, ok := ectx.(*context.Miritos)
+
 	clientid := os.Getenv("GOOGLE_CLIENT_ID")
 	redir := os.Getenv("GOOGLE_REDIRECT_URL")
 	fin, err := url.Parse(GOOGLE_AUTH_ENDPOINT)
 
-	if err != nil {
-		return err
+	if !ok || err != nil {
+		return errors.New("ERR_BAD_RUNTIME")
+	}
+
+	state := ectx.QueryParam("client_id")
+
+	if len(state) == 0 {
+		return runtime.ErrorOut(errors.New("BAD_CLIENT_ID"))
 	}
 
 	queries := make(url.Values)
@@ -41,12 +38,10 @@ func GoogleOauthRedirect(ectx echo.Context) error {
 	queries.Set("client_id", clientid)
 	queries.Set("scope", "https://www.googleapis.com/auth/plus.login email")
 	queries.Set("access_type", "offline")
-
+	queries.Set("state", base64.StdEncoding.EncodeToString([]byte(state)))
 	fin.RawQuery = queries.Encode()
-	ectx.Logger().Infof("generating full url: %s", fmt.Sprintf("%s", fin.String()))
 
-	ectx.Redirect(301, fin.String())
-
+	ectx.Redirect(http.StatusTemporaryRedirect, fin.String())
 	return nil
 }
 
@@ -57,100 +52,45 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 		return errors.New(ERR_BAD_RUNTIME)
 	}
 
+	// extract the code sent from google and the "state" which is the client id
+	// originally sent during the outh prompt
 	code := runtime.QueryParam("code")
+	state := runtime.QueryParam("state")
 
 	if len(code) == 0 {
 		return runtime.ErrorOut(errors.New(ERR_BAD_AUTH_CODE))
 	}
 
-	redir := os.Getenv("GOOGLE_REDIRECT_URL")
-	clientid := os.Getenv("GOOGLE_CLIENT_ID")
-	secret := os.Getenv("GOOGLE_CLIENT_SECRET")
-
-	client := &oauth2.Config{
-		RedirectURL: redir,
-		ClientID: clientid,
-		ClientSecret: secret,
-		Scopes: []string{"https://www.googleapis.com/auth/plus.login", "email"},
-		Endpoint: google.Endpoint,
+	if len(state) == 0 {
+		return runtime.ErrorOut(errors.New(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH))
 	}
 
-	token, err := client.Exchange(oauth2.NoContext, code)
+	// decode the client id sent along in the redirect
+	referrer, err := base64.StdEncoding.DecodeString(state)
 
 	if err != nil {
 		return runtime.ErrorOut(err)
 	}
 
+	authman := services.GoogleAuthentication{runtime.DB}
 
-	lookup, err := url.Parse(GOOGLE_INFO_ENDPOINT)
+	result, err := authman.Process(string(referrer), code)
+
+	if err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	fin, err := url.Parse(result.RedirectUri())
 
 	if err != nil {
 		return runtime.ErrorOut(err)
 	}
 
 	queries := make(url.Values)
-	queries.Set("access_token", token.AccessToken)
-	lookup.RawQuery = queries.Encode()
+	queries.Set("token", result.Token())
+	fin.RawQuery = queries.Encode()
 
-	response, err := http.Get(lookup.String())
+	runtime.Redirect(http.StatusTemporaryRedirect, fin.String())
 
-	if err != nil {
-		return runtime.ErrorOut(err)
-	}
-
-	var info GoogleUserInfo
-	err = json.NewDecoder(response.Body).Decode(&info)
-
-	if err != nil {
-		return runtime.ErrorOut(err)
-	}
-
-	response.Body.Close()
-
-	if err := len(info.ID) < 1; err {
-		return runtime.ErrorOut(errors.New("BAD_USERINFO"))
-	}
-
-	auth_client := auth.Client{runtime.DB}
-
-	user := models.User{
-		Email: info.Email,
-		Name: info.Name,
-	}
-
-	if err := runtime.DB.First(&runtime.Client, 1).Error; err != nil {
-		return runtime.ErrorOut(errors.New("NO_SYSTEM_CLIENT"))
-	}
-
-	err = auth_client.AssociateClient(&user, &runtime.Client)
-
-	if err != nil {
-		return runtime.ErrorOut(err)
-	}
-
-	google := models.GoogleAccount{
-		GoogleID: info.ID,
-		User: user.ID,
-	}
-
-	var count uint
-
-	if err := runtime.DB.Model(&google).Count(&count).Error; err != nil {
-		return err
-	}
-
-	google.AccessToken = token.AccessToken
-
-	if count >= 1 {
-		err = runtime.DB.Model(&google).Updates(&google).Error
-	} else {
-		err = runtime.DB.Create(&google).Error
-	}
-
-	if err != nil {
-		return runtime.ErrorOut(err)
-	}
-
-	runtime.Redirect(301, os.Getenv("THIRD_PARTY_LOGIN_REDIRECT_URL"))
 	return nil
 }
