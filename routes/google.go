@@ -77,7 +77,8 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 	result, err := authman.Process(string(referrer), code)
 
 	if err != nil {
-		return runtime.ErrorOut(err)
+		runtime.Logger().Error(err)
+		return runtime.ErrorOut(errors.New("ERR_BAD_CLIENT_CODE"))
 	}
 
 	fin, err := url.Parse(result.RedirectUri())

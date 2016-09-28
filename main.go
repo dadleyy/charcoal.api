@@ -32,9 +32,9 @@ func main() {
 	server.GET("/users", routes.FindUser, middleware.ClientAuthentication)
 	server.PATCH("/users/:id", routes.UpdateUser, middleware.ClientAuthentication)
 
-	server.POST("/photos", routes.CreatePhoto, middleware.ClientAuthentication)
-	server.GET("/photos", routes.FindPhotos, middleware.ClientAuthentication)
-	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.ClientAuthentication)
+	server.POST("/photos", routes.CreatePhoto, middleware.UserAuthentication)
+	server.GET("/photos", routes.FindPhotos, middleware.UserAuthentication)
+	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.UserAuthentication)
 
 
 	server.Logger().Infof("starting server on port %s", port)
