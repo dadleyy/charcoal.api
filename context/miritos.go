@@ -17,7 +17,7 @@ type Miritos struct {
 	Results ResultList
 	FS FileSaver
 	Client models.Client
-	Session SessionStore
+	User models.User
 }
 
 func (runtime *Miritos) Body() (Body, error) {

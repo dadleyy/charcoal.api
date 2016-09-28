@@ -37,7 +37,11 @@ func UserAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
 			return runtime.ErrorOut(errors.New("BAD_BEARER_TOKEN"))
 		}
 
-		return nil
+		if err := runtime.DB.First(&runtime.User).Error; err != nil {
+			return runtime.ErrorOut(errors.New("INVALID_USER"))
+		}
+
+		return handler(runtime)
 	}
 
 	before := ClientAuthentication(auth)

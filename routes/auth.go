@@ -14,7 +14,7 @@ func PrintAuth(ectx echo.Context) error {
 		return runtime.ErrorOut(errors.New(ERR_BAD_SESSION))
 	}
 
-	runtime.Logger().Infof("looking up auth info")
+	runtime.Result(runtime.User)
 
 	return nil
 }
