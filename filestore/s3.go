@@ -51,7 +51,7 @@ func (store S3FileStore) Upload(target context.File) (models.File, error) {
 
 	switch {
 	case len(store.AccessID) >= 1:
-		creds = credentials.NewEnvCredentials()
+		creds = credentials.NewStaticCredentials(store.AccessID, store.AccessKey, store.AccessToken)
 	default:
 		creds = credentials.NewEnvCredentials()
 	}

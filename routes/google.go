@@ -5,8 +5,8 @@ import "fmt"
 import "errors"
 import "net/url"
 import "golang.org/x/oauth2"
-import "golang.org/x/oauth2/google"
 import "github.com/labstack/echo"
+import "golang.org/x/oauth2/google"
 import "github.com/sizethree/miritos.api/context"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
@@ -70,7 +70,7 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
-	runtime.Logger().Infof("google auth callback received token[%s]", token.AccessToken)
+	runtime.Logger().Infof("google auth callback received token[%s] refresh[%s]", token.AccessToken, token.RefreshToken)
 
 	return nil
 }

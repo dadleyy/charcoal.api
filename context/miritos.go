@@ -17,7 +17,7 @@ type Miritos struct {
 	Results ResultList
 	FS FileSaver
 	Client models.Client
-	Finished bool
+	Session SessionStore
 }
 
 func (runtime *Miritos) Body() (Body, error) {
@@ -97,6 +97,7 @@ func (runtime *Miritos) Finish() error {
 	runtime.DB.Close()
 
 	if runtime.Response().Committed() {
+		runtime.Logger().Infof("already sent, avoiding duplicate")
 		return nil
 	}
 
@@ -126,17 +127,11 @@ func (runtime *Miritos) Finish() error {
 		runtime.Meta["filters"] = filters
 	}
 
-	results := make([]interface{}, len(runtime.Results))
-
-	for i, result := range runtime.Results {
-		results[i] = result.Marshal()
-	}
-
 	response := struct {
 		Meta MetaData `json:"meta"`
 		Status string `json:"status"`
-		Results []interface{} `json:"results"`
-	}{runtime.Meta, "SUCCESS", results}
+		Results ResultList `json:"results"`
+	}{runtime.Meta, "SUCCESS", runtime.Results}
 
 	return runtime.JSON(http.StatusOK, response)
 }

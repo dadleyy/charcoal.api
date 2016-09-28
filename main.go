@@ -20,6 +20,7 @@ func main() {
 	server.Use(middleware.Inject)
 
 	server.GET("/system", routes.System)
+	server.GET("/auth", routes.PrintAuth, middleware.UserAuthentication)
 
 	google := server.Group("/oauth/google")
 
