@@ -20,21 +20,21 @@ func main() {
 	server.Use(middleware.Inject)
 
 	server.GET("/system", routes.System)
-	server.GET("/auth", routes.PrintAuth, middleware.UserAuthentication)
-	server.GET("/auth/tokens", routes.PrintClientTokens, middleware.ClientAuthentication)
+	server.GET("/auth", routes.PrintAuth, middleware.RequireUser)
+	server.GET("/auth/tokens", routes.PrintClientTokens, middleware.InjectClient)
 
 	google := server.Group("/oauth/google")
 
 	google.GET("/prompt", routes.GoogleOauthRedirect)
 	google.GET("/auth", routes.GoogleOauthReceiveCode)
 
-	server.POST("/users", routes.CreateUser, middleware.ClientAuthentication)
-	server.GET("/users", routes.FindUser, middleware.ClientAuthentication)
-	server.PATCH("/users/:id", routes.UpdateUser, middleware.ClientAuthentication)
+	server.POST("/users", routes.CreateUser, middleware.InjectClient)
+	server.GET("/users", routes.FindUser, middleware.InjectClient)
+	server.PATCH("/users/:id", routes.UpdateUser, middleware.InjectClient)
 
-	server.POST("/photos", routes.CreatePhoto, middleware.UserAuthentication)
-	server.GET("/photos", routes.FindPhotos, middleware.UserAuthentication)
-	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.UserAuthentication)
+	server.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
+	server.GET("/photos", routes.FindPhotos, middleware.RequireUser)
+	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.RequireUser)
 
 
 	server.Logger().Infof("starting server on port %s", port)

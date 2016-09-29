@@ -4,15 +4,14 @@ import "errors"
 import "strings"
 import "encoding/base64"
 import "github.com/labstack/echo"
-import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
 const ERR_MISSING_CLIENT_ID = "MISSING_CLIENT_ID"
 const ERR_BAD_CLIENT_ID = "BAD_CLIENT_ID"
 
-func ClientAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
-	auth := func(ctx echo.Context) error {
+func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
+	inject := func(ctx echo.Context) error {
 		runtime, ok := ctx.(*context.Miritos)
 
 		if ok != true {
@@ -22,33 +21,48 @@ func ClientAuthentication(handler echo.HandlerFunc) echo.HandlerFunc {
 		auth := runtime.RequestHeader("X-CLIENT-AUTH")
 
 		if len(auth) < 1 {
-			return runtime.ErrorOut(errors.New(ERR_MISSING_CLIENT_ID))
+			return handler(runtime)
 		}
 
 		decoded, err := base64.StdEncoding.DecodeString(auth)
 
 		if err != nil {
-			return runtime.ErrorOut(errors.New(ERR_BAD_CLIENT_ID))
+			return handler(runtime)
 		}
-
-		var client models.Client
 
 		parts := strings.Split(string(decoded), ":")
 
 		if len(parts) < 2 || len(parts[0]) < 1 || len(parts[1]) < 1 {
-			return runtime.ErrorOut(errors.New(ERR_BAD_CLIENT_ID))
+			return handler(runtime)
 		}
 
 		where := runtime.DB.Where("client_id = ?", parts[0]).Where("client_secret = ?", parts[1])
 
-		if e := where.First(&client).Error; e != nil {
-			return runtime.ErrorOut(errors.New(ERR_BAD_CLIENT_ID))
+		if e := where.First(&runtime.Client).Error; e != nil {
+			runtime.Logger().Error(e)
+			return handler(runtime)
 		}
-
-		runtime.Client = client
 
 		return handler(runtime)
 	}
 
-	return auth
+	return inject
+}
+
+func RquireClient(handler echo.HandlerFunc) echo.HandlerFunc {
+	require := func(ctx echo.Context) error {
+		runtime, ok := ctx.(*context.Miritos)
+
+		if ok != true {
+			return errors.New(ERR_BAD_RUNTIME)
+		}
+
+		if valid := runtime.Client.ID >= 1; valid == false {
+			return runtime.ErrorOut(errors.New(ERR_BAD_CLIENT_ID))
+		}
+
+		return handler(runtime)
+	}
+
+	return InjectClient(require)
 }
