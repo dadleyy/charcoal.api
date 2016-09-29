@@ -6,6 +6,7 @@ import "net/url"
 import "net/http"
 import "encoding/base64"
 import "github.com/labstack/echo"
+import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
 import "github.com/sizethree/miritos.api/services"
 
@@ -29,6 +30,18 @@ func GoogleOauthRedirect(ectx echo.Context) error {
 
 	if len(state) == 0 {
 		return runtime.ErrorOut(errors.New("BAD_CLIENT_ID"))
+	}
+
+	var client models.Client
+
+	if err := runtime.DB.Where("client_id = ?", state).First(&client).Error; err != nil {
+		runtime.Logger().Errorf("invalid client id used in google auth: %s", clientid)
+		return runtime.ErrorOut(errors.New("BAD_CLIENT_ID"))
+	}
+
+	if len(client.RedirectUri) == 0 {
+		runtime.Logger().Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
+		return runtime.ErrorOut(errors.New("MISSING_REDIRECT_URI"))
 	}
 
 	queries := make(url.Values)
@@ -58,10 +71,12 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 	state := runtime.QueryParam("state")
 
 	if len(code) == 0 {
+		runtime.Logger().Error("unable to find auth code sent from google")
 		return runtime.ErrorOut(errors.New(ERR_BAD_AUTH_CODE))
 	}
 
 	if len(state) == 0 {
+		runtime.Logger().Error("unable to find state sent back from google")
 		return runtime.ErrorOut(errors.New(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH))
 	}
 
@@ -77,7 +92,7 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 	result, err := authman.Process(string(referrer), code)
 
 	if err != nil {
-		runtime.Logger().Error(err)
+		runtime.Logger().Errorf("unable to authenticate client /w code: %s", err.Error())
 		return runtime.ErrorOut(errors.New("ERR_BAD_CLIENT_CODE"))
 	}
 
