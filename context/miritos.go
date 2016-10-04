@@ -41,12 +41,13 @@ func (runtime *Miritos) SetMeta(key string, value interface{}) {
 }
 
 func (runtime *Miritos) ErrorOut(err error) error {
+	runtime.Logger().Errorf(err.Error())
 	runtime.Errors = append(runtime.Errors, err)
 	return nil
 }
 
-func (runtime *Miritos) PersistFile(target File) (models.File, error) {
-	temp, err := runtime.FS.Upload(target)
+func (runtime *Miritos) PersistFile(target File, mime string) (models.File, error) {
+	temp, err := runtime.FS.Upload(target, mime)
 
 	if err != nil {
 		return temp, err

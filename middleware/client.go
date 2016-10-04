@@ -43,6 +43,7 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 			return handler(runtime)
 		}
 
+		runtime.Logger().Info("injected client auth, continuing");
 		return handler(runtime)
 	}
 

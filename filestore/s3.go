@@ -5,7 +5,6 @@ import "fmt"
 import "bytes"
 import "errors"
 import "strings"
-import "net/http"
 import "github.com/pborman/uuid"
 import "github.com/aws/aws-sdk-go/aws"
 import "github.com/aws/aws-sdk-go/service/s3"
@@ -25,7 +24,7 @@ type S3FileStore struct {
 	AccessToken string
 }
 
-func (store S3FileStore) Upload(target context.File) (models.File, error) {
+func (store S3FileStore) Upload(target context.File, mime string) (models.File, error) {
 	photoid := uuid.NewRandom()
 	var buffer bytes.Buffer
 	var result models.File
@@ -37,11 +36,6 @@ func (store S3FileStore) Upload(target context.File) (models.File, error) {
 	}
 
 	reader := bytes.NewReader(buffer.Bytes())
-	mime := http.DetectContentType(buffer.Bytes())
-
-	if isimg := strings.HasPrefix(mime, "image/"); isimg != true {
-		return result, errors.New(ERR_BAD_IMAGE_TYPE)
-	}
 
 	if strings.TrimSpace(photoid.String()) == "" {
 		return result, errors.New(ERR_BAD_IMAGE_UUID)

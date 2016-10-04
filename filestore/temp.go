@@ -5,7 +5,7 @@ import "github.com/sizethree/miritos.api/context"
 
 type TempStore struct {}
 
-func (store TempStore) Upload(target context.File) (models.File, error) {
+func (store TempStore) Upload(target context.File, mime string) (models.File, error) {
 	var result models.File
 	return result, nil
 }
