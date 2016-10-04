@@ -43,14 +43,14 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.Logger().Info("injected client auth, continuing");
+		runtime.Logger().Debugf("injected client \"%d\" auth, continuing", runtime.Client.ID);
 		return handler(runtime)
 	}
 
 	return inject
 }
 
-func RquireClient(handler echo.HandlerFunc) echo.HandlerFunc {
+func RequireClient(handler echo.HandlerFunc) echo.HandlerFunc {
 	require := func(ctx echo.Context) error {
 		runtime, ok := ctx.(*context.Miritos)
 

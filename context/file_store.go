@@ -12,4 +12,5 @@ type File interface {
 
 type FileSaver interface {
 	Upload(File, string) (models.File, error)
+	DownloadUrl(*models.File) (string, error)
 }

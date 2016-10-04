@@ -34,6 +34,7 @@ func main() {
 
 	server.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
 	server.GET("/photos", routes.FindPhotos, middleware.RequireUser)
+	server.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.RequireUser)
 
 

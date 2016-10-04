@@ -51,21 +51,63 @@ func CreatePhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
-	runtime.Logger().Infof("successfully saved file \"%s\", updating photo orm", ormfile.Key)
+	runtime.Logger().Debugf("successfully saved file \"%s\", updating photo orm", ormfile.Key)
 
 	photo := models.Photo{
 		Label: label,
 		File: ormfile.ID,
 	}
 
+	if runtime.User.ID >= 1 {
+		runtime.Logger().Debugf("associating user #%d with photo \"%s\"", runtime.User.ID, photo.Label)
+		photo.Author.Scan(runtime.User.ID)
+	}
+
 	if err := runtime.DB.Create(&photo).Error; err != nil {
 		return runtime.ErrorOut(err)
 	}
 
-	runtime.Result(&photo)
+	if err := runtime.DB.Model(&ormfile).Update("status", "OWNED").Error; err != nil {
+		return runtime.ErrorOut(err)
+	}
+
+	runtime.Result(photo.Result())
 
 	return nil
 }
+
+func ViewPhoto(ectx echo.Context) error {
+	runtime, _ := ectx.(*context.Miritos)
+	id, err := runtime.ParamIntVal("id")
+
+	if err != nil {
+		return runtime.ErrorOut(fmt.Errorf("BAD_PHOTO_ID"))
+	}
+
+	var photo models.Photo
+
+	if err := runtime.DB.First(&photo, id).Error; err != nil {
+		return runtime.ErrorOut(fmt.Errorf("NOT_FOUND"))
+	}
+
+	var file models.File
+
+	if err := runtime.DB.First(&file, photo.File).Error; err != nil {
+		return runtime.ErrorOut(fmt.Errorf("NOT_FOUND"))
+	}
+
+	url, err := runtime.FS.DownloadUrl(&file)
+
+	if err != nil {
+		return runtime.ErrorOut(fmt.Errorf("BAD_DOWNLOAD_URL"))
+	}
+
+	runtime.Logger().Debugf("looking up photo %d, url: %s", id, url)
+	runtime.Result(url)
+
+	return nil
+}
+
 
 func UpdatePhoto(ectx echo.Context) error {
 	return nil

@@ -49,7 +49,7 @@ func InjectUser(handler echo.HandlerFunc) echo.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.Logger().Info("injected user auth, continuing");
+		runtime.Logger().Debugf("injected user \"%d\" auth, continuing", runtime.User.ID);
 		return handler(runtime)
 	}
 

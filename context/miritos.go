@@ -1,5 +1,6 @@
 package context
 
+import "fmt"
 import "time"
 import "strconv"
 import "strings"
@@ -24,6 +25,20 @@ func (runtime *Miritos) Body() (Body, error) {
 	body := make(Body)
 	err := runtime.Bind(&body)
 	return body, err
+}
+
+func (runtime *Miritos) ParamIntVal(name string) (int, error) {
+	param := runtime.Param(name)
+
+	if len(param) == 0 {
+		return -1, fmt.Errorf("BAD_INT_VAL")
+	}
+
+	if value, err := strconv.Atoi(param); err == nil {
+		return value, err
+	}
+
+	return -1, fmt.Errorf("BAD_INT_VAL")
 }
 
 func (runtime *Miritos) RequestHeader(name string) string {

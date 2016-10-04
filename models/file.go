@@ -6,7 +6,3 @@ type File struct {
 	Status string
 	Mime string
 }
-
-func (file *File) Marshal() interface{} {
-	return file
-}

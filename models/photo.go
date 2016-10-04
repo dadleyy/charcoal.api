@@ -1,11 +1,30 @@
 package models
 
+import "database/sql"
+
 type Photo struct {
 	Common
 	Label string `json:"label"`
 	File uint `json:"file"`
+	Author sql.NullInt64 `json:"author"`
 }
 
-func (photo *Photo) Marshal() interface{} {
-	return photo
+type serializedPhoto struct {
+	Common
+	Label string `json:"label"`
+	File uint `json:"file"`
+	Author interface{} `json:"author"`
+}
+
+func (photo *Photo) Result() interface{} {
+	var author interface{}
+
+	if photo.Author.Valid {
+		author = photo.Author.Int64
+	} else {
+		author = nil
+	}
+
+	result := serializedPhoto{photo.Common, photo.Label, photo.File, author}
+	return result
 }
