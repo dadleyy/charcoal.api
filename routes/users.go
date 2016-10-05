@@ -14,13 +14,16 @@ func hash(password string) ([]byte, error) {
 
 func FindUser(ectx echo.Context) error {
 	runtime, _ := ectx.(*context.Miritos)
+
 	blueprint := runtime.Blueprint()
+
 	var users []models.User
 
 	total, err := blueprint.Apply(&users, runtime.DB)
 
 	if err != nil {
-		return err
+		runtime.Logger().Debugf("bad user lookup query: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("BAD_QUERY"))
 	}
 
 	for _, user := range users {

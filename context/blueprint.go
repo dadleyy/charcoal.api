@@ -1,7 +1,6 @@
 package context
 
 import "fmt"
-import "errors"
 import "strings"
 
 type Blueprint struct {
@@ -23,21 +22,21 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	field := strings.TrimSpace(strings.TrimSuffix(strings.TrimPrefix(key, "filter["), "]"))
 
 	if len(field) < 2 {
-		return errors.New(fmt.Sprintf("INVALID_FIELD - [%s]", field))
+		return fmt.Errorf("INVALID_FIELD - [%s]", field)
 	}
 
 	// all filters should look like a function call: `op(value)`
 	parts := strings.Split(opstr, "(")
 
 	if len(parts) != 2 || strings.HasSuffix(parts[1], ")") != true {
-		return errors.New("BAD_OPERATION")
+		return fmt.Errorf("BAD_OPERATION")
 	}
 
 	value := strings.TrimSuffix(parts[1], ")")
 
 	// make sure we have a valid value
 	if lv := len(value); lv < 1 {
-		return errors.New("BAD_OPERATION_PARTS")
+		return fmt.Errorf("BAD_OPERATION_PARTS")
 	}
 
 	var filter BlueprintFilter = &noOp{}
@@ -51,6 +50,8 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 		filter = &sizeOp{field, value, "<"}
 	case "lte":
 		filter = &sizeOp{field, value, "<="}
+	case "eq":
+		filter = &sizeOp{field, value, "="}
 	}
 
 	if filter.String() != "" {
@@ -76,6 +77,10 @@ func (print *Blueprint) Apply(out interface{}, client *Database) (int, error) {
 	return total, e
 }
 
+// sizeOp
+//
+// given a field, value and an operator, this operation simply uses the database
+// client's `Where` function with appropriate string format.
 type sizeOp struct {
 	field string
 	value string
@@ -91,6 +96,9 @@ func (op *sizeOp) String() string {
 	return fmt.Sprintf("%s %s %s", op.field, op.operator, op.value)
 }
 
+// noOp
+// 
+// describes a blueprint filter operation that is not understood by the system.
 type noOp struct {}
 
 func (op *noOp) String() string {
