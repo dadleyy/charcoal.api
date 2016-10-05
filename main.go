@@ -28,9 +28,9 @@ func main() {
 	google.GET("/prompt", routes.GoogleOauthRedirect)
 	google.GET("/auth", routes.GoogleOauthReceiveCode)
 
-	server.POST("/users", routes.CreateUser, middleware.InjectClient)
-	server.GET("/users", routes.FindUser, middleware.InjectClient)
-	server.PATCH("/users/:id", routes.UpdateUser, middleware.InjectClient)
+	server.POST("/users", routes.CreateUser, middleware.RequireClient)
+	server.GET("/users", routes.FindUser, middleware.RequireClient)
+	server.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
 
 	server.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
 	server.GET("/photos", routes.FindPhotos, middleware.RequireUser)
