@@ -10,7 +10,7 @@ const ERR_BAD_BEARER = "ERR_BAD_BEARER"
 
 func InjectUser(handler echo.HandlerFunc) echo.HandlerFunc {
 	inject := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Miritos)
+		runtime, ok := ctx.(*context.Runtime)
 
 		if ok != true {
 			return fmt.Errorf("BAD_RUNTIME")
@@ -58,7 +58,7 @@ func InjectUser(handler echo.HandlerFunc) echo.HandlerFunc {
 
 func RequireUser(handler echo.HandlerFunc) echo.HandlerFunc {
 	require := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Miritos)
+		runtime, ok := ctx.(*context.Runtime)
 
 		if ok != true {
 			return fmt.Errorf("BAD_RUNTIME")

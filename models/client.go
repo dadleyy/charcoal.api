@@ -7,7 +7,3 @@ type Client struct {
 	ClientSecret string `json:"-"`
 	RedirectUri string `json:"redirect_uri"`
 }
-
-func (target *Client) Marshal() interface{} {
-	return target
-}

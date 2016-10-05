@@ -5,12 +5,13 @@ import "strings"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/activity"
 
 const MIN_PHOTO_LABEL_LENGTH int = 4
 const MIN_PHOTO_LABEL_MESSAGE string = "must provide a \"label\" at least %d characters long"
 
 func CreatePhoto(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Miritos)
+	runtime, _ := ectx.(*context.Runtime)
 
 	header, err := runtime.FormFile("photo")
 
@@ -71,13 +72,14 @@ func CreatePhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
+	runtime.Publish(activity.Message{&runtime.User, &photo, "created"})
 	runtime.AddResult(&photo)
 
 	return nil
 }
 
 func ViewPhoto(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Miritos)
+	runtime, _ := ectx.(*context.Runtime)
 	id, err := runtime.ParamInt("id")
 
 	if err != nil {
@@ -105,11 +107,6 @@ func ViewPhoto(ectx echo.Context) error {
 	runtime.Logger().Debugf("looking up photo %d, url: %s", id, url)
 	runtime.AddResult(&context.ResultString{url})
 
-	return nil
-}
-
-
-func UpdatePhoto(ectx echo.Context) error {
 	return nil
 }
 

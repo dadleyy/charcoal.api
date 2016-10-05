@@ -19,7 +19,7 @@ func hash(password string) (string, error) {
 }
 
 func FindUser(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Miritos)
+	runtime, _ := ectx.(*context.Runtime)
 
 	blueprint := runtime.Blueprint()
 
@@ -42,7 +42,7 @@ func FindUser(ectx echo.Context) error {
 }
 
 func UpdateUser(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Miritos)
+	runtime, _ := ectx.(*context.Runtime)
 	id, err := runtime.ParamInt("id")
 
 	if err != nil {
@@ -130,7 +130,7 @@ func UpdateUser(ectx echo.Context) error {
 }
 
 func CreateUser(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Miritos)
+	runtime, ok := ectx.(*context.Runtime)
 
 	if ok != true {
 		return fmt.Errorf("BAD_RUNTIME")

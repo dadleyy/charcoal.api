@@ -16,7 +16,7 @@ const ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH = "NO_ASSOICATED_CLIENT"
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 
 func GoogleOauthRedirect(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Miritos)
+	runtime, ok := ectx.(*context.Runtime)
 
 	clientid := os.Getenv("GOOGLE_CLIENT_ID")
 	redir := os.Getenv("GOOGLE_REDIRECT_URL")
@@ -59,7 +59,7 @@ func GoogleOauthRedirect(ectx echo.Context) error {
 }
 
 func GoogleOauthReceiveCode(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Miritos)
+	runtime, ok := ectx.(*context.Runtime)
 
 	if ok != true {
 		return errors.New(ERR_BAD_RUNTIME)

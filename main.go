@@ -5,6 +5,8 @@ import "flag"
 
 import _ "github.com/joho/godotenv/autoload"
 import "github.com/sizethree/miritos.api/routes"
+import "github.com/sizethree/miritos.api/server"
+import "github.com/sizethree/miritos.api/activity"
 import "github.com/sizethree/miritos.api/middleware"
 
 func main() {
@@ -15,30 +17,42 @@ func main() {
 		port = "8080"
 	}
 
-	server := Server()
+	dbusername := os.Getenv("DB_USERNAME")
+	dbpassword := os.Getenv("DB_PASSWORD")
+	dbhostname := os.Getenv("DB_HOSTNAME")
+	dbport := os.Getenv("DB_PORT")
+	dbdatabase := os.Getenv("DB_DATABASE")
+	dbdebug := os.Getenv("DB_DEBUG") == "true"
 
-	server.Use(middleware.Inject)
+	stream := make(chan activity.Message, 100)
+	dbconf := server.DatabaseConfig{dbusername, dbpassword, dbhostname, dbdatabase, dbport, dbdebug}
 
-	server.GET("/system", routes.System)
-	server.GET("/auth", routes.PrintAuth, middleware.RequireUser)
-	server.GET("/auth/tokens", routes.PrintClientTokens, middleware.InjectClient)
+	app := server.NewApp()
+	processor := activity.Processor{stream, dbconf}
 
-	google := server.Group("/oauth/google")
+	go processor.Begin()
+
+	app.Use(middleware.Inject(stream, dbconf))
+
+	app.GET("/system", routes.System)
+	app.GET("/auth", routes.PrintAuth, middleware.RequireUser)
+	app.GET("/auth/tokens", routes.PrintClientTokens, middleware.InjectClient)
+
+	google := app.Group("/oauth/google")
 
 	google.GET("/prompt", routes.GoogleOauthRedirect)
 	google.GET("/auth", routes.GoogleOauthReceiveCode)
 
-	server.POST("/users", routes.CreateUser, middleware.RequireClient)
-	server.GET("/users", routes.FindUser, middleware.RequireClient)
-	server.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
+	app.POST("/users", routes.CreateUser, middleware.RequireClient)
+	app.GET("/users", routes.FindUser, middleware.RequireClient)
+	app.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
 
-	server.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
-	server.GET("/photos", routes.FindPhotos, middleware.RequireUser)
-	server.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
-	server.PATCH("/photos/:id", routes.UpdatePhoto, middleware.RequireUser)
+	app.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
+	app.GET("/photos", routes.FindPhotos, middleware.RequireUser)
+	app.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 
 
-	server.Logger().Infof("starting server on port %s", port)
+	app.Logger().Infof("starting app on port %s", port)
 
-	Run(server, port)
+	server.RunApp(app, port)
 }

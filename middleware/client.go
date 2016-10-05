@@ -12,7 +12,7 @@ const ERR_BAD_CLIENT_ID = "BAD_CLIENT_ID"
 
 func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 	inject := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Miritos)
+		runtime, ok := ctx.(*context.Runtime)
 
 		if ok != true {
 			return errors.New(ERR_BAD_RUNTIME)
@@ -52,7 +52,7 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 
 func RequireClient(handler echo.HandlerFunc) echo.HandlerFunc {
 	require := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Miritos)
+		runtime, ok := ctx.(*context.Runtime)
 
 		if ok != true {
 			return errors.New(ERR_BAD_RUNTIME)

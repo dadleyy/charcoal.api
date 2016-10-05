@@ -88,7 +88,7 @@ type sizeOp struct {
 
 func (op *sizeOp) Apply(client *Database) *Database {
 	clause := fmt.Sprintf("%s %s ?", op.field, op.operator)
-	return client.Where(clause, op.value)
+	return &Database{client.Where(clause, op.value)}
 }
 
 func (op *sizeOp) String() string {

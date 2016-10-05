@@ -8,7 +8,7 @@ import "github.com/sizethree/miritos.api/context"
 const ERR_BAD_SESSION = "BAD_SESSION"
 
 func PrintAuth(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Miritos)
+	runtime, ok := ectx.(*context.Runtime)
 
 	if ok != true {
 		return fmt.Errorf(ERR_BAD_SESSION)
@@ -20,7 +20,7 @@ func PrintAuth(ectx echo.Context) error {
 }
 
 func PrintClientTokens(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Miritos)
+	runtime, ok := ectx.(*context.Runtime)
 
 	if ok != true {
 		return fmt.Errorf(ERR_BAD_SESSION)

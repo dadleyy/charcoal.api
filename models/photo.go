@@ -1,5 +1,6 @@
 package models
 
+import "fmt"
 import "database/sql"
 
 type Photo struct {
@@ -14,6 +15,14 @@ type serializedPhoto struct {
 	Label string `json:"label"`
 	File uint `json:"file"`
 	Author interface{} `json:"author"`
+}
+
+func (photo *Photo) Url() string {
+	return fmt.Sprintf("http://example.com/photos/%d/view", photo.ID)
+}
+
+func (photo *Photo) Type() string {
+	return "application/vnd.miritos.photo+json"
 }
 
 func (photo *Photo) Public() interface{} {
