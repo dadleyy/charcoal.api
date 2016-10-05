@@ -14,7 +14,7 @@ func PrintAuth(ectx echo.Context) error {
 		return runtime.ErrorOut(errors.New(ERR_BAD_SESSION))
 	}
 
-	runtime.Result(runtime.User)
+	runtime.AddResult(&runtime.User)
 
 	return nil
 }
@@ -38,10 +38,10 @@ func PrintClientTokens(ectx echo.Context) error {
 	runtime.Logger().Infof("looking up auth info")
 
 	for _, token := range tokens {
-		runtime.Result(&token)
+		runtime.AddResult(&token)
 	}
 
-	runtime.SetMeta("total", total)
+	runtime.AddMeta("total", total)
 
 	return nil
 }

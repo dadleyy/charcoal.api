@@ -6,3 +6,7 @@ type ClientToken struct {
 	Token string `json:"token"`
 	Client uint `json:"client"`
 }
+
+func (token *ClientToken) Public() interface{} {
+	return token
+}

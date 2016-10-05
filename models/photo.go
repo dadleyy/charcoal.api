@@ -16,7 +16,7 @@ type serializedPhoto struct {
 	Author interface{} `json:"author"`
 }
 
-func (photo *Photo) Result() interface{} {
+func (photo *Photo) Public() interface{} {
 	var author interface{}
 
 	if photo.Author.Valid {

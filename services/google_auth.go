@@ -83,7 +83,7 @@ func (manager *GoogleAuthentication) Process(referrer, code string) (GoogleAuthe
 
 	response.Body.Close()
 
-	result.User = models.User{Email: info.Email, Name: info.Name}
+	result.User = models.User{Email: &info.Email, Name: &info.Name}
 
 	usrmgr := UserManager{manager.Database}
 

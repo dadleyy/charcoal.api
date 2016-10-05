@@ -71,14 +71,14 @@ func CreatePhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
-	runtime.Result(photo.Result())
+	runtime.AddResult(&photo)
 
 	return nil
 }
 
 func ViewPhoto(ectx echo.Context) error {
 	runtime, _ := ectx.(*context.Miritos)
-	id, err := runtime.ParamIntVal("id")
+	id, err := runtime.ParamInt("id")
 
 	if err != nil {
 		return runtime.ErrorOut(fmt.Errorf("BAD_PHOTO_ID"))
@@ -103,7 +103,7 @@ func ViewPhoto(ectx echo.Context) error {
 	}
 
 	runtime.Logger().Debugf("looking up photo %d, url: %s", id, url)
-	runtime.Result(url)
+	runtime.AddResult(&context.ResultString{url})
 
 	return nil
 }

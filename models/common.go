@@ -9,6 +9,10 @@ type Common struct {
 	DeletedAt *time.Time `json:"deleted_at"`
 }
 
+func (record *Common) HiddenFields() []string {
+	return []string{}
+}
+
 func (record *Common) Result() interface{} {
 	return record
 }

@@ -8,8 +8,14 @@ import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
 import "github.com/sizethree/miritos.api/services"
 
-func hash(password string) ([]byte, error) {
-	return bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+func hash(password string) (string, error) {
+	result, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+	if err != nil {
+		return "", err
+	}
+
+	return string(result), nil
 }
 
 func FindUser(ectx echo.Context) error {
@@ -27,15 +33,99 @@ func FindUser(ectx echo.Context) error {
 	}
 
 	for _, user := range users {
-		runtime.Result(&user)
+		runtime.AddResult(&user)
 	}
 
-	runtime.SetMeta("total", total)
+	runtime.AddMeta("total", total)
 
 	return nil
 }
 
 func UpdateUser(ectx echo.Context) error {
+	runtime, _ := ectx.(*context.Miritos)
+	id, err := runtime.ParamInt("id")
+
+	if err != nil {
+		runtime.Logger().Debugf("bad user id: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("BAD_ID"))
+	}
+
+
+	if id != int(runtime.User.ID) {
+		runtime.Logger().Debugf("invlaid user match request[%d]-runtime[%d]", id, runtime.User.ID)
+		return runtime.ErrorOut(fmt.Errorf("BAD_ID"))
+	}
+
+	updates := make(map[string]interface{})
+	applied := make(map[string]interface{})
+	count := 0
+
+	head := runtime.DB.Begin().Model(&runtime.User)
+
+	if err := runtime.Bind(&updates); err != nil  {
+		runtime.Logger().Debugf("bad update format: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("BAD_FORMAT"))
+	}
+
+	if password, exists := updates["password"]; exists == true{
+		password, ok := password.(string)
+
+		if ok != true {
+			return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+		}
+
+		if len(password) < 6 {
+			return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+		}
+
+		password, err = hash(password)
+
+		if err != nil {
+			return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+		}
+
+		applied["password"] = password
+		count++
+	}
+
+	if name, exists := updates["name"]; exists == true {
+		name, ok := name.(string)
+
+		if ok != true {
+			return runtime.ErrorOut(fmt.Errorf("BAD_NAME"))
+		}
+
+		if len(name) < 2 {
+			return runtime.ErrorOut(fmt.Errorf("BAD_NAME"))
+		}
+
+		applied["name"] = name
+		count++
+	}
+
+	if email, exists := updates["email"]; exists == true {
+		email, ok := email.(string)
+
+		if ok != true {
+			return runtime.ErrorOut(fmt.Errorf("BAD_EMAIL"))
+		}
+
+		if len(email) < 2 {
+			return runtime.ErrorOut(fmt.Errorf("BAD_EMAIL"))
+		}
+
+		applied["email"] = email
+		count++
+	}
+
+	if count == 0 {
+		return nil
+	}
+
+	head.Updates(applied).Commit()
+
+	runtime.Logger().Debugf("successfully updated user[%d]", id)
+	runtime.AddResult(&runtime.User)
 	return nil
 }
 
@@ -46,60 +136,56 @@ func CreateUser(ectx echo.Context) error {
 		return fmt.Errorf("BAD_RUNTIME")
 	}
 
-	body, err := runtime.Body()
+	var target models.User
 
-	if err != nil {
-		runtime.Logger().Debug("unable to read request body for POST /users")
-		return runtime.ErrorOut(err)
+	if err := runtime.Bind(&target); err != nil  {
+		runtime.Logger().Debugf("bad update format: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("BAD_FORMAT"))
 	}
 
-	name, exists := body.String("name")
-
-	if exists != true {
-		return runtime.ErrorOut(fmt.Errorf("INVALID_NAME"))
+	if target.Name == nil || len(*target.Name) < 2 {
+		return runtime.ErrorOut(fmt.Errorf("BAD_NAME"))
 	}
 
-	email, exists := body.String("email")
-
-	if exists != true {
-		return runtime.ErrorOut(fmt.Errorf("INVALID_EMAIL"))
+	if target.Email == nil || len(*target.Email) < 2 {
+		return runtime.ErrorOut(fmt.Errorf("BAD_EMAIL"))
 	}
 
-	password, exists := body.String("password")
-
-	if exists != true {
-		return runtime.ErrorOut(fmt.Errorf("INVALID_PASSWORD"))
+	if target.Password == nil || len(*target.Password) < 6 {
+		return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
 	}
 
-	hashed, err := hash(password)
+	usermgr := services.UserManager{runtime.DB}
+
+	if dupe, err := usermgr.IsDuplicate(&target); dupe || err != nil {
+		runtime.Logger().Debugf("duplicate user")
+		return runtime.ErrorOut(fmt.Errorf("BAD_USER"))
+	}
+
+	hashed, err := hash(*target.Password)
 
 	if err != nil {
 		return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
 	}
 
-	user := models.User{
-		Name: name,
-		Email: email,
-		Password: string(hashed),
+	target.Password = &hashed
+
+	if err := runtime.DB.Create(&target).Error; err != nil {
+		runtime.Logger().Debugf("unable to save: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("FAILED"))
 	}
 
-	if err = runtime.DB.Create(&user).Error; err != nil {
-		return runtime.ErrorOut(err)
-	}
+	clientmgr := services.UserClientManager{runtime.DB}
 
-	runtime.Logger().Debugf("successfully created user \"%s\", associating to client \"%d\"", name, runtime.Client.ID)
-
-	manager := services.UserClientManager{runtime.DB}
-
-	token, err := manager.AssociateClient(&user, &runtime.Client);
+	token, err := clientmgr.AssociateClient(&target, &runtime.Client)
 
 	if err != nil {
-		runtime.Logger().Errorf("failed user[%d]-client[%d] associate: %s", user.ID, runtime.Client.ID, err.Error())
-		return runtime.ErrorOut(fmt.Errorf("FAILED_ASSOCIATE"))
+		runtime.Logger().Debugf("unable to associate: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("FAILED"))
 	}
 
-	runtime.Logger().Debugf("created client/user token: %s", token.Token)
-	runtime.Result(&user)
+	runtime.Logger().Debugf("associated user[%d] with client[%d]: %s", target.ID, runtime.Client.ID, token.Token)
+	runtime.AddResult(&target)
 
 	return nil
 }

@@ -21,13 +21,12 @@ type Miritos struct {
 	User models.User
 }
 
-func (runtime *Miritos) Body() (Body, error) {
-	body := make(Body)
-	err := runtime.Bind(&body)
-	return body, err
-}
-
-func (runtime *Miritos) ParamIntVal(name string) (int, error) {
+// ParamIntVal
+//
+// returns either the integer representation of a given url parameter
+// or an error indicating the value was unable to be converted to the
+// integer.
+func (runtime *Miritos) ParamInt(name string) (int, error) {
 	param := runtime.Param(name)
 
 	if len(param) == 0 {
@@ -41,26 +40,35 @@ func (runtime *Miritos) ParamIntVal(name string) (int, error) {
 	return -1, fmt.Errorf("BAD_INT_VAL")
 }
 
+// RequestHeader
+// 
+// helper function to return a request header from the request.
 func (runtime *Miritos) RequestHeader(name string) string {
 	request := runtime.Request()
 	headers := request.Header()
 	return headers.Get(name)
 }
 
-func (runtime *Miritos) Result(result Result) {
+
+// Result
+//
+// appends a result into the runtime's result collection
+func (runtime *Miritos) AddResult(result Result) {
 	runtime.Results = append(runtime.Results, result)
 }
 
-func (runtime *Miritos) SetMeta(key string, value interface{}) {
+// SetMeta
+func (runtime *Miritos) AddMeta(key string, value interface{}) {
 	runtime.Meta[key] = value
 }
 
+// ErrorOut
 func (runtime *Miritos) ErrorOut(err error) error {
-	runtime.Logger().Errorf(err.Error())
 	runtime.Errors = append(runtime.Errors, err)
 	return nil
 }
 
+// PersistFile
 func (runtime *Miritos) PersistFile(target File, mime string) (models.File, error) {
 	temp, err := runtime.FS.Upload(target, mime)
 
@@ -75,6 +83,7 @@ func (runtime *Miritos) PersistFile(target File, mime string) (models.File, erro
 	return temp, err
 }
 
+// Blueprint
 func (runtime *Miritos) Blueprint() Blueprint {
 	result := Blueprint{Limit: DEFAULT_LIMIT, Page: 0}
 
@@ -108,6 +117,8 @@ func (runtime *Miritos) Blueprint() Blueprint {
 	return result
 }
 
+
+// Finish
 func (runtime *Miritos) Finish() error {
 	runtime.Meta["time"] = time.Now()
 	runtime.DB.Close()
@@ -146,8 +157,8 @@ func (runtime *Miritos) Finish() error {
 	response := struct {
 		Meta MetaData `json:"meta"`
 		Status string `json:"status"`
-		Results ResultList `json:"results"`
-	}{runtime.Meta, "SUCCESS", runtime.Results}
+		Results []interface{} `json:"results"`
+	}{runtime.Meta, "SUCCESS", runtime.Results.Apply()}
 
 	return runtime.JSON(http.StatusOK, response)
 }
