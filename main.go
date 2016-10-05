@@ -51,6 +51,7 @@ func main() {
 	app.GET("/photos", routes.FindPhotos, middleware.RequireUser)
 	app.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 
+	app.GET("/activity", routes.FindActivity, middleware.RequireClient)
 
 	app.Logger().Infof("starting app on port %s", port)
 

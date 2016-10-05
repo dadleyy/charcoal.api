@@ -27,6 +27,7 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 		decoded, err := base64.StdEncoding.DecodeString(auth)
 
 		if err != nil {
+			runtime.Logger().Debugf("bad client auth header: %s", auth)
 			return handler(runtime)
 		}
 
