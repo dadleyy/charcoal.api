@@ -1,6 +1,6 @@
 package routes
 
-import "errors"
+import "fmt"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
@@ -11,7 +11,7 @@ func PrintAuth(ectx echo.Context) error {
 	runtime, ok := ectx.(*context.Miritos)
 
 	if ok != true {
-		return runtime.ErrorOut(errors.New(ERR_BAD_SESSION))
+		return fmt.Errorf(ERR_BAD_SESSION)
 	}
 
 	runtime.AddResult(&runtime.User)
@@ -23,19 +23,24 @@ func PrintClientTokens(ectx echo.Context) error {
 	runtime, ok := ectx.(*context.Miritos)
 
 	if ok != true {
-		return runtime.ErrorOut(errors.New(ERR_BAD_SESSION))
+		return fmt.Errorf(ERR_BAD_SESSION)
+	}
+
+	if runtime.Client.ID == 0 {
+		return runtime.ErrorOut(fmt.Errorf("BAD_CLIENT"))
 	}
 
 	blueprint := runtime.Blueprint()
 	var tokens []models.ClientToken
 
+	blueprint.Filter("filter[client]", fmt.Sprint("eq(%d)", runtime.Client.ID))
+
 	total, err := blueprint.Apply(&tokens, runtime.DB)
 
 	if err != nil {
-		return err
+		runtime.Logger().Debugf("unable to apply client tokens: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("NO_TOKENS"))
 	}
-
-	runtime.Logger().Infof("looking up auth info")
 
 	for _, token := range tokens {
 		runtime.AddResult(&token)

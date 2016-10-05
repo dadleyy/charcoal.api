@@ -61,7 +61,6 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	return nil
 }
 
-
 func (print *Blueprint) Apply(out interface{}, client *Database) (int, error) {
 	var total int
 	limit, offset := print.Limit, print.Limit * print.Page

@@ -39,7 +39,7 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 		where := runtime.DB.Where("client_id = ?", parts[0]).Where("client_secret = ?", parts[1])
 
 		if e := where.First(&runtime.Client).Error; e != nil {
-			runtime.Logger().Error(e)
+			runtime.Logger().Errorf("unable to find client: %s", e.Error())
 			return handler(runtime)
 		}
 
