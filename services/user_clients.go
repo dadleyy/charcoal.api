@@ -87,13 +87,12 @@ func (engine *UserClientManager) AssociateClient(user *models.User, client *mode
 
 	var tcount uint
 
-	if err := engine.Model(&result).Count(&tcount).Error; err != nil {
-		return result, err
+	if err := engine.Model(&result).Where(result).Count(&tcount).Error; err != nil {
+		return result, fmt.Errorf("FAILED_COUNT: %s", err.Error())
 	}
 
 	if tcount >= 1 {
-		err := engine.Model(&result).Where(result).First(&result).Error
-		return result, err
+		return result, fmt.Errorf("DUPLICATE_CLIENT_USER: user[%d]-client[%d]: count[%d]", user.ID, client.ID, tcount)
 	}
 
 	privblock, err := PemDecodePath(os.Getenv("JWT_PRIVATE_KEY"))

@@ -17,6 +17,7 @@ func Inject(handler echo.HandlerFunc) echo.HandlerFunc {
 	hostname := os.Getenv("DB_HOSTNAME")
 	port := os.Getenv("DB_PORT")
 	database := os.Getenv("DB_DATABASE")
+	dbdebug := os.Getenv("DB_DEBUG")
 	dsn := fmt.Sprintf(DSN_STR, username, password, hostname, port, database)
 
 	inject := func(ctx echo.Context) error {
@@ -25,6 +26,10 @@ func Inject(handler echo.HandlerFunc) echo.HandlerFunc {
 		if err != nil {
 			ctx.Logger().Error(err)
 			return err
+		}
+
+		if len(dbdebug) >= 1 && dbdebug != "false" {
+			db.LogMode(true)
 		}
 
 		errors  := make(context.ErrorList, 0)

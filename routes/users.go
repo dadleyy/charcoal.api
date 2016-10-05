@@ -91,7 +91,7 @@ func CreateUser(ectx echo.Context) error {
 	token, err := manager.AssociateClient(&user, &runtime.Client);
 
 	if err != nil {
-		runtime.Logger().Errorf("failed user[%d]-client[%d] associate: %s", user.ID, runtime.User.ID, err.Error())
+		runtime.Logger().Errorf("failed user[%d]-client[%d] associate: %s", user.ID, runtime.Client.ID, err.Error())
 		return runtime.ErrorOut(fmt.Errorf("FAILED_ASSOCIATE"))
 	}
 
