@@ -1,5 +1,6 @@
 package models
 
+import "os"
 import "fmt"
 
 type User struct {
@@ -19,7 +20,8 @@ func (user *User) Public() interface{} {
 }
 
 func (user *User) Url() string {
-	return fmt.Sprintf("http://example.com/users?filters[id]=eq(%d)", user.ID)
+	root := os.Getenv("API_HOME")
+	return fmt.Sprintf("%s/users?filters[id]=eq(%d)", root, user.ID)
 }
 
 func (user *User) Type() string {

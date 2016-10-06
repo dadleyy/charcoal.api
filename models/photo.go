@@ -1,5 +1,6 @@
 package models
 
+import "os"
 import "fmt"
 import "database/sql"
 
@@ -18,7 +19,8 @@ type serializedPhoto struct {
 }
 
 func (photo *Photo) Url() string {
-	return fmt.Sprintf("http://example.com/photos/%d/view", photo.ID)
+	root := os.Getenv("API_HOME")
+	return fmt.Sprintf("%s/photos/%d/view", root, photo.ID)
 }
 
 func (photo *Photo) Type() string {

@@ -6,14 +6,14 @@ type Result interface {
 
 type ResultList []Result
 
-func (list *ResultList) Apply() []interface{} {
-	result := make([]interface{}, len(*list))
+func (list ResultList) Apply() []interface{} {
+	out := make([]interface{}, 0)
 
-	for i, r := range *list {
-		result[i] = r.Public()
+	for _, result := range list {
+		out = append(out, result.Public())
 	}
 
-	return result
+	return out
 }
 
 type ResultString struct {

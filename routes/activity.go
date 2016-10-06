@@ -20,7 +20,8 @@ func FindActivity(ectx echo.Context) error {
 	}
 
 	for _, item := range results {
-		runtime.AddResult(&item)
+		runtime.Logger().Debugf("adding item %d, actor_url %s", item.ID, item.ObjectUrl)
+		runtime.AddResult(item)
 	}
 
 	runtime.AddMeta("total", total)

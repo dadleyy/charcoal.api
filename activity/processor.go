@@ -21,6 +21,7 @@ func create(message Message, conf *server.DatabaseConfig, out chan<- error) {
 		out <- err
 		return
 	}
+	defer db.Close()
 
 	item := models.Activity{
 		Type: message.Verb,

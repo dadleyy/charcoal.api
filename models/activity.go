@@ -9,10 +9,10 @@ type Activity struct {
 	ObjectUrl string `json:"object_url"`
 }
 
-func (activity *Activity) TableName() string {
+func (activity Activity) TableName() string {
 	return "activity"
 }
 
-func (activity *Activity) Public() interface{} {
+func (activity Activity) Public() interface{} {
 	return activity
 }
