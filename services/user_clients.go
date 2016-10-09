@@ -87,7 +87,7 @@ func (engine *UserClientManager) Associate(user *models.User, client *models.Cli
 
 	var tcount uint
 
-	if err := engine.Model(&result).Where(result).First(&result).Count(&tcount).Error; err != nil {
+	if err := engine.Model(&result).Where(result).First(&result).Count(&tcount).Error; err != nil && tcount != 0 {
 		return result, fmt.Errorf("FAILED_COUNT: %s", err.Error())
 	}
 
