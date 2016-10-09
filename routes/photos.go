@@ -2,6 +2,7 @@ package routes
 
 import "fmt"
 import "strings"
+import "net/http"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
@@ -104,12 +105,36 @@ func ViewPhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(fmt.Errorf("BAD_DOWNLOAD_URL"))
 	}
 
-	runtime.Logger().Debugf("looking up photo %d, url: %s", id, url)
-	runtime.AddResult(&context.ResultString{url})
+	resp, err := http.Get(url)
 
+	if err != nil {
+		runtime.Logger().Debugf("unable to download file: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("BAD_DOWNLOAD_URL"))
+	}
+
+	defer resp.Body.Close()
+
+	runtime.Stream(200, "image/png", resp.Body)
 	return nil
 }
 
 func FindPhotos(ectx echo.Context) error {
+	runtime, _ := ectx.(*context.Runtime)
+
+	var results []models.Photo
+	blueprint := runtime.Blueprint()
+
+	total, err := blueprint.Apply(&results, runtime.DB)
+
+	if err != nil {
+		runtime.Logger().Debugf("bad photo lookup: %s", err.Error())
+		return runtime.ErrorOut(fmt.Errorf("BAD_QUERY"))
+	}
+
+	for _, item := range results {
+		runtime.AddResult(item)
+	}
+
+	runtime.AddMeta("total", total)
 	return nil
 }

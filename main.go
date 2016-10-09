@@ -28,9 +28,9 @@ func main() {
 	dbconf := server.DatabaseConfig{dbusername, dbpassword, dbhostname, dbdatabase, dbport, dbdebug}
 
 	app := server.NewApp()
-	processor := activity.Processor{stream, dbconf}
+	processor := activity.Processor{stream}
 
-	go processor.Begin()
+	go processor.Begin(dbconf)
 
 	app.Use(middleware.Inject(stream, dbconf))
 
@@ -48,7 +48,7 @@ func main() {
 	app.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
 
 	app.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
-	app.GET("/photos", routes.FindPhotos, middleware.RequireUser)
+	app.GET("/photos", routes.FindPhotos, middleware.RequireClient)
 	app.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 
 	app.GET("/activity", routes.FindActivity, middleware.RequireClient)

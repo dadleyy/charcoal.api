@@ -12,22 +12,21 @@ type Photo struct {
 }
 
 type serializedPhoto struct {
-	Common
-	Label string `json:"label"`
-	File uint `json:"file"`
+	Photo
 	Author interface{} `json:"author"`
+	Url string `json:"url"`
 }
 
-func (photo *Photo) Url() string {
+func (photo Photo) Url() string {
 	root := os.Getenv("API_HOME")
-	return fmt.Sprintf("%s/photos/%d/view", root, photo.ID)
+	return fmt.Sprintf("%s/photos?filter[id]=eq(%d)", root, photo.ID)
 }
 
-func (photo *Photo) Type() string {
+func (photo Photo) Type() string {
 	return "application/vnd.miritos.photo+json"
 }
 
-func (photo *Photo) Public() interface{} {
+func (photo Photo) Public() interface{} {
 	var author interface{}
 
 	if photo.Author.Valid {
@@ -36,6 +35,9 @@ func (photo *Photo) Public() interface{} {
 		author = nil
 	}
 
-	result := serializedPhoto{photo.Common, photo.Label, photo.File, author}
+	root := os.Getenv("API_HOME")
+	url := fmt.Sprintf("%s/photos/%d/view", root, photo.ID)
+
+	result := serializedPhoto{photo, author, url}
 	return result
 }

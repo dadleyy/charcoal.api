@@ -11,18 +11,9 @@ import "github.com/sizethree/miritos.api/models"
 
 type Processor struct {
 	Queue chan Message
-	DatabaseInfo server.DatabaseConfig
 }
 
-func create(message Message, conf *server.DatabaseConfig, out chan<- error) {
-	db, err := gorm.Open("mysql", conf.String())
-
-	if err != nil {
-		out <- err
-		return
-	}
-	defer db.Close()
-
+func create(message Message, db *server.Database, out chan<- error) {
 	item := models.Activity{
 		Type: message.Verb,
 		ActorUrl: message.Actor.Url(),
@@ -33,18 +24,28 @@ func create(message Message, conf *server.DatabaseConfig, out chan<- error) {
 
 	if err := db.Create(&item).Error; err != nil {
 		out <- err
+		return
 	}
 
 	out <- nil
 }
 
-func (engine *Processor) Begin() {
+func (engine *Processor) Begin(dbconf server.DatabaseConfig) {
 	var deferred sync.WaitGroup
 	makers := make(chan error)
+	conn, err := gorm.Open("mysql", dbconf.String())
+
+	if err != nil {
+		panic(fmt.Errorf("BAD_DB_CONFIG"))
+	}
+
+	db := server.Database{conn}
+
+	defer db.Close()
 
 	for message := range engine.Queue {
 		deferred.Add(1)
-		go create(message, &engine.DatabaseInfo, makers)
+		go create(message, &db, makers)
 	}
 
 	go func() {

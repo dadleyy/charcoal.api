@@ -28,7 +28,7 @@ func Inject(activities chan activity.Message, dbconf server.DatabaseConfig) echo
 			meta    := make(context.MetaData)
 			results := make(context.ResultList, 0)
 
-			client := context.Database{db}
+			client := server.Database{db}
 			var store context.FileSaver
 
 			switch os.Getenv("FS_ENGINE") {

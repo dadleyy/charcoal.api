@@ -1,4 +1,4 @@
-package context
+package server
 
 import "github.com/jinzhu/gorm"
 

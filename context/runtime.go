@@ -7,13 +7,14 @@ import "strings"
 import "net/http"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/server"
 import "github.com/sizethree/miritos.api/activity"
 
 const DEFAULT_LIMIT int = 100
 
 type Runtime struct {
 	echo.Context
-	DB *Database
+	DB *server.Database
 	Errors ErrorList
 	Meta MetaData
 	Results ResultList

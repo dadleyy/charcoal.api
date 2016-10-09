@@ -11,10 +11,10 @@ import "github.com/SermoDigital/jose/jws"
 import "github.com/SermoDigital/jose/crypto"
 
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/server"
 
 type UserClientManager struct {
-	*context.Database
+	*server.Database
 }
 
 func PemDecodePath(path string) (*pem.Block, error) {
@@ -72,7 +72,7 @@ func (engine *UserClientManager) Validate(input string, client *models.Client) e
 	return nil
 }
 
-func (engine *UserClientManager) AssociateClient(user *models.User, client *models.Client) (models.ClientToken, error) {
+func (engine *UserClientManager) Associate(user *models.User, client *models.Client) (models.ClientToken, error) {
 	var result models.ClientToken
 	var rsapriv *rsa.PrivateKey
 
@@ -87,12 +87,12 @@ func (engine *UserClientManager) AssociateClient(user *models.User, client *mode
 
 	var tcount uint
 
-	if err := engine.Model(&result).Where(result).Count(&tcount).Error; err != nil {
+	if err := engine.Model(&result).Where(result).First(&result).Count(&tcount).Error; err != nil {
 		return result, fmt.Errorf("FAILED_COUNT: %s", err.Error())
 	}
 
 	if tcount >= 1 {
-		return result, fmt.Errorf("DUPLICATE_CLIENT_USER: user[%d]-client[%d]: count[%d]", user.ID, client.ID, tcount)
+		return result, nil
 	}
 
 	privblock, err := PemDecodePath(os.Getenv("JWT_PRIVATE_KEY"))

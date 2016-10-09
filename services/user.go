@@ -2,10 +2,10 @@ package services
 
 import "fmt"
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/server"
 
 type UserManager struct {
-	*context.Database
+	*server.Database
 }
 
 func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {

@@ -26,7 +26,7 @@ func InjectUser(handler echo.HandlerFunc) echo.HandlerFunc {
 		bearer := runtime.RequestHeader("X-CLIENT-BEARER-TOKEN")
 
 		if len(bearer) < 1 {
-			runtime.Logger().Infof("no bearer token header found while injecting user info");
+			runtime.Logger().Debugf("no bearer token header found while injecting user info");
 			return handler(runtime)
 		}
 

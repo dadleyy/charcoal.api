@@ -177,7 +177,7 @@ func CreateUser(ectx echo.Context) error {
 
 	clientmgr := services.UserClientManager{runtime.DB}
 
-	token, err := clientmgr.AssociateClient(&target, &runtime.Client)
+	token, err := clientmgr.Associate(&target, &runtime.Client)
 
 	if err != nil {
 		runtime.Logger().Debugf("unable to associate: %s", err.Error())
