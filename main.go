@@ -60,6 +60,7 @@ func main() {
 	app.Use(app.Inject)
 
 	app.GET("/system", routes.System)
+
 	app.GET("/auth", routes.PrintAuth, middleware.RequireUser)
 	app.GET("/auth/tokens", routes.PrintClientTokens, middleware.InjectClient)
 
@@ -77,6 +78,8 @@ func main() {
 	app.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 
 	app.GET("/activity", routes.FindActivity, middleware.RequireClient)
+
+	app.GET("/displayschedules", routes.FindDisplaySchedules, middleware.RequireClient)
 
 	app.Logger().Infof("starting app on port %s", port)
 

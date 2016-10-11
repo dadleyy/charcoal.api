@@ -9,6 +9,6 @@ type Common struct {
 	DeletedAt *time.Time `json:"deleted_at"`
 }
 
-func (record *Common) Public() interface{} {
+func (record Common) Public() interface{} {
 	return record
 }
