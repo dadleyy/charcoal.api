@@ -9,6 +9,8 @@ type Photo struct {
 	Label string `json:"label"`
 	File uint `json:"file"`
 	Author sql.NullInt64 `json:"author"`
+	Width int `json:"width"`
+	Height int `json:"height"`
 }
 
 type serializedPhoto struct {

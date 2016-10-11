@@ -1,15 +1,22 @@
 package routes
 
 import "fmt"
+import "image"
 import "strings"
 import "net/http"
+
+import _ "image/jpeg"
+import _ "image/png"
+
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
 import "github.com/sizethree/miritos.api/activity"
 
-const MIN_PHOTO_LABEL_LENGTH int = 4
-const MIN_PHOTO_LABEL_MESSAGE string = "must provide a \"label\" at least %d characters long"
+const MIN_PHOTO_LABEL_LENGTH = 6
+const MIN_PHOTO_LABEL_MESSAGE = "BAD_PHOTO_LABEL"
+const MAX_PHOTO_WIDTH = 2048
+const MAX_PHOTO_HEIGHT = 2048
 
 func CreatePhoto(ectx echo.Context) error {
 	runtime, _ := ectx.(*context.Runtime)
@@ -25,20 +32,21 @@ func CreatePhoto(ectx echo.Context) error {
 
 	// bad label - error out
 	if len(label) < MIN_PHOTO_LABEL_LENGTH {
-		return runtime.ErrorOut(fmt.Errorf(MIN_PHOTO_LABEL_MESSAGE, MIN_PHOTO_LABEL_LENGTH))
+		return runtime.ErrorOut(fmt.Errorf(MIN_PHOTO_LABEL_MESSAGE))
 	}
 
 	// make sure the mime type detected is an image
 	mime, ok := header.Header["Content-Type"]
 
 	if ok != true || len(mime) != 1 {
-		return runtime.ErrorOut(fmt.Errorf("unable to look up file type from multipart header"))
+		return runtime.ErrorOut(fmt.Errorf("MISSING_CONTENT_TYPE"))
 	}
 
 	if isimg := strings.HasPrefix(mime[0], "image/"); isimg != true {
-		return runtime.ErrorOut(fmt.Errorf("bad mime type"))
+		return runtime.ErrorOut(fmt.Errorf("BAD_MIME_TYPE"))
 	}
 
+	// open the multipart file and defer it's closing
 	source, err := header.Open()
 	defer source.Close()
 
@@ -46,6 +54,22 @@ func CreatePhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
+	// attempt to decode the image and get it's dimensions
+	image, _, err := image.DecodeConfig(source)
+
+	if err != nil {
+		runtime.Logger().Errorf("unable to decode image: %s", err.Error())
+		return runtime.ErrorOut(err)
+	}
+
+	width, height := image.Width, image.Height
+
+	if width == 0 || height == 0 || width > MAX_PHOTO_WIDTH || height > MAX_PHOTO_HEIGHT {
+		runtime.Logger().Debugf("bad image sizes")
+		return runtime.ErrorOut(fmt.Errorf("BAD_IMAGE_SIZES"))
+	}
+
+	// attempt to use the runtime to persist the file uploaded
 	ormfile, err := runtime.PersistFile(source, mime[0])
 
 	if err != nil {
@@ -53,11 +77,14 @@ func CreatePhoto(ectx echo.Context) error {
 		return runtime.ErrorOut(err)
 	}
 
-	runtime.Logger().Debugf("successfully saved file \"%s\", updating photo orm", ormfile.Key)
+	runtime.Logger().Debugf("UPLOADED \"%s\" (width: %d, height: %d)", ormfile.Key, width, height)
 
+	// with the persisted file, create the new photo object that will be saved to the orm
 	photo := models.Photo{
 		Label: label,
 		File: ormfile.ID,
+		Width: width,
+		Height: height,
 	}
 
 	if runtime.User.ID >= 1 {
@@ -65,15 +92,20 @@ func CreatePhoto(ectx echo.Context) error {
 		photo.Author.Scan(runtime.User.ID)
 	}
 
+	// attempt to create the photo record in the database
 	if err := runtime.DB.Create(&photo).Error; err != nil {
 		return runtime.ErrorOut(err)
 	}
 
+	// let the file record know that it is owned
 	if err := runtime.DB.Model(&ormfile).Update("status", "OWNED").Error; err != nil {
 		return runtime.ErrorOut(err)
 	}
 
+	// publish this event to the activity stream
 	runtime.Publish(activity.Message{&runtime.User, &photo, "created"})
+
+	// add our result to the response
 	runtime.AddResult(&photo)
 
 	return nil
