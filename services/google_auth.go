@@ -7,8 +7,8 @@ import "encoding/json"
 import "golang.org/x/oauth2"
 import "golang.org/x/oauth2/google"
 
+import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/server"
 
 const GOOGLE_INFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
 
@@ -19,7 +19,7 @@ type GoogleUserInfo struct {
 }
 
 type GoogleAuthentication struct {
-	*server.Database
+	*db.Connection
 }
 
 type GoogleAuthenticationResult struct {
@@ -85,13 +85,13 @@ func (manager *GoogleAuthentication) Process(referrer, code string) (GoogleAuthe
 
 	result.User = models.User{Email: &info.Email, Name: &info.Name}
 
-	usrmgr := UserManager{manager.Database}
+	usrmgr := UserManager{manager.Connection}
 
 	if err := usrmgr.FindOrCreate(&result.User); err != nil {
 		return result, err
 	}
 
-	clientmgr := UserClientManager{manager.Database}
+	clientmgr := UserClientManager{manager.Connection}
 
 	result.ClientToken, err = clientmgr.Associate(&result.User, &result.Client)
 

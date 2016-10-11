@@ -1,13 +1,23 @@
 package main
 
 import "os"
+import "fmt"
 import "flag"
 
+import "github.com/labstack/echo"
+import "github.com/labstack/gommon/log"
+import "github.com/labstack/echo/engine/standard"
+
 import _ "github.com/joho/godotenv/autoload"
+import _ "github.com/jinzhu/gorm/dialects/mysql"
+
+import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/routes"
 import "github.com/sizethree/miritos.api/server"
 import "github.com/sizethree/miritos.api/activity"
 import "github.com/sizethree/miritos.api/middleware"
+
+const logfmt = "[${level} ${prefix} ${short_file}:${line}]"
 
 func main() {
 	flag.Parse()
@@ -24,15 +34,30 @@ func main() {
 	dbdatabase := os.Getenv("DB_DATABASE")
 	dbdebug := os.Getenv("DB_DEBUG") == "true"
 
+	// create the stream that will handle our activity messages
 	stream := make(chan activity.Message, 100)
-	dbconf := server.DatabaseConfig{dbusername, dbpassword, dbhostname, dbdatabase, dbport, dbdebug}
 
-	app := server.NewApp()
-	processor := activity.Processor{stream}
+	// prepare the database configuration that will be used both in the runtime that handles responses,
+	// as well as the connection used by the activity processor to handle them.
+	dbconf := db.Config{dbusername, dbpassword, dbhostname, dbdatabase, dbport, dbdebug}
 
-	go processor.Begin(dbconf)
+	// prepare the logger shared by the server runtime and the activity processor
+	logger := log.New("miritos")
+	logger.SetHeader(logfmt)
 
-	app.Use(middleware.Inject(stream, dbconf))
+	// create the main application and the processor that will be handling the activity messages
+	app := server.App{Echo: echo.New(), Queue: stream, DBConfig: dbconf}
+
+	processor := activity.Processor{stream, logger, dbconf}
+
+	app.SetLogger(logger)
+	app.SetLogLevel(0)
+
+	// start the processor's goroutine
+	go processor.Begin()
+
+	// add the runtime injection middleware
+	app.Use(app.Inject)
 
 	app.GET("/system", routes.System)
 	app.GET("/auth", routes.PrintAuth, middleware.RequireUser)
@@ -55,5 +80,5 @@ func main() {
 
 	app.Logger().Infof("starting app on port %s", port)
 
-	server.RunApp(app, port)
+	app.Run(standard.New(fmt.Sprintf(":%s", port)))
 }

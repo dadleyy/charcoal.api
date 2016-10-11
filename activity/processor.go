@@ -3,17 +3,22 @@ package activity
 import "fmt"
 import "sync"
 
-import "github.com/jinzhu/gorm"
-import _ "github.com/jinzhu/gorm/dialects/mysql"
+import "github.com/labstack/gommon/log"
 
-import "github.com/sizethree/miritos.api/server"
+import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
+
+const statusPending string = "PENDING"
+const statusApproved string = "APPROVED"
+const statusRejected string = "REJECTED"
 
 type Processor struct {
 	Queue chan Message
+	Logger *log.Logger
+	DBConfig db.Config
 }
 
-func create(message Message, db *server.Database, out chan<- error) {
+func create(message Message, conn *db.Connection, out chan<- error) {
 	item := models.Activity{
 		Type: message.Verb,
 		ActorUrl: message.Actor.Url(),
@@ -22,7 +27,17 @@ func create(message Message, db *server.Database, out chan<- error) {
 		ObjectType: message.Object.Type(),
 	}
 
-	if err := db.Create(&item).Error; err != nil {
+	if err := conn.Create(&item).Error; err != nil {
+		out <- err
+		return
+	}
+
+	schedule := models.DisplaySchedule{
+		Activity: item.ID,
+		Approval: statusPending,
+	}
+
+	if err := conn.Create(&schedule).Error; err != nil {
 		out <- err
 		return
 	}
@@ -30,22 +45,21 @@ func create(message Message, db *server.Database, out chan<- error) {
 	out <- nil
 }
 
-func (engine *Processor) Begin(dbconf server.DatabaseConfig) {
+func (engine *Processor) Begin() {
 	var deferred sync.WaitGroup
 	makers := make(chan error)
-	conn, err := gorm.Open("mysql", dbconf.String())
+	conn, err := db.Open(engine.DBConfig)
 
 	if err != nil {
 		panic(fmt.Errorf("BAD_DB_CONFIG"))
 	}
 
-	db := server.Database{conn}
-
-	defer db.Close()
+	defer conn.Close()
 
 	for message := range engine.Queue {
 		deferred.Add(1)
-		go create(message, &db, makers)
+		engine.Logger.Debugf("spawning creator goroutine for message: %s", message.Verb)
+		go create(message, conn, makers)
 	}
 
 	go func() {
@@ -55,6 +69,6 @@ func (engine *Processor) Begin(dbconf server.DatabaseConfig) {
 
 	for err := range makers {
 		if err == nil { continue }
-		fmt.Errorf("ERROR: %s", err.Error())
+		engine.Logger.Errorf("ERROR: %s", err.Error())
 	}
 }

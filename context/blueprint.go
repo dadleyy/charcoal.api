@@ -2,7 +2,7 @@ package context
 
 import "fmt"
 import "strings"
-import "github.com/sizethree/miritos.api/server"
+import "github.com/sizethree/miritos.api/db"
 
 type Blueprint struct {
 	Limit int
@@ -12,7 +12,7 @@ type Blueprint struct {
 }
 
 type BlueprintFilter interface {
-	Apply(*server.Database) *server.Database
+	Apply(*db.Connection) *db.Connection
 	String() string
 }
 
@@ -62,11 +62,11 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	return nil
 }
 
-func (print *Blueprint) Apply(out interface{}, client *server.Database) (int, error) {
+func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, error) {
 	var total int
 	limit, offset := print.Limit, print.Limit * print.Page
 
-	result := &server.Database{client.Begin().Limit(limit).Offset(offset)}
+	result := &db.Connection{client.Begin().Limit(limit).Offset(offset)}
 
 	for _, filter := range print.Filters {
 		result = filter.Apply(result)
@@ -87,9 +87,9 @@ type sizeOp struct {
 	operator string
 }
 
-func (op *sizeOp) Apply(client *server.Database) *server.Database {
+func (op *sizeOp) Apply(client *db.Connection) *db.Connection {
 	clause := fmt.Sprintf("%s %s ?", op.field, op.operator)
-	return &server.Database{client.Where(clause, op.value)}
+	return &db.Connection{client.Where(clause, op.value)}
 }
 
 func (op *sizeOp) String() string {
@@ -105,7 +105,7 @@ func (op *noOp) String() string {
 	return ""
 }
 
-func (op *noOp) Apply(client *server.Database) *server.Database {
+func (op *noOp) Apply(client *db.Connection) *db.Connection {
 	return client
 }
 

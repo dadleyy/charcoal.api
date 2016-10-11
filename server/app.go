@@ -1,30 +1,62 @@
 package server
 
-import "fmt"
+import "os"
 import "github.com/labstack/echo"
-import "github.com/labstack/gommon/log"
-import "github.com/labstack/echo/middleware"
-import "github.com/labstack/echo/engine/standard"
-
-const logfmt = "[${level} ${prefix} ${short_file}:${line}]"
+import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/activity"
+import "github.com/sizethree/miritos.api/filestore"
 
 type App struct {
 	*echo.Echo
+	Queue chan activity.Message
+	DBConfig db.Config
 }
 
-func NewApp() *App {
-	instance := &App{echo.New()}
+func (app *App) Inject(handler echo.HandlerFunc) echo.HandlerFunc {
+	inject := func(ctx echo.Context) error {
+		// open a database connection for this request
+		client, err := db.Open(app.DBConfig)
 
-	logger := log.New("miritos")
-	logger.SetHeader(logfmt)
-	instance.SetLogger(logger)
-	instance.SetLogLevel(0)
+		if err != nil {
+			ctx.Logger().Error(err)
+			return err
+		}
 
-	instance.Use(middleware.Recover())
+		// once finished handling, close db connection
+		defer client.Close()
 
-	return instance
-}
+		errors  := make(context.ErrorList, 0)
+		meta    := make(context.MetaData)
+		results := make(context.ResultList, 0)
 
-func RunApp(app *App, port string) {
-	app.Run(standard.New(fmt.Sprintf(":%s", port)))
+		var store context.FileSaver
+
+		switch os.Getenv("FS_ENGINE") {
+		case "s3":
+			store = filestore.S3FileStore{}
+		default:
+			store = filestore.TempStore{}
+		}
+
+		app := &context.Runtime{
+			Context: ctx,
+			DB: client,
+			Errors: errors,
+			Meta: meta,
+			Results: results,
+			FS: store,
+			ActivityStream: app.Queue,
+		}
+
+		result := handler(app)
+
+		if result == nil {
+			return app.Finish()
+		}
+
+		return result
+	}
+
+	return inject
 }
