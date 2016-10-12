@@ -69,6 +69,8 @@ func main() {
 	google.GET("/prompt", routes.GoogleOauthRedirect)
 	google.GET("/auth", routes.GoogleOauthReceiveCode)
 
+	app.GET("/userroles", routes.FindRoles, middleware.RequireClient)
+
 	app.POST("/users", routes.CreateUser, middleware.RequireClient)
 	app.GET("/users", routes.FindUser, middleware.RequireClient)
 	app.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)

@@ -33,7 +33,7 @@ func FindUser(ectx echo.Context) error {
 	}
 
 	for _, user := range users {
-		runtime.AddResult(&user)
+		runtime.AddResult(user)
 	}
 
 	runtime.AddMeta("total", total)

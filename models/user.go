@@ -10,7 +10,7 @@ type User struct {
 	Password *string `json:"password",omitempty`
 }
 
-func (user *User) Public() interface{} {
+func (user User) Public() interface{} {
 	out := struct {
 		Common
 		Name string `json:"name"`
@@ -19,11 +19,11 @@ func (user *User) Public() interface{} {
 	return out
 }
 
-func (user *User) Url() string {
+func (user User) Url() string {
 	root := os.Getenv("API_HOME")
 	return fmt.Sprintf("%s/users?filters[id]=eq(%d)", root, user.ID)
 }
 
-func (user *User) Type() string {
+func (user User) Type() string {
 	return "application/vnd.miritos.user+json"
 }
