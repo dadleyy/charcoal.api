@@ -19,6 +19,10 @@ func PrintAuth(ectx echo.Context) error {
 	return nil
 }
 
+func PrintUserRoles(ectx echo.Context) error {
+	return fmt.Errorf("NOT_IMPLEMENTED")
+}
+
 func PrintClientTokens(ectx echo.Context) error {
 	runtime, ok := ectx.(*context.Runtime)
 
@@ -27,7 +31,7 @@ func PrintClientTokens(ectx echo.Context) error {
 	}
 
 	if runtime.Client.ID == 0 {
-		return runtime.ErrorOut(fmt.Errorf("BAD_CLIENT"))
+		return fmt.Errorf("BAD_CLIENT")
 	}
 
 	blueprint := runtime.Blueprint()
@@ -39,11 +43,11 @@ func PrintClientTokens(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("unable to apply client tokens: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("NO_TOKENS"))
+		return fmt.Errorf("NO_TOKENS")
 	}
 
 	for _, token := range tokens {
-		runtime.AddResult(&token)
+		runtime.AddResult(token)
 	}
 
 	runtime.AddMeta("total", total)

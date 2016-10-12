@@ -16,7 +16,7 @@ func FindActivity(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("bad activity lookup query: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_QUERY"))
+		return fmt.Errorf("BAD_QUERY")
 	}
 
 	for _, item := range results {

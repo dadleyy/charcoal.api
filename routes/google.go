@@ -29,19 +29,19 @@ func GoogleOauthRedirect(ectx echo.Context) error {
 	state := ectx.QueryParam("client_id")
 
 	if len(state) == 0 {
-		return runtime.ErrorOut(errors.New("BAD_CLIENT_ID"))
+		return errors.New("BAD_CLIENT_ID")
 	}
 
 	var client models.Client
 
 	if err := runtime.DB.Where("client_id = ?", state).First(&client).Error; err != nil {
 		runtime.Logger().Errorf("invalid client id used in google auth: %s", clientid)
-		return runtime.ErrorOut(errors.New("BAD_CLIENT_ID"))
+		return errors.New("BAD_CLIENT_ID")
 	}
 
 	if len(client.RedirectUri) == 0 {
 		runtime.Logger().Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
-		return runtime.ErrorOut(errors.New("MISSING_REDIRECT_URI"))
+		return errors.New("MISSING_REDIRECT_URI")
 	}
 
 	queries := make(url.Values)
@@ -72,19 +72,19 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 
 	if len(code) == 0 {
 		runtime.Logger().Error("unable to find auth code sent from google")
-		return runtime.ErrorOut(errors.New(ERR_BAD_AUTH_CODE))
+		return errors.New(ERR_BAD_AUTH_CODE)
 	}
 
 	if len(state) == 0 {
 		runtime.Logger().Error("unable to find state sent back from google")
-		return runtime.ErrorOut(errors.New(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH))
+		return errors.New(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH)
 	}
 
 	// decode the client id sent along in the redirect
 	referrer, err := base64.StdEncoding.DecodeString(state)
 
 	if err != nil {
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	authman := services.GoogleAuthentication{runtime.DB}
@@ -93,13 +93,13 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Errorf("unable to authenticate client /w code: %s", err.Error())
-		return runtime.ErrorOut(errors.New("ERR_BAD_CLIENT_CODE"))
+		return errors.New("ERR_BAD_CLIENT_CODE")
 	}
 
 	fin, err := url.Parse(result.RedirectUri())
 
 	if err != nil {
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	queries := make(url.Values)

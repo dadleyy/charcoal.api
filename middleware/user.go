@@ -65,7 +65,7 @@ func RequireUser(handler echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		if valid := runtime.User.ID >= 1; valid != true {
-			return runtime.ErrorOut(fmt.Errorf(ERR_BAD_BEARER))
+			return fmt.Errorf(ERR_BAD_BEARER)
 		}
 
 		return handler(runtime)

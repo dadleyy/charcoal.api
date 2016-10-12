@@ -70,10 +70,8 @@ func (runtime *Runtime) AddMeta(key string, value interface{}) {
 	runtime.Meta[key] = value
 }
 
-// ErrorOut
-func (runtime *Runtime) ErrorOut(err error) error {
+func (runtime *Runtime) Error(err error) {
 	runtime.Errors = append(runtime.Errors, err)
-	return nil
 }
 
 // PersistFile

@@ -60,7 +60,7 @@ func RequireClient(handler echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		if valid := runtime.Client.ID >= 1; valid == false {
-			return runtime.ErrorOut(errors.New(ERR_BAD_CLIENT_ID))
+			return errors.New(ERR_BAD_CLIENT_ID)
 		}
 
 		return handler(runtime)

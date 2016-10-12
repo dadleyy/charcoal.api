@@ -29,7 +29,7 @@ func FindUser(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("bad user lookup query: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_QUERY"))
+		return fmt.Errorf("BAD_QUERY")
 	}
 
 	for _, user := range users {
@@ -47,13 +47,13 @@ func UpdateUser(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("bad user id: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_ID"))
+		return fmt.Errorf("BAD_ID")
 	}
 
 
 	if id != int(runtime.User.ID) {
 		runtime.Logger().Debugf("invlaid user match request[%d]-runtime[%d]", id, runtime.User.ID)
-		return runtime.ErrorOut(fmt.Errorf("BAD_ID"))
+		return fmt.Errorf("BAD_ID")
 	}
 
 	updates := make(map[string]interface{})
@@ -64,24 +64,24 @@ func UpdateUser(ectx echo.Context) error {
 
 	if err := runtime.Bind(&updates); err != nil  {
 		runtime.Logger().Debugf("bad update format: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_FORMAT"))
+		return (fmt.Errorf("BAD_FORMAT"))
 	}
 
 	if password, exists := updates["password"]; exists == true{
 		password, ok := password.(string)
 
 		if ok != true {
-			return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+			return (fmt.Errorf("BAD_PASSWORD"))
 		}
 
 		if len(password) < 6 {
-			return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+			return (fmt.Errorf("BAD_PASSWORD"))
 		}
 
 		password, err = hash(password)
 
 		if err != nil {
-			return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+			return fmt.Errorf("BAD_PASSWORD")
 		}
 
 		applied["password"] = password
@@ -92,11 +92,11 @@ func UpdateUser(ectx echo.Context) error {
 		name, ok := name.(string)
 
 		if ok != true {
-			return runtime.ErrorOut(fmt.Errorf("BAD_NAME"))
+			return fmt.Errorf("BAD_NAME")
 		}
 
 		if len(name) < 2 {
-			return runtime.ErrorOut(fmt.Errorf("BAD_NAME"))
+			return fmt.Errorf("BAD_NAME")
 		}
 
 		applied["name"] = name
@@ -107,11 +107,11 @@ func UpdateUser(ectx echo.Context) error {
 		email, ok := email.(string)
 
 		if ok != true {
-			return runtime.ErrorOut(fmt.Errorf("BAD_EMAIL"))
+			return fmt.Errorf("BAD_EMAIL")
 		}
 
 		if len(email) < 2 {
-			return runtime.ErrorOut(fmt.Errorf("BAD_EMAIL"))
+			return fmt.Errorf("BAD_EMAIL")
 		}
 
 		applied["email"] = email
@@ -140,39 +140,39 @@ func CreateUser(ectx echo.Context) error {
 
 	if err := runtime.Bind(&target); err != nil  {
 		runtime.Logger().Debugf("bad update format: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_FORMAT"))
+		return fmt.Errorf("BAD_FORMAT")
 	}
 
 	if target.Name == nil || len(*target.Name) < 2 {
-		return runtime.ErrorOut(fmt.Errorf("BAD_NAME"))
+		return fmt.Errorf("BAD_NAME")
 	}
 
 	if target.Email == nil || len(*target.Email) < 2 {
-		return runtime.ErrorOut(fmt.Errorf("BAD_EMAIL"))
+		return fmt.Errorf("BAD_EMAIL")
 	}
 
 	if target.Password == nil || len(*target.Password) < 6 {
-		return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+		return fmt.Errorf("BAD_PASSWORD")
 	}
 
 	usermgr := services.UserManager{runtime.DB}
 
 	if dupe, err := usermgr.IsDuplicate(&target); dupe || err != nil {
 		runtime.Logger().Debugf("duplicate user")
-		return runtime.ErrorOut(fmt.Errorf("BAD_USER"))
+		return fmt.Errorf("BAD_USER")
 	}
 
 	hashed, err := hash(*target.Password)
 
 	if err != nil {
-		return runtime.ErrorOut(fmt.Errorf("BAD_PASSWORD"))
+		return fmt.Errorf("BAD_PASSWORD")
 	}
 
 	target.Password = &hashed
 
 	if err := runtime.DB.Create(&target).Error; err != nil {
 		runtime.Logger().Debugf("unable to save: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("FAILED"))
+		return fmt.Errorf("FAILED")
 	}
 
 	clientmgr := services.UserClientManager{runtime.DB}
@@ -181,7 +181,7 @@ func CreateUser(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("unable to associate: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("FAILED"))
+		return fmt.Errorf("FAILED")
 	}
 
 	runtime.Logger().Debugf("associated user[%d] with client[%d]: %s", target.ID, runtime.Client.ID, token.Token)

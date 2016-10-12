@@ -25,25 +25,25 @@ func CreatePhoto(ectx echo.Context) error {
 
 	// bad form file - error out
 	if err != nil {
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	label := runtime.FormValue("label")
 
 	// bad label - error out
 	if len(label) < MIN_PHOTO_LABEL_LENGTH {
-		return runtime.ErrorOut(fmt.Errorf(MIN_PHOTO_LABEL_MESSAGE))
+		return fmt.Errorf(MIN_PHOTO_LABEL_MESSAGE)
 	}
 
 	// make sure the mime type detected is an image
 	mime, ok := header.Header["Content-Type"]
 
 	if ok != true || len(mime) != 1 {
-		return runtime.ErrorOut(fmt.Errorf("MISSING_CONTENT_TYPE"))
+		return fmt.Errorf("MISSING_CONTENT_TYPE")
 	}
 
 	if isimg := strings.HasPrefix(mime[0], "image/"); isimg != true {
-		return runtime.ErrorOut(fmt.Errorf("BAD_MIME_TYPE"))
+		return fmt.Errorf("BAD_MIME_TYPE")
 	}
 
 	// open the multipart file and defer it's closing
@@ -51,7 +51,7 @@ func CreatePhoto(ectx echo.Context) error {
 	defer source.Close()
 
 	if err != nil {
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	// attempt to decode the image and get it's dimensions
@@ -59,14 +59,14 @@ func CreatePhoto(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Errorf("unable to decode image: %s", err.Error())
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	width, height := image.Width, image.Height
 
 	if width == 0 || height == 0 || width > MAX_PHOTO_WIDTH || height > MAX_PHOTO_HEIGHT {
 		runtime.Logger().Debugf("bad image sizes")
-		return runtime.ErrorOut(fmt.Errorf("BAD_IMAGE_SIZES"))
+		return fmt.Errorf("BAD_IMAGE_SIZES")
 	}
 
 	// attempt to use the runtime to persist the file uploaded
@@ -74,7 +74,7 @@ func CreatePhoto(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Error(err)
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	runtime.Logger().Debugf("UPLOADED \"%s\" (width: %d, height: %d)", ormfile.Key, width, height)
@@ -94,12 +94,12 @@ func CreatePhoto(ectx echo.Context) error {
 
 	// attempt to create the photo record in the database
 	if err := runtime.DB.Create(&photo).Error; err != nil {
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	// let the file record know that it is owned
 	if err := runtime.DB.Model(&ormfile).Update("status", "OWNED").Error; err != nil {
-		return runtime.ErrorOut(err)
+		return err
 	}
 
 	// publish this event to the activity stream
@@ -116,32 +116,32 @@ func ViewPhoto(ectx echo.Context) error {
 	id, err := runtime.ParamInt("id")
 
 	if err != nil {
-		return runtime.ErrorOut(fmt.Errorf("BAD_PHOTO_ID"))
+		return fmt.Errorf("BAD_PHOTO_ID")
 	}
 
 	var photo models.Photo
 
 	if err := runtime.DB.First(&photo, id).Error; err != nil {
-		return runtime.ErrorOut(fmt.Errorf("NOT_FOUND"))
+		return fmt.Errorf("NOT_FOUND")
 	}
 
 	var file models.File
 
 	if err := runtime.DB.First(&file, photo.File).Error; err != nil {
-		return runtime.ErrorOut(fmt.Errorf("NOT_FOUND"))
+		return fmt.Errorf("NOT_FOUND")
 	}
 
 	url, err := runtime.FS.DownloadUrl(&file)
 
 	if err != nil {
-		return runtime.ErrorOut(fmt.Errorf("BAD_DOWNLOAD_URL"))
+		return fmt.Errorf("BAD_DOWNLOAD_URL")
 	}
 
 	resp, err := http.Get(url)
 
 	if err != nil {
 		runtime.Logger().Debugf("unable to download file: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_DOWNLOAD_URL"))
+		return fmt.Errorf("BAD_DOWNLOAD_URL")
 	}
 
 	defer resp.Body.Close()
@@ -160,7 +160,7 @@ func FindPhotos(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("bad photo lookup: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_QUERY"))
+		return fmt.Errorf("BAD_QUERY")
 	}
 
 	for _, item := range results {

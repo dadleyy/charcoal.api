@@ -17,7 +17,7 @@ func FindRoles(ectx echo.Context) error {
 
 	if err != nil {
 		runtime.Logger().Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())
-		return runtime.ErrorOut(fmt.Errorf("BAD_QUERY"))
+		return fmt.Errorf("BAD_QUERY")
 	}
 
 	for _, role := range roles {

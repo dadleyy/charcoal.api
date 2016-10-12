@@ -51,11 +51,14 @@ func (app *App) Inject(handler echo.HandlerFunc) echo.HandlerFunc {
 
 		result := handler(app)
 
+		defer app.Finish()
+
 		if result == nil {
-			return app.Finish()
+			return nil
 		}
 
-		return result
+		app.Error(result)
+		return nil
 	}
 
 	return inject
