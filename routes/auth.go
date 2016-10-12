@@ -4,6 +4,7 @@ import "fmt"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/services"
 
 const ERR_BAD_SESSION = "BAD_SESSION"
 
@@ -15,6 +16,9 @@ func PrintAuth(ectx echo.Context) error {
 	}
 
 	runtime.AddResult(&runtime.User)
+
+	uman := services.UserManager{runtime.DB}
+	runtime.AddMeta("admin", uman.IsAdmin(&runtime.User))
 
 	return nil
 }

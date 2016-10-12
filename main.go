@@ -59,13 +59,17 @@ func main() {
 	// add the runtime injection middleware
 	app.Use(app.Inject)
 
+	// inject the current client and user into every request
+	app.Use(middleware.InjectClient)
+	app.Use(middleware.InjectUser)
+
 	app.GET("/system", routes.System)
 
 	// auth related routes deal with retreiving information about the current request's
 	// authentication information, e.g the client tokens users have created for the current
 	// client and the user information given a specific client token.
 	app.GET("/auth", routes.PrintAuth, middleware.RequireUser)
-	app.GET("/auth/tokens", routes.PrintClientTokens, middleware.InjectClient)
+	app.GET("/auth/tokens", routes.PrintClientTokens)
 	app.GET("/auth/roles", routes.PrintUserRoles, middleware.RequireUser)
 
 	google := app.Group("/oauth/google")
@@ -84,6 +88,8 @@ func main() {
 	app.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 
 	app.GET("/activity", routes.FindActivity, middleware.RequireClient)
+
+	app.GET("/clientadmins", routes.FindClientAdmins, middleware.RequireClient)
 
 	app.GET("/displayschedules", routes.FindDisplaySchedules, middleware.RequireClient)
 

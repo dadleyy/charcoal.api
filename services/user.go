@@ -23,3 +23,23 @@ func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {
 func (manager *UserManager) FindOrCreate(target *models.User) error {
 	return manager.FirstOrCreate(target, *target).Error
 }
+
+func (manager *UserManager) IsAdmin(target *models.User) bool {
+	if target == nil || target.ID == 0 {
+		return false;
+	}
+
+	var maps []models.UserRoleMapping
+
+	if err := manager.Where("user = ?", target.ID).Find(&maps).Error; err != nil {
+		return false
+	}
+
+	for _, mapping := range maps {
+		if mapping.Role == 1 {
+			return true
+		}
+	}
+
+	return false
+}
