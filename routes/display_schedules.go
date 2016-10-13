@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "github.com/labstack/echo"
@@ -27,3 +28,4 @@ func FindDisplaySchedules(ectx echo.Context) error {
 
 	return nil
 }
+*/

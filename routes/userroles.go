@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "github.com/labstack/echo"
@@ -28,4 +29,4 @@ func FindRoles(ectx echo.Context) error {
 
 	return nil
 }
-
+*/

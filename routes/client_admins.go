@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "github.com/labstack/echo"
@@ -42,3 +43,4 @@ func FindClientAdmins(ectx echo.Context) error {
 
 	return nil
 }
+*/

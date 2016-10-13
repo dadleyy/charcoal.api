@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "image"
@@ -170,3 +171,4 @@ func FindPhotos(ectx echo.Context) error {
 	runtime.AddMeta("total", total)
 	return nil
 }
+*/

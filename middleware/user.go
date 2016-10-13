@@ -1,5 +1,6 @@
 package middleware
 
+/*
 import "fmt"
 import "github.com/labstack/echo"
 import "github.com/sizethree/miritos.api/models"
@@ -73,3 +74,4 @@ func RequireUser(handler echo.HandlerFunc) echo.HandlerFunc {
 
 	return InjectUser(require)
 }
+*/

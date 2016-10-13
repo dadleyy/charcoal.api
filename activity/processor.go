@@ -1,8 +1,6 @@
 package activity
 
-import "fmt"
 import "sync"
-
 import "github.com/labstack/gommon/log"
 
 import "github.com/sizethree/miritos.api/db"
@@ -15,9 +13,9 @@ const statusRejected string = "REJECTED"
 type semaphore chan struct{}
 
 type Processor struct {
-	Queue chan Message
 	Logger *log.Logger
-	DBConfig db.Config
+	DatabaseConnection *db.Connection
+	Queue chan Message
 }
 
 func create(message Message, conn *db.Connection, out chan<- error, waitlist semaphore) {
@@ -60,18 +58,11 @@ func (engine *Processor) Begin() {
 	var deferred sync.WaitGroup
 	makers := make(chan error)
 	waitlist := make(semaphore, 20)
-	conn, err := db.Open(engine.DBConfig)
-
-	if err != nil {
-		panic(fmt.Errorf("BAD_DB_CONFIG"))
-	}
-
-	defer conn.Close()
 
 	for message := range engine.Queue {
 		deferred.Add(1)
 		engine.Logger.Debugf("spawning creator goroutine for message: %s", message.Verb)
-		go create(message, conn, makers, waitlist)
+		go create(message, engine.DatabaseConnection, makers, waitlist)
 	}
 
 	go func() {

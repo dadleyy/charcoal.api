@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "github.com/labstack/echo"
@@ -189,3 +190,4 @@ func CreateUser(ectx echo.Context) error {
 
 	return nil
 }
+*/

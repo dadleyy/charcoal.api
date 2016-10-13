@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "github.com/labstack/echo"
@@ -93,3 +94,4 @@ func PrintClientTokens(ectx echo.Context) error {
 
 	return nil
 }
+*/

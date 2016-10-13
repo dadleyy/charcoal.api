@@ -1,23 +1,16 @@
 package middleware
 
-import "errors"
 import "strings"
 import "encoding/base64"
-import "github.com/labstack/echo"
-import "github.com/sizethree/miritos.api/context"
+
+import "github.com/sizethree/miritos.api/net"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
 const ERR_MISSING_CLIENT_ID = "MISSING_CLIENT_ID"
 const ERR_BAD_CLIENT_ID = "BAD_CLIENT_ID"
 
-func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
-	inject := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Runtime)
-
-		if ok != true {
-			return errors.New(ERR_BAD_RUNTIME)
-		}
-
+func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
+	inject := func(runtime *net.RequestRuntime) error {
 		auth := runtime.RequestHeader("X-CLIENT-AUTH")
 
 		if len(auth) < 1 {
@@ -37,7 +30,7 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 			return handler(runtime)
 		}
 
-		where := runtime.DB.Where("client_id = ?", parts[0]).Where("client_secret = ?", parts[1])
+		where := runtime.Database().Where("client_id = ?", parts[0]).Where("client_secret = ?", parts[1])
 
 		if e := where.First(&runtime.Client).Error; e != nil {
 			runtime.Logger().Errorf("unable to find client: %s", e.Error())
@@ -51,6 +44,7 @@ func InjectClient(handler echo.HandlerFunc) echo.HandlerFunc {
 	return inject
 }
 
+/*
 func RequireClient(handler echo.HandlerFunc) echo.HandlerFunc {
 	require := func(ctx echo.Context) error {
 		runtime, ok := ctx.(*context.Runtime)
@@ -68,3 +62,4 @@ func RequireClient(handler echo.HandlerFunc) echo.HandlerFunc {
 
 	return InjectClient(require)
 }
+*/

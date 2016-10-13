@@ -1,15 +1,8 @@
 package routes
 
-import "errors"
-import "github.com/labstack/echo"
-import "github.com/sizethree/miritos.api/context"
+import "github.com/sizethree/miritos.api/net"
 
-func System(ectx echo.Context) error {
-	_, ok := ectx.(*context.Runtime)
-
-	if !ok {
-		return errors.New("unable to load miritos context")
-	}
-
+func System(runtime *net.RequestRuntime) error {
+	runtime.Result("OK")
 	return nil
 }

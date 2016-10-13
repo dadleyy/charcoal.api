@@ -2,98 +2,66 @@ package main
 
 import "os"
 import "fmt"
-import "flag"
 
-import "github.com/labstack/echo"
+import "github.com/joho/godotenv"
 import "github.com/labstack/gommon/log"
-import "github.com/labstack/echo/engine/standard"
 
-import _ "github.com/joho/godotenv/autoload"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 import "github.com/sizethree/miritos.api/db"
+import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/routes"
-import "github.com/sizethree/miritos.api/server"
 import "github.com/sizethree/miritos.api/activity"
-import "github.com/sizethree/miritos.api/middleware"
-
-const logfmt = "[${level} ${prefix} ${short_file}:${line}]"
 
 func main() {
-	flag.Parse()
+  err := godotenv.Load()
+
+  if err != nil {
+		fmt.Errorf("bad env: %s", err.Error())
+		return
+  }
+
+	dbconf := db.Config{
+		os.Getenv("DB_USERNAME"),
+		os.Getenv("DB_PASSWORD"),
+		os.Getenv("DB_HOSTNAME"),
+		os.Getenv("DB_DATABASE"),
+		os.Getenv("DB_PORT"),
+		os.Getenv("DB_DEBUG") == "true",
+	}
+
 	port := os.Getenv("PORT")
 
 	if len(port) < 1 {
 		port = "8080"
 	}
 
-	dbusername := os.Getenv("DB_USERNAME")
-	dbpassword := os.Getenv("DB_PASSWORD")
-	dbhostname := os.Getenv("DB_HOSTNAME")
-	dbport := os.Getenv("DB_PORT")
-	dbdatabase := os.Getenv("DB_DATABASE")
-	dbdebug := os.Getenv("DB_DEBUG") == "true"
+	database, err := db.Open(dbconf)
 
-	// create the stream that will handle our activity messages
+	if err != nil {
+		panic(err)
+	}
+
+	// create the logger that will be shared by the server and the activity processor
+	logger := log.New("miritos")
+	logger.SetLevel(0)
+	logger.SetHeader("[${time_rfc3339} ${level} ${short_file}]")
+
+	// create the channel that will be used by the server runtime and activity processor
 	stream := make(chan activity.Message, 100)
 
-	// prepare the database configuration that will be used both in the runtime that handles responses,
-	// as well as the connection used by the activity processor to handle them.
-	dbconf := db.Config{dbusername, dbpassword, dbhostname, dbdatabase, dbport, dbdebug}
+	// create our multiplexer and add our routes
+	mux := net.Multiplexer{}
 
-	// prepare the logger shared by the server runtime and the activity processor
-	logger := log.New("miritos")
-	logger.SetHeader(logfmt)
+	mux.GET("/system", routes.System)
 
-	// create the main application and the processor that will be handling the activity messages
-	app := server.App{Echo: echo.New(), Queue: stream, DBConfig: dbconf}
+	// create the server runtime and the activity processor runtime
+	runtime := net.ServerRuntime{logger, database, stream, &mux}
+	processor := activity.Processor{logger, database, stream}
+	server := net.Server{nil, &runtime}
 
-	processor := activity.Processor{stream, logger, dbconf}
-
-	app.SetLogger(logger)
-	app.SetLogLevel(0)
-
-	// start the processor's goroutine
+	// start the server & processor
+	server.Logger().Debugf(fmt.Sprintf("starting"))
 	go processor.Begin()
-
-	// add the runtime injection middleware
-	app.Use(app.Inject)
-
-	// inject the current client and user into every request
-	app.Use(middleware.InjectClient)
-	app.Use(middleware.InjectUser)
-
-	app.GET("/system", routes.System)
-
-	// auth related routes deal with retreiving information about the current request's
-	// authentication information, e.g the client tokens users have created for the current
-	// client and the user information given a specific client token.
-	app.GET("/auth", routes.PrintAuth, middleware.RequireUser)
-	app.GET("/auth/tokens", routes.PrintClientTokens)
-	app.GET("/auth/roles", routes.PrintUserRoles, middleware.RequireUser)
-
-	google := app.Group("/oauth/google")
-
-	google.GET("/prompt", routes.GoogleOauthRedirect)
-	google.GET("/auth", routes.GoogleOauthReceiveCode)
-
-	app.GET("/userroles", routes.FindRoles, middleware.RequireClient)
-
-	app.POST("/users", routes.CreateUser, middleware.RequireClient)
-	app.GET("/users", routes.FindUser, middleware.RequireClient)
-	app.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
-
-	app.POST("/photos", routes.CreatePhoto, middleware.RequireUser)
-	app.GET("/photos", routes.FindPhotos, middleware.RequireClient)
-	app.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
-
-	app.GET("/activity", routes.FindActivity, middleware.RequireClient)
-
-	app.GET("/clientadmins", routes.FindClientAdmins, middleware.RequireClient)
-
-	app.GET("/displayschedules", routes.FindDisplaySchedules, middleware.RequireClient)
-
-	app.Logger().Infof("starting app on port %s", port)
-
-	app.Run(standard.New(fmt.Sprintf(":%s", port)))
+	server.Run(fmt.Sprintf(":%s", port))
 }

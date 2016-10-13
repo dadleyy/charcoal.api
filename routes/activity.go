@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "fmt"
 import "github.com/labstack/echo"
@@ -28,3 +29,4 @@ func FindActivity(ectx echo.Context) error {
 
 	return nil
 }
+*/

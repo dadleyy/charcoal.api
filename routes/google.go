@@ -1,4 +1,5 @@
 package routes
+/*
 
 import "os"
 import "errors"
@@ -110,3 +111,4 @@ func GoogleOauthReceiveCode(ectx echo.Context) error {
 
 	return nil
 }
+*/
