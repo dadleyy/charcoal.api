@@ -1,4 +1,72 @@
 package routes
+
+import "github.com/sizethree/miritos.api/net"
+
+func CreateUser(runtime *net.RequestRuntime) error {
+	return nil
+	/*
+	runtime, ok := ectx.(*context.Runtime)
+
+	if ok != true {
+		return fmt.Errorf("BAD_RUNTIME")
+	}
+
+	var target models.User
+
+	if err := runtime.Bind(&target); err != nil  {
+		runtime.Logger().Debugf("bad update format: %s", err.Error())
+		return fmt.Errorf("BAD_FORMAT")
+	}
+
+	if target.Name == nil || len(*target.Name) < 2 {
+		return fmt.Errorf("BAD_NAME")
+	}
+
+	if target.Email == nil || len(*target.Email) < 2 {
+		return fmt.Errorf("BAD_EMAIL")
+	}
+
+	if target.Password == nil || len(*target.Password) < 6 {
+		return fmt.Errorf("BAD_PASSWORD")
+	}
+
+	usermgr := services.UserManager{runtime.DB}
+
+	if dupe, err := usermgr.IsDuplicate(&target); dupe || err != nil {
+		runtime.Logger().Debugf("duplicate user")
+		return fmt.Errorf("BAD_USER")
+	}
+
+	hashed, err := hash(*target.Password)
+
+	if err != nil {
+		return fmt.Errorf("BAD_PASSWORD")
+	}
+
+	target.Password = &hashed
+
+	if err := runtime.DB.Create(&target).Error; err != nil {
+		runtime.Logger().Debugf("unable to save: %s", err.Error())
+		return fmt.Errorf("FAILED")
+	}
+
+	clientmgr := services.UserClientManager{runtime.DB}
+
+	token, err := clientmgr.Associate(&target, &runtime.Client)
+
+	if err != nil {
+		runtime.Logger().Debugf("unable to associate: %s", err.Error())
+		return fmt.Errorf("FAILED")
+	}
+
+	runtime.Logger().Debugf("associated user[%d] with client[%d]: %s", target.ID, runtime.Client.ID, token.Token)
+	runtime.AddResult(&target)
+
+	return nil
+	*/
+}
+
+
 /*
 
 import "fmt"
@@ -129,65 +197,5 @@ func UpdateUser(ectx echo.Context) error {
 	runtime.AddResult(&runtime.User)
 	return nil
 }
-
-func CreateUser(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Runtime)
-
-	if ok != true {
-		return fmt.Errorf("BAD_RUNTIME")
-	}
-
-	var target models.User
-
-	if err := runtime.Bind(&target); err != nil  {
-		runtime.Logger().Debugf("bad update format: %s", err.Error())
-		return fmt.Errorf("BAD_FORMAT")
-	}
-
-	if target.Name == nil || len(*target.Name) < 2 {
-		return fmt.Errorf("BAD_NAME")
-	}
-
-	if target.Email == nil || len(*target.Email) < 2 {
-		return fmt.Errorf("BAD_EMAIL")
-	}
-
-	if target.Password == nil || len(*target.Password) < 6 {
-		return fmt.Errorf("BAD_PASSWORD")
-	}
-
-	usermgr := services.UserManager{runtime.DB}
-
-	if dupe, err := usermgr.IsDuplicate(&target); dupe || err != nil {
-		runtime.Logger().Debugf("duplicate user")
-		return fmt.Errorf("BAD_USER")
-	}
-
-	hashed, err := hash(*target.Password)
-
-	if err != nil {
-		return fmt.Errorf("BAD_PASSWORD")
-	}
-
-	target.Password = &hashed
-
-	if err := runtime.DB.Create(&target).Error; err != nil {
-		runtime.Logger().Debugf("unable to save: %s", err.Error())
-		return fmt.Errorf("FAILED")
-	}
-
-	clientmgr := services.UserClientManager{runtime.DB}
-
-	token, err := clientmgr.Associate(&target, &runtime.Client)
-
-	if err != nil {
-		runtime.Logger().Debugf("unable to associate: %s", err.Error())
-		return fmt.Errorf("FAILED")
-	}
-
-	runtime.Logger().Debugf("associated user[%d] with client[%d]: %s", target.ID, runtime.Client.ID, token.Token)
-	runtime.AddResult(&target)
-
-	return nil
-}
 */
+

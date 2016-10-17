@@ -13,6 +13,7 @@ type RequestRuntime struct {
 	Log *log.Logger
 	Queue chan activity.Message
 	Client models.Client
+	User models.User
 	bucket ResponseBucket
 }
 

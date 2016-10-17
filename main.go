@@ -12,6 +12,7 @@ import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/routes"
 import "github.com/sizethree/miritos.api/activity"
+import "github.com/sizethree/miritos.api/middleware"
 
 func main() {
   err := godotenv.Load()
@@ -53,7 +54,11 @@ func main() {
 	// create our multiplexer and add our routes
 	mux := net.Multiplexer{}
 
+	mux.Use(middleware.InjectClient)
+	mux.Use(middleware.InjectUser)
+
 	mux.GET("/system", routes.System)
+	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
 
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{logger, database, stream, &mux}

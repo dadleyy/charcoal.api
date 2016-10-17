@@ -1,5 +1,6 @@
 package middleware
 
+import "fmt"
 import "strings"
 import "encoding/base64"
 
@@ -11,7 +12,8 @@ const ERR_BAD_CLIENT_ID = "BAD_CLIENT_ID"
 
 func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 	inject := func(runtime *net.RequestRuntime) error {
-		auth := runtime.RequestHeader("X-CLIENT-AUTH")
+		headers := runtime.Header
+		auth := headers.Get("X-CLIENT-AUTH")
 
 		if len(auth) < 1 {
 			return handler(runtime)
@@ -20,7 +22,8 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 		decoded, err := base64.StdEncoding.DecodeString(auth)
 
 		if err != nil {
-			runtime.Logger().Debugf("bad client auth header: %s", auth)
+			runtime.Debugf("bad client auth header: %s", auth)
+
 			return handler(runtime)
 		}
 
@@ -33,33 +36,26 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 		where := runtime.Database().Where("client_id = ?", parts[0]).Where("client_secret = ?", parts[1])
 
 		if e := where.First(&runtime.Client).Error; e != nil {
-			runtime.Logger().Errorf("unable to find client: %s", e.Error())
+			runtime.Errorf("unable to find client: %s", e.Error())
 			return handler(runtime)
 		}
 
-		runtime.Logger().Debugf("injected client \"%d\" auth, continuing", runtime.Client.ID);
+		runtime.Debugf("injected client \"%d\" auth, continuing", runtime.Client.ID);
 		return handler(runtime)
 	}
 
 	return inject
 }
 
-/*
-func RequireClient(handler echo.HandlerFunc) echo.HandlerFunc {
-	require := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Runtime)
-
-		if ok != true {
-			return errors.New(ERR_BAD_RUNTIME)
+func RequireClient(handler net.HandlerFunc) net.HandlerFunc {
+	require := func(runtime *net.RequestRuntime) error {
+		if valid := runtime.Client.ID >= 1; valid == true {
+			return handler(runtime)
 		}
 
-		if valid := runtime.Client.ID >= 1; valid == false {
-			return errors.New(ERR_BAD_CLIENT_ID)
-		}
-
-		return handler(runtime)
+		runtime.Error(fmt.Errorf(ERR_BAD_CLIENT_ID))
+		return nil
 	}
 
 	return InjectClient(require)
 }
-*/

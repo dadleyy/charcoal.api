@@ -42,6 +42,10 @@ func (mux *Multiplexer) add(method string, path string, handler HandlerFunc, mid
 	mux.routes = append(mux.routes, Route{method, path, handler, middleware})
 }
 
+func (mux *Multiplexer) Use(mw MiddlewareFunc) {
+	mux.middleware = append(mux.middleware, mw)
+}
+
 func (mux *Multiplexer) GET(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {
 	mux.add("GET", path, handler, middleware)
 }
