@@ -14,32 +14,32 @@ const DEFAULT_BLUEPRINT_LIMIT = 100
 type RequestRuntime struct {
 	*http.Request
 	*UrlParams
-	DatabaseConnection *db.Connection
-	Log *log.Logger
-	Queue chan activity.Message
+	database *db.Connection
+	log *log.Logger
+	queue chan activity.Message
 	Client models.Client
 	User models.User
 	bucket ResponseBucket
 }
 
 func (runtime *RequestRuntime) Errorf(format string, args ...interface{}) {
-	runtime.Log.Errorf(format, args...)
+	runtime.log.Errorf(format, args...)
 }
 
 func (runtime *RequestRuntime) Warnf(format string, args ...interface{}) {
-	runtime.Log.Warnf(format, args...)
+	runtime.log.Warnf(format, args...)
 }
 
 func (runtime *RequestRuntime) Infof(format string, args ...interface{}) {
-	runtime.Log.Infof(format, args...)
+	runtime.log.Infof(format, args...)
 }
 
 func (runtime *RequestRuntime) Debugf(format string, args ...interface{}) {
-	runtime.Log.Debugf(format, args...)
+	runtime.log.Debugf(format, args...)
 }
 
 func (runtime *RequestRuntime) Printf(format string, args ...interface{}) {
-	runtime.Log.Printf(format, args...)
+	runtime.log.Printf(format, args...)
 }
 
 func (runtime *RequestRuntime) AddResult(r Result) {
@@ -96,6 +96,6 @@ func (runtime *RequestRuntime) Blueprint() Blueprint {
 }
 
 func (runtime *RequestRuntime) Database() *db.Connection {
-	return runtime.DatabaseConnection
+	return runtime.database
 }
 

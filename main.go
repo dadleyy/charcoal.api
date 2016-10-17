@@ -59,6 +59,8 @@ func main() {
 
 	mux.GET("/system", routes.System)
 
+	mux.GET("/activity", routes.FindActivity)
+
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
 	mux.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)

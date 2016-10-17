@@ -31,9 +31,9 @@ func (server *ServerRuntime) request(request *http.Request, params *UrlParams) R
 	runtime := RequestRuntime{
 		Request: request,
 		UrlParams: params,
-		DatabaseConnection: server.DatabaseConnection,
-		Queue: server.Queue,
-		Log: server.Log,
+		database: server.DatabaseConnection,
+		queue: server.Queue,
+		log: server.Log,
 		bucket: bucket,
 	}
 
