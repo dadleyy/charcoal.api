@@ -8,6 +8,7 @@ import "github.com/labstack/gommon/log"
 import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/activity"
+import "github.com/sizethree/miritos.api/filestore"
 
 const DEFAULT_BLUEPRINT_LIMIT = 100
 
@@ -20,6 +21,7 @@ type RequestRuntime struct {
 	Client models.Client
 	User models.User
 	bucket ResponseBucket
+	store filestore.FileSaver
 }
 
 func (runtime *RequestRuntime) Errorf(format string, args ...interface{}) {
@@ -46,6 +48,19 @@ func (runtime *RequestRuntime) AddResult(r Result) {
 	runtime.bucket.results = append(runtime.bucket.results, r)
 }
 
+func (runtime *RequestRuntime) PersistFile(file filestore.File, mime string) (models.File, error) {
+	ofile, err := runtime.store.Upload(file, mime)
+
+	if err != nil {
+		return models.File{}, err
+	}
+
+	if err := runtime.Database().Create(&ofile).Error; err != nil {
+		return models.File{}, err
+	}
+
+	return ofile, nil
+}
 
 func (runtime *RequestRuntime) AddError(e error) error {
 	runtime.bucket.errors = append(runtime.bucket.errors, e)
@@ -54,6 +69,10 @@ func (runtime *RequestRuntime) AddError(e error) error {
 
 func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
 	runtime.bucket.meta[key] = val
+}
+
+func (runtime *RequestRuntime) Publish(msg activity.Message) {
+	runtime.queue <- msg
 }
 
 func (runtime *RequestRuntime) Blueprint() Blueprint {

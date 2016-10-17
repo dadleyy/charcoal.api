@@ -65,6 +65,8 @@ func main() {
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
 	mux.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
 
+	mux.POST("/photos", routes.CreatePhoto, middleware.RequireClient)
+
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{logger, database, stream, &mux}
 	processor := activity.Processor{logger, database, stream}

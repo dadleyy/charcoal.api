@@ -1,4 +1,111 @@
 package routes
+
+import "fmt"
+import "image"
+import "strings"
+
+import _ "image/jpeg"
+import _ "image/png"
+
+import "github.com/sizethree/miritos.api/net"
+import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/activity"
+
+const MIN_PHOTO_LABEL_LENGTH = 2
+const MAX_PHOTO_WIDTH = 2048
+const MAX_PHOTO_HEIGHT = 2048
+
+func CreatePhoto(runtime *net.RequestRuntime) error {
+	_, header, err := runtime.FormFile("photo")
+
+	// bad form file - error out
+	if err != nil {
+		return runtime.AddError(err)
+	}
+
+	label := runtime.FormValue("label")
+
+	// bad label - error out
+	if len(label) < MIN_PHOTO_LABEL_LENGTH {
+		return runtime.AddError(fmt.Errorf("MISSING_LABEL"))
+	}
+
+	// make sure the mime type detected is an image
+	mime, ok := header.Header["Content-Type"]
+
+	if ok != true || len(mime) != 1 {
+		return runtime.AddError(fmt.Errorf("MISSING_CONTENT_TYPE"))
+	}
+
+	if isimg := strings.HasPrefix(mime[0], "image/"); isimg != true {
+		return runtime.AddError(fmt.Errorf("BAD_MIME_TYPE"))
+	}
+
+	// open the multipart file and defer it's closing
+	source, err := header.Open()
+	defer source.Close()
+
+	if err != nil {
+		return runtime.AddError(err)
+	}
+
+	// attempt to decode the image and get it's dimensions
+	image, _, err := image.DecodeConfig(source)
+
+	if err != nil {
+		runtime.Errorf("unable to decode image: %s", err.Error())
+		return runtime.AddError(err)
+	}
+
+	width, height := image.Width, image.Height
+
+	if width == 0 || height == 0 || width > MAX_PHOTO_WIDTH || height > MAX_PHOTO_HEIGHT {
+		runtime.Debugf("bad image sizes")
+		return fmt.Errorf("BAD_IMAGE_SIZES")
+	}
+
+	// attempt to use the runtime to persist the file uploaded
+	ormfile, err := runtime.PersistFile(source, mime[0])
+
+	if err != nil {
+		runtime.Debugf("failed persisting: %s", err.Error())
+		return runtime.AddError(err)
+	}
+
+	runtime.Debugf("UPLOADED \"%s\" (width: %d, height: %d)", ormfile.Key, width, height)
+
+	// with the persisted file, create the new photo object that will be saved to the orm
+	photo := models.Photo{
+		Label: label,
+		File: ormfile.ID,
+		Width: width,
+		Height: height,
+	}
+
+	if runtime.User.ID >= 1 {
+		runtime.Debugf("associating user #%d with photo \"%s\"", runtime.User.ID, photo.Label)
+		photo.Author.Scan(runtime.User.ID)
+	}
+
+	// attempt to create the photo record in the database
+	if err := runtime.Database().Create(&photo).Error; err != nil {
+		return runtime.AddError(err)
+	}
+
+	// let the file record know that it is owned
+	if err := runtime.Database().Model(&ormfile).Update("status", "OWNED").Error; err != nil {
+		return runtime.AddError(err)
+	}
+
+	// publish this event to the activity stream
+	runtime.Publish(activity.Message{&runtime.User, &photo, "created"})
+
+	// add our result to the response
+	runtime.AddResult(photo.Public())
+
+	return nil
+}
+
 /*
 
 import "fmt"

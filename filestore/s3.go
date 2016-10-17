@@ -13,7 +13,6 @@ import "github.com/aws/aws-sdk-go/aws/session"
 import "github.com/aws/aws-sdk-go/aws/credentials"
 
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/context"
 
 const ERR_BAD_IMAGE_TYPE = "BAD_IMAGE_TYPE"
 const ERR_BAD_IMAGE_UUID = "BAD_UUID_GENERATED"
@@ -67,7 +66,7 @@ func (store S3FileStore) DownloadUrl(target *models.File) (string, error) {
 	return urlstr, nil
 }
 
-func (store S3FileStore) Upload(target context.File, mime string) (models.File, error) {
+func (store S3FileStore) Upload(target File, mime string) (models.File, error) {
 	photoid := uuid.NewRandom()
 	var buffer bytes.Buffer
 	var result models.File

@@ -7,6 +7,7 @@ import "github.com/labstack/gommon/log"
 
 import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/activity"
+import "github.com/sizethree/miritos.api/filestore"
 
 type ServerRuntime struct {
 	Log *log.Logger
@@ -28,6 +29,8 @@ func (server *ServerRuntime) request(request *http.Request, params *UrlParams) R
 
 	meta["time"] = time.Now()
 
+	fs := filestore.S3FileStore{}
+
 	runtime := RequestRuntime{
 		Request: request,
 		UrlParams: params,
@@ -35,6 +38,7 @@ func (server *ServerRuntime) request(request *http.Request, params *UrlParams) R
 		queue: server.Queue,
 		log: server.Log,
 		bucket: bucket,
+		store: fs,
 	}
 
 	return runtime
