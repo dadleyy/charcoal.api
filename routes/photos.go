@@ -150,44 +150,21 @@ func ViewPhoto(runtime *net.RequestRuntime) error {
 	return nil
 }
 
-/*
-
-import "fmt"
-import "image"
-import "strings"
-import "net/http"
-
-import _ "image/jpeg"
-import _ "image/png"
-
-import "github.com/labstack/echo"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/context"
-import "github.com/sizethree/miritos.api/activity"
-
-const MIN_PHOTO_LABEL_LENGTH = 6
-const MIN_PHOTO_LABEL_MESSAGE = "BAD_PHOTO_LABEL"
-const MAX_PHOTO_WIDTH = 2048
-const MAX_PHOTO_HEIGHT = 2048
-
-func FindPhotos(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Runtime)
-
+func FindPhotos(runtime *net.RequestRuntime) error {
 	var results []models.Photo
 	blueprint := runtime.Blueprint()
 
-	total, err := blueprint.Apply(&results, runtime.DB)
+	total, err := blueprint.Apply(&results, runtime.Database())
 
 	if err != nil {
-		runtime.Logger().Debugf("bad photo lookup: %s", err.Error())
-		return fmt.Errorf("BAD_QUERY")
+		runtime.Debugf("bad photo lookup: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
 	}
 
 	for _, item := range results {
-		runtime.AddResult(item)
+		runtime.AddResult(item.Public())
 	}
 
-	runtime.AddMeta("total", total)
+	runtime.SetMeta("total", total)
 	return nil
 }
-*/
