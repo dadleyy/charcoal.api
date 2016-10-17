@@ -5,4 +5,5 @@ type ResponseBucket struct {
 	results []Result
 	meta map[string]interface{}
 	proxy string
+	redirect string
 }

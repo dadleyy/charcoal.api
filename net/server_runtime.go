@@ -26,7 +26,7 @@ func (server *ServerRuntime) request(request *http.Request, params *UrlParams) R
 	results := make([]Result, 0)
 	meta := make(map[string]interface{})
 
-	bucket := ResponseBucket{errors, results, meta, ""}
+	bucket := ResponseBucket{errors, results, meta, "", ""}
 
 	meta["time"] = time.Now()
 
@@ -66,6 +66,13 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 		server.Log.Debugf("error handling route: %s", err.Error())
 		response.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(response, "server error")
+		return
+	}
+
+	if len(runtime.bucket.redirect) >= 1 {
+		outh := response.Header()
+		outh.Set("Location", runtime.bucket.redirect)
+		response.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 

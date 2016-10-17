@@ -1,14 +1,12 @@
 package routes
-/*
 
 import "os"
-import "errors"
+import "fmt"
 import "net/url"
-import "net/http"
 import "encoding/base64"
-import "github.com/labstack/echo"
+
+import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/context"
 import "github.com/sizethree/miritos.api/services"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
@@ -16,33 +14,33 @@ const ERR_BAD_AUTH_CODE = "BAD_AUTH_CODE"
 const ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH = "NO_ASSOICATED_CLIENT"
 const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
 
-func GoogleOauthRedirect(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Runtime)
-
+func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 	clientid := os.Getenv("GOOGLE_CLIENT_ID")
 	redir := os.Getenv("GOOGLE_REDIRECT_URL")
 	fin, err := url.Parse(GOOGLE_AUTH_ENDPOINT)
 
-	if !ok || err != nil {
-		return errors.New("ERR_BAD_RUNTIME")
+	if err != nil {
+		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
 	}
 
-	state := ectx.QueryParam("client_id")
+	query := runtime.URL.Query()
+
+	state := query.Get("client_id")
 
 	if len(state) == 0 {
-		return errors.New("BAD_CLIENT_ID")
+		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
 	}
 
 	var client models.Client
 
-	if err := runtime.DB.Where("client_id = ?", state).First(&client).Error; err != nil {
-		runtime.Logger().Errorf("invalid client id used in google auth: %s", clientid)
-		return errors.New("BAD_CLIENT_ID")
+	if err := runtime.Database().Where("client_id = ?", state).First(&client).Error; err != nil {
+		runtime.Errorf("invalid client id used in google auth: %s", clientid)
+		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
 	}
 
 	if len(client.RedirectUri) == 0 {
-		runtime.Logger().Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
-		return errors.New("MISSING_REDIRECT_URI")
+		runtime.Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
+		return runtime.AddError(fmt.Errorf("MISSING_REDIRECT_URI"))
 	}
 
 	queries := make(url.Values)
@@ -55,60 +53,54 @@ func GoogleOauthRedirect(ectx echo.Context) error {
 	queries.Set("state", base64.StdEncoding.EncodeToString([]byte(state)))
 	fin.RawQuery = queries.Encode()
 
-	ectx.Redirect(http.StatusTemporaryRedirect, fin.String())
+	runtime.Redirect(fin.String())
 	return nil
 }
 
-func GoogleOauthReceiveCode(ectx echo.Context) error {
-	runtime, ok := ectx.(*context.Runtime)
-
-	if ok != true {
-		return errors.New(ERR_BAD_RUNTIME)
-	}
-
+func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
+	query := runtime.URL.Query()
 	// extract the code sent from google and the "state" which is the client id
 	// originally sent during the outh prompt
-	code := runtime.QueryParam("code")
-	state := runtime.QueryParam("state")
+	code := query.Get("code")
+	state := query.Get("state")
 
 	if len(code) == 0 {
-		runtime.Logger().Error("unable to find auth code sent from google")
-		return errors.New(ERR_BAD_AUTH_CODE)
+		runtime.Errorf("unable to find auth code sent from google")
+		return runtime.AddError(fmt.Errorf(ERR_BAD_AUTH_CODE))
 	}
 
 	if len(state) == 0 {
-		runtime.Logger().Error("unable to find state sent back from google")
-		return errors.New(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH)
+		runtime.Errorf("unable to find state sent back from google")
+		return runtime.AddError(fmt.Errorf(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH))
 	}
 
 	// decode the client id sent along in the redirect
 	referrer, err := base64.StdEncoding.DecodeString(state)
 
 	if err != nil {
-		return err
+		return runtime.AddError(err)
 	}
 
-	authman := services.GoogleAuthentication{runtime.DB}
+	authman := services.GoogleAuthentication{runtime.Database()}
 
 	result, err := authman.Process(string(referrer), code)
 
 	if err != nil {
-		runtime.Logger().Errorf("unable to authenticate client /w code: %s", err.Error())
-		return errors.New("ERR_BAD_CLIENT_CODE")
+		runtime.Errorf("unable to authenticate client /w code: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("ERR_BAD_CLIENT_CODE"))
 	}
 
 	fin, err := url.Parse(result.RedirectUri())
 
 	if err != nil {
-		return err
+		return runtime.AddError(err)
 	}
 
 	queries := make(url.Values)
 	queries.Set("token", result.Token())
 	fin.RawQuery = queries.Encode()
 
-	runtime.Redirect(http.StatusTemporaryRedirect, fin.String())
+	runtime.Redirect(fin.String())
 
 	return nil
 }
-*/

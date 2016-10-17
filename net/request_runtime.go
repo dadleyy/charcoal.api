@@ -53,6 +53,10 @@ func (runtime *RequestRuntime) DownloadUrl(file *models.File) (string, error) {
 	return runtime.store.DownloadUrl(file)
 }
 
+func (runtime *RequestRuntime) Redirect(url string) {
+	runtime.bucket.redirect = url
+}
+
 func (runtime *RequestRuntime) Proxy(url string) {
 	runtime.bucket.proxy = url
 }

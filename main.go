@@ -65,6 +65,15 @@ func main() {
 
 	mux.GET("/activity", routes.FindActivity)
 
+	mux.GET("/oauth/google/prompt", routes.GoogleOauthRedirect)
+	mux.GET("/oauth/google/auth", routes.GoogleOauthReceiveCode)
+
+	mux.GET("/user-roles", routes.FindRoles, middleware.RequireClient)
+
+	mux.GET("/client-admins", routes.FindActivity, middleware.RequireClient)
+
+	mux.GET("/display-schedules", routes.FindDisplaySchedules, middleware.RequireClient)
+
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
 	mux.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
