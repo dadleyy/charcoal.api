@@ -1,80 +1,11 @@
 package routes
 
-import "github.com/sizethree/miritos.api/net"
-
-func CreateUser(runtime *net.RequestRuntime) error {
-	return nil
-	/*
-	runtime, ok := ectx.(*context.Runtime)
-
-	if ok != true {
-		return fmt.Errorf("BAD_RUNTIME")
-	}
-
-	var target models.User
-
-	if err := runtime.Bind(&target); err != nil  {
-		runtime.Logger().Debugf("bad update format: %s", err.Error())
-		return fmt.Errorf("BAD_FORMAT")
-	}
-
-	if target.Name == nil || len(*target.Name) < 2 {
-		return fmt.Errorf("BAD_NAME")
-	}
-
-	if target.Email == nil || len(*target.Email) < 2 {
-		return fmt.Errorf("BAD_EMAIL")
-	}
-
-	if target.Password == nil || len(*target.Password) < 6 {
-		return fmt.Errorf("BAD_PASSWORD")
-	}
-
-	usermgr := services.UserManager{runtime.DB}
-
-	if dupe, err := usermgr.IsDuplicate(&target); dupe || err != nil {
-		runtime.Logger().Debugf("duplicate user")
-		return fmt.Errorf("BAD_USER")
-	}
-
-	hashed, err := hash(*target.Password)
-
-	if err != nil {
-		return fmt.Errorf("BAD_PASSWORD")
-	}
-
-	target.Password = &hashed
-
-	if err := runtime.DB.Create(&target).Error; err != nil {
-		runtime.Logger().Debugf("unable to save: %s", err.Error())
-		return fmt.Errorf("FAILED")
-	}
-
-	clientmgr := services.UserClientManager{runtime.DB}
-
-	token, err := clientmgr.Associate(&target, &runtime.Client)
-
-	if err != nil {
-		runtime.Logger().Debugf("unable to associate: %s", err.Error())
-		return fmt.Errorf("FAILED")
-	}
-
-	runtime.Logger().Debugf("associated user[%d] with client[%d]: %s", target.ID, runtime.Client.ID, token.Token)
-	runtime.AddResult(&target)
-
-	return nil
-	*/
-}
-
-
-/*
-
 import "fmt"
-import "github.com/labstack/echo"
+import "github.com/albrow/forms"
 import "golang.org/x/crypto/bcrypt"
 
+import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/context"
 import "github.com/sizethree/miritos.api/services"
 
 func hash(password string) (string, error) {
@@ -87,115 +18,171 @@ func hash(password string) (string, error) {
 	return string(result), nil
 }
 
-func FindUser(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Runtime)
-
-	blueprint := runtime.Blueprint()
-
-	var users []models.User
-
-	total, err := blueprint.Apply(&users, runtime.DB)
-
-	if err != nil {
-		runtime.Logger().Debugf("bad user lookup query: %s", err.Error())
-		return fmt.Errorf("BAD_QUERY")
-	}
-
-	for _, user := range users {
-		runtime.AddResult(user)
-	}
-
-	runtime.AddMeta("total", total)
-
-	return nil
+func cleanseUser(user models.User) interface{} {
+	return struct {
+		models.Common
+		Name string `json:"name"`
+		Email string `json:"email"`
+	}{user.Common, *user.Name, *user.Email}
 }
 
-func UpdateUser(ectx echo.Context) error {
-	runtime, _ := ectx.(*context.Runtime)
-	id, err := runtime.ParamInt("id")
+func CreateUser(runtime *net.RequestRuntime) error {
+	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		runtime.Logger().Debugf("bad user id: %s", err.Error())
-		return fmt.Errorf("BAD_ID")
-	}
-
-
-	if id != int(runtime.User.ID) {
-		runtime.Logger().Debugf("invlaid user match request[%d]-runtime[%d]", id, runtime.User.ID)
-		return fmt.Errorf("BAD_ID")
-	}
-
-	updates := make(map[string]interface{})
-	applied := make(map[string]interface{})
-	count := 0
-
-	head := runtime.DB.Begin().Model(&runtime.User)
-
-	if err := runtime.Bind(&updates); err != nil  {
-		runtime.Logger().Debugf("bad update format: %s", err.Error())
-		return (fmt.Errorf("BAD_FORMAT"))
-	}
-
-	if password, exists := updates["password"]; exists == true{
-		password, ok := password.(string)
-
-		if ok != true {
-			return (fmt.Errorf("BAD_PASSWORD"))
-		}
-
-		if len(password) < 6 {
-			return (fmt.Errorf("BAD_PASSWORD"))
-		}
-
-		password, err = hash(password)
-
-		if err != nil {
-			return fmt.Errorf("BAD_PASSWORD")
-		}
-
-		applied["password"] = password
-		count++
-	}
-
-	if name, exists := updates["name"]; exists == true {
-		name, ok := name.(string)
-
-		if ok != true {
-			return fmt.Errorf("BAD_NAME")
-		}
-
-		if len(name) < 2 {
-			return fmt.Errorf("BAD_NAME")
-		}
-
-		applied["name"] = name
-		count++
-	}
-
-	if email, exists := updates["email"]; exists == true {
-		email, ok := email.(string)
-
-		if ok != true {
-			return fmt.Errorf("BAD_EMAIL")
-		}
-
-		if len(email) < 2 {
-			return fmt.Errorf("BAD_EMAIL")
-		}
-
-		applied["email"] = email
-		count++
-	}
-
-	if count == 0 {
+		runtime.AddError(err)
 		return nil
 	}
 
-	head.Updates(applied).Commit()
+	validator := body.Validator()
 
-	runtime.Logger().Debugf("successfully updated user[%d]", id)
-	runtime.AddResult(&runtime.User)
+	validator.Require("email")
+	validator.MatchEmail("email")
+
+	validator.Require("password")
+	validator.LengthRange("password", 6, 20)
+
+	validator.Require("name")
+	validator.LengthRange("password", 2, 100)
+
+	// if the validator picked up errors, add them to the request
+	// runtime and then return
+	if validator.HasErrors() == true {
+		for _, m := range validator.Messages() {
+			runtime.AddError(fmt.Errorf(m))
+		}
+
+		return nil
+	}
+
+	password, err := hash(body.Get("password"))
+
+	if err != nil {
+		return runtime.AddError(fmt.Errorf("BAD_USER"))
+	}
+
+	email := body.Get("email")
+	name := body.Get("name")
+
+	user := models.User{Email: &email, Password: &password, Name: &name}
+
+	usrmgr := services.UserManager{runtime.Database()}
+
+	if dupe, err := usrmgr.IsDuplicate(&user); dupe || err != nil {
+		runtime.Debugf("duplicate user")
+		return runtime.AddError(fmt.Errorf("BAD_USER"))
+	}
+
+	if err := runtime.Database().Create(&user).Error; err != nil {
+		runtime.Debugf("unable to save: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("FAILED"))
+	}
+
+	clientmgr := services.UserClientManager{runtime.Database()}
+
+	token, err := clientmgr.Associate(&user, &runtime.Client)
+
+	if err != nil {
+		runtime.Debugf("unable to associate: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("FAILED"))
+	}
+
+	runtime.Debugf("associated user[%d] with client[%d]:\n----\n%s\n-----\n", user.ID, runtime.Client.ID, token.Token)
+	runtime.AddResult(cleanseUser(user))
+
 	return nil
 }
-*/
 
+func UpdateUser(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		runtime.AddError(fmt.Errorf("BAD_ID"))
+		return nil
+	}
+
+	if runtime.User.ID != uint(id) {
+		runtime.AddError(fmt.Errorf("BAD_ID"))
+		return nil
+	}
+
+	body, err := forms.Parse(runtime.Request)
+
+	if err != nil {
+		runtime.AddError(err)
+		return nil
+	}
+
+	validate := body.Validator()
+	updates := make(map[string]interface{})
+
+	// if an email is present, validate it
+	if body.KeyExists("email") {
+		validate.Require("email")
+		validate.MatchEmail("email")
+		updates["email"] = body.Get("email")
+	}
+
+	// if a password is present, validate it
+	if body.KeyExists("password") {
+		validate.Require("password")
+		validate.LengthRange("password", 6, 20)
+		password := body.Get("password")
+
+		hashed, err := hash(password)
+
+		if err != nil {
+			runtime.AddError(fmt.Errorf("BAD_PASSWORD"))
+			return nil
+		}
+
+		updates["password"] = hashed
+	}
+
+	// if a password is present, validate it
+	if body.KeyExists("name") {
+		validate.Require("name")
+		validate.LengthRange("name", 2, 100)
+		updates["name"] = body.Get("name")
+	}
+
+
+	// if the validator picked up errors, add them to the request
+	// runtime and then return
+	if validate.HasErrors() == true {
+		for _, m := range validate.Messages() {
+			runtime.AddError(fmt.Errorf(m))
+		}
+
+		return nil
+	}
+
+	if err := runtime.Database().Model(&runtime.User).Updates(updates).Error; err != nil {
+		runtime.AddError(err)
+		return nil
+	}
+
+
+	runtime.AddResult(cleanseUser(runtime.User))
+	runtime.Debugf("updating user[%d]", id)
+	return nil
+}
+
+func FindUser(runtime *net.RequestRuntime) error {
+	blue := runtime.Blueprint()
+	var users []models.User
+
+	count, err := blue.Apply(&users, runtime.Database())
+
+	if err != nil {
+		return runtime.AddError(fmt.Errorf("BAD_BLUEPRINT"))
+	}
+
+	runtime.SetMeta("count", count)
+
+	for _, u := range users {
+		runtime.AddResult(cleanseUser(u))
+	}
+
+	return nil
+}

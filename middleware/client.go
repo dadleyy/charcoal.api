@@ -53,9 +53,9 @@ func RequireClient(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.Error(fmt.Errorf(ERR_BAD_CLIENT_ID))
+		runtime.AddError(fmt.Errorf(ERR_BAD_CLIENT_ID))
 		return nil
 	}
 
-	return InjectClient(require)
+	return require
 }

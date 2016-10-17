@@ -1,6 +1,5 @@
 package net
 
-
 type Multiplexer struct {
 	routes []Route
 	middleware []MiddlewareFunc
@@ -11,8 +10,8 @@ type Multiplexer struct {
 // Given a handler function, wrap will apply all of the global middleware onto it
 // and return the wrapped handler function.
 func (mux *Multiplexer) wrap(handler HandlerFunc) HandlerFunc {
-	for _, mw := range mux.middleware {
-		handler = mw(handler)
+	for i := len(mux.middleware) - 1; i >= 0; i-- {
+		handler = mux.middleware[i](handler)
 	}
 
 	return handler
@@ -48,6 +47,10 @@ func (mux *Multiplexer) Use(mw MiddlewareFunc) {
 
 func (mux *Multiplexer) GET(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {
 	mux.add("GET", path, handler, middleware)
+}
+
+func (mux *Multiplexer) PATCH(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {
+	mux.add("PATCH", path, handler, middleware)
 }
 
 func (mux *Multiplexer) POST(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {

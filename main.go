@@ -58,7 +58,10 @@ func main() {
 	mux.Use(middleware.InjectUser)
 
 	mux.GET("/system", routes.System)
+
+	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
+	mux.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
 
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{logger, database, stream, &mux}

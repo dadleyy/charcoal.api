@@ -1,5 +1,7 @@
 package middleware
 
+import "fmt"
+
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/services"
@@ -46,25 +48,17 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 		return handler(runtime)
 	}
 
-	return InjectClient(inject)
+	return inject
 }
 
-/*
-func RequireUser(handler echo.HandlerFunc) echo.HandlerFunc {
-	require := func(ctx echo.Context) error {
-		runtime, ok := ctx.(*context.Runtime)
-
-		if ok != true {
-			return fmt.Errorf("BAD_RUNTIME")
-		}
-
+func RequireUser(handler net.HandlerFunc) net.HandlerFunc {
+	require := func(runtime *net.RequestRuntime) error {
 		if valid := runtime.User.ID >= 1; valid != true {
-			return fmt.Errorf(ERR_BAD_BEARER)
+			return runtime.AddError(fmt.Errorf(ERR_BAD_BEARER))
 		}
 
 		return handler(runtime)
 	}
 
-	return InjectUser(require)
+	return require
 }
-*/

@@ -1,14 +1,14 @@
-package context
+package net
 
 import "fmt"
 import "strings"
 import "github.com/sizethree/miritos.api/db"
 
 type Blueprint struct {
-	Limit int
-	Page int
-	OrderBy string
-	Filters FilterList
+	limit int
+	page int
+	orderby string
+	filters FilterList
 }
 
 type BlueprintFilter interface {
@@ -56,7 +56,7 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	}
 
 	if filter.String() != "" {
-		print.Filters = append(print.Filters, filter)
+		print.filters = append(print.filters, filter)
 	}
 
 	return nil
@@ -64,11 +64,11 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 
 func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, error) {
 	var total int
-	limit, offset := print.Limit, print.Limit * print.Page
+	limit, offset := print.limit, print.limit * print.page
 
 	result := &db.Connection{client.Begin().Limit(limit).Offset(offset)}
 
-	for _, filter := range print.Filters {
+	for _, filter := range print.filters {
 		result = filter.Apply(result)
 	}
 
