@@ -59,6 +59,10 @@ func main() {
 
 	mux.GET("/system", routes.System)
 
+	mux.GET("/auth/user", routes.PrintAuth, middleware.RequireUser)
+	mux.GET("/auth/roles", routes.PrintUserRoles, middleware.RequireUser)
+	mux.GET("/auth/tokens", routes.PrintClientTokens, middleware.RequireClient)
+
 	mux.GET("/activity", routes.FindActivity)
 
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
