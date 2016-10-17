@@ -66,18 +66,12 @@ func (store S3FileStore) DownloadUrl(target *models.File) (string, error) {
 	return urlstr, nil
 }
 
-func (store S3FileStore) Upload(target File, mime string) (models.File, error) {
+func (store S3FileStore) Upload(buffer []byte, mime string) (models.File, error) {
 	photoid := uuid.NewRandom()
-	var buffer bytes.Buffer
 	var result models.File
+	size := int64(len(buffer))
 
-	size, err := buffer.ReadFrom(target)
-
-	if err != nil {
-		return result, err
-	}
-
-	reader := bytes.NewReader(buffer.Bytes())
+	reader := bytes.NewReader(buffer)
 
 	if strings.TrimSpace(photoid.String()) == "" {
 		return result, errors.New(ERR_BAD_IMAGE_UUID)
@@ -92,7 +86,7 @@ func (store S3FileStore) Upload(target File, mime string) (models.File, error) {
 		creds = credentials.NewEnvCredentials()
 	}
 
-	_, err = creds.Get()
+	_, err := creds.Get()
 
 	if err != nil {
 		return result, err

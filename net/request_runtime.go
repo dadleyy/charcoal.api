@@ -12,13 +12,14 @@ import "github.com/sizethree/miritos.api/filestore"
 
 const DEFAULT_BLUEPRINT_LIMIT = 100
 
+
 type RequestRuntime struct {
 	*http.Request
 	*UrlParams
+	Client models.Client
 	database *db.Connection
 	log *log.Logger
 	queue chan activity.Message
-	Client models.Client
 	User models.User
 	bucket ResponseBucket
 	store filestore.FileSaver
@@ -48,8 +49,16 @@ func (runtime *RequestRuntime) AddResult(r Result) {
 	runtime.bucket.results = append(runtime.bucket.results, r)
 }
 
-func (runtime *RequestRuntime) PersistFile(file filestore.File, mime string) (models.File, error) {
-	ofile, err := runtime.store.Upload(file, mime)
+func (runtime *RequestRuntime) DownloadUrl(file *models.File) (string, error) {
+	return runtime.store.DownloadUrl(file)
+}
+
+func (runtime *RequestRuntime) Proxy(url string) {
+	runtime.bucket.proxy = url
+}
+
+func (runtime *RequestRuntime) PersistFile(buffer []byte, mime string) (models.File, error) {
+	ofile, err := runtime.store.Upload(buffer, mime)
 
 	if err != nil {
 		return models.File{}, err

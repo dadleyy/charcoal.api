@@ -1,5 +1,6 @@
 package net
 
+import "io"
 import "fmt"
 import "time"
 import "net/http"
@@ -25,7 +26,7 @@ func (server *ServerRuntime) request(request *http.Request, params *UrlParams) R
 	results := make([]Result, 0)
 	meta := make(map[string]interface{})
 
-	bucket := ResponseBucket{errors, results, meta}
+	bucket := ResponseBucket{errors, results, meta, ""}
 
 	meta["time"] = time.Now()
 
@@ -65,6 +66,29 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 		server.Log.Debugf("error handling route: %s", err.Error())
 		response.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprintf(response, "server error")
+		return
+	}
+
+	if len(runtime.bucket.proxy) >= 1 {
+		resp, err := http.Get(runtime.bucket.proxy)
+
+		if err != nil {
+			server.Log.Debugf("unable to download file: %s", err.Error())
+			fmt.Fprintf(response, "not found")
+			return
+		}
+
+		outh := response.Header()
+
+		outh.Set("Content-Length", resp.Header.Get("Content-Length"))
+		outh.Set("Content-Type", resp.Header.Get("Content-Type"))
+
+		response.WriteHeader(resp.StatusCode)
+		server.Log.Debugf("proxy-ing: \"%s\" | type[%s]", runtime.bucket.proxy, resp.Header.Get("Content-Type"))
+
+		defer resp.Body.Close()
+
+		io.Copy(response, resp.Body)
 		return
 	}
 
