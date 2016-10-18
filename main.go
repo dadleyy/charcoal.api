@@ -15,12 +15,12 @@ import "github.com/sizethree/miritos.api/activity"
 import "github.com/sizethree/miritos.api/middleware"
 
 func main() {
-  err := godotenv.Load()
+	err := godotenv.Load()
 
-  if err != nil {
+	if err != nil {
 		fmt.Errorf("bad env: %s", err.Error())
 		return
-  }
+	}
 
 	dbconf := db.Config{
 		os.Getenv("DB_USERNAME"),

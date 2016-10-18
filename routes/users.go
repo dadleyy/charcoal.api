@@ -21,7 +21,7 @@ func hash(password string) (string, error) {
 func cleanseUser(user models.User) interface{} {
 	return struct {
 		models.Common
-		Name string `json:"name"`
+		Name  string `json:"name"`
 		Email string `json:"email"`
 	}{user.Common, *user.Name, *user.Email}
 }
@@ -120,7 +120,17 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 	if body.KeyExists("email") {
 		validate.Require("email")
 		validate.MatchEmail("email")
-		updates["email"] = body.Get("email")
+
+		email := body.Get("email")
+		current := *(runtime.User.Email)
+
+		updates["email"] = email
+
+		manager := services.UserManager{runtime.Database()}
+
+		if dupe, err := manager.IsDuplicate(&models.User{Email: &email}); (email != current) && (err != nil || dupe) {
+			return runtime.AddError(fmt.Errorf("BAD_EMAIL"))
+		}
 	}
 
 	// if a password is present, validate it
@@ -146,7 +156,6 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		updates["name"] = body.Get("name")
 	}
 
-
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
 	if validate.HasErrors() == true {
@@ -161,7 +170,6 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		runtime.AddError(err)
 		return nil
 	}
-
 
 	runtime.AddResult(cleanseUser(runtime.User))
 	runtime.Debugf("updating user[%d]", id)
