@@ -11,17 +11,17 @@ import "github.com/sizethree/miritos.api/activity"
 import "github.com/sizethree/miritos.api/filestore"
 
 type ServerRuntime struct {
-	Log *log.Logger
+	Log                *log.Logger
 	DatabaseConnection *db.Connection
-	Queue chan activity.Message
-	Mux *Multiplexer
+	Queue              chan activity.Message
+	Mux                *Multiplexer
 }
 
 // request
-// 
-// Given http.Request and UrlParam references, this function will return the request context 
+//
+// Given http.Request and UrlParam references, this function will return the request context
 // that will ultimately be sent down the handlerfunc chain matched by the multiplexer.
-func (server *ServerRuntime) request(request *http.Request, params *UrlParams) RequestRuntime {
+func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) RequestRuntime {
 	errors := make([]error, 0)
 	results := make([]Result, 0)
 	meta := make(map[string]interface{})
@@ -33,13 +33,13 @@ func (server *ServerRuntime) request(request *http.Request, params *UrlParams) R
 	fs := filestore.S3FileStore{}
 
 	runtime := RequestRuntime{
-		Request: request,
+		Request:   request,
 		UrlParams: params,
-		database: server.DatabaseConnection,
-		queue: server.Queue,
-		log: server.Log,
-		bucket: bucket,
-		store: fs,
+		database:  server.DatabaseConnection,
+		queue:     server.Queue,
+		log:       server.Log,
+		bucket:    bucket,
+		store:     fs,
 	}
 
 	return runtime
@@ -60,12 +60,18 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 	}
 
 	// build the request runtime
-	runtime := server.request(request, &params)
+	runtime := server.Request(request, &params)
+
+	var renderer BucketRenderer
+
+	switch request.Header.Get("accepts") {
+	default:
+		renderer = JsonRenderer{&runtime.bucket}
+	}
 
 	if err := handler(&runtime); err != nil {
 		server.Log.Debugf("error handling route: %s", err.Error())
-		response.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprintf(response, "server error")
+		renderer.Render(response)
 		return
 	}
 
@@ -97,13 +103,6 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 
 		io.Copy(response, resp.Body)
 		return
-	}
-
-	var renderer BucketRenderer
-
-	switch request.Header.Get("accepts") {
-	default:
-		renderer = JsonRenderer{&runtime.bucket}
 	}
 
 	renderer.Render(response)

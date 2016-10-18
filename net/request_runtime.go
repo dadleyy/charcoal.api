@@ -12,17 +12,16 @@ import "github.com/sizethree/miritos.api/filestore"
 
 const DEFAULT_BLUEPRINT_LIMIT = 100
 
-
 type RequestRuntime struct {
 	*http.Request
 	*UrlParams
-	Client models.Client
+	Client   models.Client
 	database *db.Connection
-	log *log.Logger
-	queue chan activity.Message
-	User models.User
-	bucket ResponseBucket
-	store filestore.FileSaver
+	log      *log.Logger
+	queue    chan activity.Message
+	User     models.User
+	bucket   ResponseBucket
+	store    filestore.FileSaver
 }
 
 func (runtime *RequestRuntime) Errorf(format string, args ...interface{}) {
@@ -77,7 +76,7 @@ func (runtime *RequestRuntime) PersistFile(buffer []byte, mime string) (models.F
 
 func (runtime *RequestRuntime) AddError(e error) error {
 	runtime.bucket.errors = append(runtime.bucket.errors, e)
-	return nil
+	return e
 }
 
 func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
@@ -123,11 +122,9 @@ func (runtime *RequestRuntime) Blueprint() Blueprint {
 		}
 	}
 
-
 	return result
 }
 
 func (runtime *RequestRuntime) Database() *db.Connection {
 	return runtime.database
 }
-

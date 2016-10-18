@@ -7,11 +7,19 @@ type UrlParams struct {
 }
 
 func (p *UrlParams) StringParam(key string) (string, bool) {
+	if p.params == nil {
+		return "", false
+	}
+
 	val, ok := p.params[key]
 	return val, ok
 }
 
 func (p *UrlParams) IntParam(key string) (int, bool) {
+	if p.params == nil {
+		return -3, false
+	}
+
 	val, ok := p.params[key]
 
 	if ok != true {

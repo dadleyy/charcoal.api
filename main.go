@@ -70,7 +70,7 @@ func main() {
 
 	mux.GET("/user-roles", routes.FindRoles, middleware.RequireClient)
 
-	mux.GET("/client-admins", routes.FindActivity, middleware.RequireClient)
+	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireUser)
 
 	mux.GET("/display-schedules", routes.FindDisplaySchedules, middleware.RequireClient)
 

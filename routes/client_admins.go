@@ -21,7 +21,18 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 			return runtime.AddError(fmt.Errorf("PROBLEM"))
 		}
 
-		// make sure user is even able to see this client's admins
+		// make sure user is even able to see this client's admins by being a client admin themselces
+		query := runtime.Database().Where("client = ? AND user = ?", runtime.Client.ID, runtime.User.ID)
+
+		if err := query.Find(&results).Error; err != nil {
+			runtime.Debugf("failed getting client admins for current situation problem: %s", err.Error())
+			return runtime.AddError(fmt.Errorf("PROBLEM"))
+		}
+
+		if len(results) != 1 {
+			runtime.Debugf("current user[%d] has no access to client[%d]", runtime.User.ID, runtime.Client.ID)
+			return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		}
 	}
 
 	total, err := blueprint.Apply(&results, runtime.Database())
