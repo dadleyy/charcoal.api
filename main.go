@@ -18,7 +18,7 @@ func main() {
 	err := godotenv.Load()
 
 	if err != nil {
-		fmt.Errorf("bad env: %s", err.Error())
+		fmt.Printf("bad env: %s\n", err.Error())
 		return
 	}
 
