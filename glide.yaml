@@ -1,0 +1,27 @@
+package: github.com/sizethree/miritos.api
+import:
+- package: github.com/SermoDigital/jose
+  subpackages:
+  - crypto
+  - jws
+- package: github.com/albrow/forms
+- package: github.com/aws/aws-sdk-go
+  subpackages:
+  - aws
+  - aws/credentials
+  - aws/session
+  - service/s3
+- package: github.com/jinzhu/gorm
+  subpackages:
+  - dialects/mysql
+- package: github.com/joho/godotenv
+- package: github.com/labstack/gommon
+  subpackages:
+  - log
+- package: github.com/pborman/uuid
+- package: golang.org/x/crypto
+  subpackages:
+  - bcrypt
+- package: golang.org/x/oauth2
+  subpackages:
+  - google
