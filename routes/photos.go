@@ -91,9 +91,9 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 
 	// with the persisted file, create the new photo object that will be saved to the orm
 	photo := models.Photo{
-		Label: label,
-		File: ormfile.ID,
-		Width: width,
+		Label:  label,
+		File:   ormfile.ID,
+		Width:  width,
 		Height: height,
 	}
 

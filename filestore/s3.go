@@ -19,8 +19,8 @@ const ERR_BAD_IMAGE_UUID = "BAD_UUID_GENERATED"
 const ERR_BAD_S3_RESPONSE = "BAD_S3_RESPONSE"
 
 type S3FileStore struct {
-	AccessID string
-	AccessKey string
+	AccessID    string
+	AccessKey   string
 	AccessToken string
 }
 
@@ -54,7 +54,7 @@ func (store S3FileStore) DownloadUrl(target *models.File) (string, error) {
 
 	req, _ := client.GetObjectRequest(&s3.GetObjectInput{
 		Bucket: aws.String(bucket),
-		Key: aws.String(path),
+		Key:    aws.String(path),
 	})
 
 	urlstr, err := req.Presign(time.Minute * 600)
@@ -105,11 +105,11 @@ func (store S3FileStore) Upload(buffer []byte, mime string) (models.File, error)
 	path := fmt.Sprintf("%s/%s", storepath, photoid)
 
 	request := &s3.PutObjectInput{
-		Bucket: aws.String(bucket),
-		Key: aws.String(path),
-		Body: reader,
+		Bucket:        aws.String(bucket),
+		Key:           aws.String(path),
+		Body:          reader,
 		ContentLength: aws.Int64(size),
-		ContentType: aws.String(mime),
+		ContentType:   aws.String(mime),
 	}
 
 	resp, err := client.PutObject(request)
@@ -123,8 +123,8 @@ func (store S3FileStore) Upload(buffer []byte, mime string) (models.File, error)
 	}
 
 	result = models.File{
-		Key: photoid.String(),
-		Mime: mime,
+		Key:    photoid.String(),
+		Mime:   mime,
 		Status: "TEMPORARY",
 	}
 

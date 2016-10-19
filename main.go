@@ -73,6 +73,7 @@ func main() {
 	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireUser)
 
 	mux.GET("/display-schedules", routes.FindDisplaySchedules, middleware.RequireClient)
+	mux.PATCH("/display-schedules/:id", routes.UpdateDisplaySchedule, middleware.RequireUser)
 
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
