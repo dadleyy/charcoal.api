@@ -65,6 +65,9 @@ func main() {
 
 	mux.GET("/activity", routes.FindActivity)
 
+	// special route - returns all active activities based on their display schedules.
+	mux.GET("/activity/live", routes.FindLiveActivity, middleware.RequireClient)
+
 	mux.GET("/oauth/google/prompt", routes.GoogleOauthRedirect)
 	mux.GET("/oauth/google/auth", routes.GoogleOauthReceiveCode)
 

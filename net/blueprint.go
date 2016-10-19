@@ -5,8 +5,8 @@ import "strings"
 import "github.com/sizethree/miritos.api/db"
 
 type Blueprint struct {
-	limit int
-	page int
+	limit   int
+	page    int
 	orderby string
 	filters FilterList
 }
@@ -17,6 +17,14 @@ type BlueprintFilter interface {
 }
 
 type FilterList []BlueprintFilter
+
+func (print *Blueprint) Limit() int {
+	return print.limit
+}
+
+func (print *Blueprint) Page() int {
+	return print.page
+}
 
 func (print *Blueprint) Filter(key string, opstr string) error {
 	// extract the field from the filter string key
@@ -64,7 +72,7 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 
 func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, error) {
 	var total int
-	limit, offset := print.limit, print.limit * print.page
+	limit, offset := print.limit, print.limit*print.page
 
 	result := &db.Connection{client.Begin().Limit(limit).Offset(offset)}
 
@@ -82,8 +90,8 @@ func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, erro
 // given a field, value and an operator, this operation simply uses the database
 // client's `Where` function with appropriate string format.
 type sizeOp struct {
-	field string
-	value string
+	field    string
+	value    string
 	operator string
 }
 
@@ -97,9 +105,9 @@ func (op *sizeOp) String() string {
 }
 
 // noOp
-// 
+//
 // describes a blueprint filter operation that is not understood by the system.
-type noOp struct {}
+type noOp struct{}
 
 func (op *noOp) String() string {
 	return ""
@@ -108,5 +116,3 @@ func (op *noOp) String() string {
 func (op *noOp) Apply(client *db.Connection) *db.Connection {
 	return client
 }
-
-

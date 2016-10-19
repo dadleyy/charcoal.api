@@ -8,6 +8,7 @@ type Connection struct {
 
 func Open(config Config) (*Connection, error) {
 	conn, err := gorm.Open("mysql", config.String())
+	conn.LogMode(config.Debug == true)
 
 	if err != nil {
 		return nil, err
