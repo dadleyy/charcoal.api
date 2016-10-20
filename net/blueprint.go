@@ -61,6 +61,8 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 		filter = &sizeOp{field, value, "<="}
 	case "eq":
 		filter = &sizeOp{field, value, "="}
+	case "in":
+		filter = &inOp{field, value}
 	}
 
 	if filter.String() != "" {
@@ -83,6 +85,20 @@ func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, erro
 	e := result.Find(out).Count(&total).Error
 
 	return total, e
+}
+
+type inOp struct {
+	field string
+	value string
+}
+
+func (op *inOp) Apply(client *db.Connection) *db.Connection {
+	ins := strings.Split(op.value, ",")
+	return &db.Connection{client.Where("id in (?)", ins)}
+}
+
+func (op *inOp) String() string {
+	return fmt.Sprintf("%s in (%s)", op.field, op.value)
 }
 
 // sizeOp
