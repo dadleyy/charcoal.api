@@ -1,6 +1,7 @@
 package services
 
 import "os"
+import "fmt"
 import "net/url"
 import "net/http"
 import "encoding/json"
@@ -13,9 +14,9 @@ import "github.com/sizethree/miritos.api/models"
 const GOOGLE_INFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 type GoogleUserInfo struct {
-	ID string `json:"id"`
+	ID    string `json:"id"`
 	Email string `json:"email"`
-	Name string `json:"name"`
+	Name  string `json:"name"`
 }
 
 type GoogleAuthentication struct {
@@ -23,10 +24,10 @@ type GoogleAuthentication struct {
 }
 
 type GoogleAuthenticationResult struct {
-	Client models.Client
-	User models.User
+	Client        models.Client
+	User          models.User
 	GoogleAccount models.GoogleAccount
-	ClientToken models.ClientToken
+	ClientToken   models.ClientToken
 }
 
 func (result *GoogleAuthenticationResult) RedirectUri() string {
@@ -37,19 +38,23 @@ func (result *GoogleAuthenticationResult) Token() string {
 	return result.ClientToken.Token
 }
 
-func (manager *GoogleAuthentication) Process(referrer, code string) (GoogleAuthenticationResult, error) {
+func (manager *GoogleAuthentication) Process(client *models.Client, code string) (GoogleAuthenticationResult, error) {
 	var result GoogleAuthenticationResult
 
-	if err := manager.Where("client_id = ?", referrer).First(&result.Client).Error; err != nil {
+	if client == nil {
+		return GoogleAuthenticationResult{}, fmt.Errorf("BAD_CLIENT")
+	}
+
+	if err := manager.Where("client_id = ?", client.ClientID).First(&result.Client).Error; err != nil {
 		return result, err
 	}
 
 	auth := &oauth2.Config{
-		RedirectURL: os.Getenv("GOOGLE_REDIRECT_URL"),
-		ClientID: os.Getenv("GOOGLE_CLIENT_ID"),
+		RedirectURL:  os.Getenv("GOOGLE_REDIRECT_URL"),
+		ClientID:     os.Getenv("GOOGLE_CLIENT_ID"),
 		ClientSecret: os.Getenv("GOOGLE_CLIENT_SECRET"),
-		Scopes: []string{"https://www.googleapis.com/auth/plus.login", "email"},
-		Endpoint: google.Endpoint,
+		Scopes:       []string{"https://www.googleapis.com/auth/plus.login", "email"},
+		Endpoint:     google.Endpoint,
 	}
 
 	token, err := auth.Exchange(oauth2.NoContext, code)
@@ -100,9 +105,11 @@ func (manager *GoogleAuthentication) Process(referrer, code string) (GoogleAuthe
 	}
 
 	result.GoogleAccount = models.GoogleAccount{
-		GoogleID: info.ID,
-		User: result.User.ID,
+		GoogleID:    info.ID,
+		User:        result.User.ID,
 		AccessToken: token.AccessToken,
+		Email:       info.Email,
+		Name:        info.Name,
 	}
 
 	if err := manager.FirstOrCreate(&result.GoogleAccount, models.GoogleAccount{GoogleID: info.ID}).Error; err != nil {

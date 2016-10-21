@@ -21,12 +21,16 @@ func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {
 }
 
 func (manager *UserManager) FindOrCreate(target *models.User) error {
-	return manager.FirstOrCreate(target, *target).Error
+	if target == nil {
+		return fmt.Errorf("BAD_TARGET")
+	}
+
+	return manager.Where(models.User{Email: target.Email}).FirstOrCreate(target).Error
 }
 
 func (manager *UserManager) IsAdmin(target *models.User) bool {
 	if target == nil || target.ID == 0 {
-		return false;
+		return false
 	}
 
 	var maps []models.UserRoleMapping

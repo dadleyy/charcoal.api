@@ -3,7 +3,6 @@ package routes
 import "os"
 import "fmt"
 import "net/url"
-import "encoding/base64"
 
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
@@ -25,15 +24,15 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 
 	query := runtime.URL.Query()
 
-	state := query.Get("client_id")
+	requester := query.Get("client_id")
 
-	if len(state) == 0 {
+	if len(requester) == 0 {
 		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
 	}
 
 	var client models.Client
 
-	if err := runtime.Database().Where("client_id = ?", state).First(&client).Error; err != nil {
+	if err := runtime.Database().Where("client_id = ?", requester).First(&client).Error; err != nil {
 		runtime.Errorf("invalid client id used in google auth: %s", clientid)
 		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
 	}
@@ -50,7 +49,11 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 	queries.Set("client_id", clientid)
 	queries.Set("scope", "https://www.googleapis.com/auth/plus.login email")
 	queries.Set("access_type", "offline")
-	queries.Set("state", base64.StdEncoding.EncodeToString([]byte(state)))
+
+	// set the state that gets sent to google (which will get sent back to us) to the client id
+	// proved to us that represents the client opening this dialog.
+	queries.Set("state", requester)
+
 	fin.RawQuery = queries.Encode()
 
 	runtime.Redirect(fin.String())
@@ -59,35 +62,43 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 
 func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 	query := runtime.URL.Query()
-	// extract the code sent from google and the "state" which is the client id
-	// originally sent during the outh prompt
+
+	// extract the code sent from google and the "state" which is the client id originally sent
+	// during the outh prompt so that we know who to add a token to.
 	code := query.Get("code")
 	state := query.Get("state")
-
-	if len(code) == 0 {
-		runtime.Errorf("unable to find auth code sent from google")
-		return runtime.AddError(fmt.Errorf(ERR_BAD_AUTH_CODE))
-	}
 
 	if len(state) == 0 {
 		runtime.Errorf("unable to find state sent back from google")
 		return runtime.AddError(fmt.Errorf(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH))
 	}
 
-	// decode the client id sent along in the redirect
-	referrer, err := base64.StdEncoding.DecodeString(state)
+	var client models.Client
 
-	if err != nil {
-		return runtime.AddError(err)
+	if err := runtime.Database().Where("client_id = ?", state).First(&client).Error; err != nil {
+		runtime.Errorf("invalid client id used in google auth: %s", state)
+		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
+	}
+
+	if len(client.RedirectUri) == 0 {
+		runtime.Errorf("unable to find auth code sent from google")
+		return runtime.AddError(fmt.Errorf(ERR_BAD_AUTH_CODE))
+	}
+
+	if len(code) == 0 {
+		runtime.Errorf("unable to find auth code sent from google")
+		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
+		return nil
 	}
 
 	authman := services.GoogleAuthentication{runtime.Database()}
 
-	result, err := authman.Process(string(referrer), code)
+	result, err := authman.Process(&client, code)
 
 	if err != nil {
 		runtime.Errorf("unable to authenticate client /w code: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("ERR_BAD_CLIENT_CODE"))
+		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
+		return nil
 	}
 
 	fin, err := url.Parse(result.RedirectUri())
