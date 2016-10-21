@@ -87,7 +87,7 @@ func main() {
 	mux.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
 
 	// create the server runtime and the activity processor runtime
-	runtime := net.ServerRuntime{logger, database, stream, &mux}
+	runtime := net.ServerRuntime{logger, dbconf, stream, &mux}
 	processor := activity.Processor{logger, database, stream}
 	server := net.Server{nil, &runtime}
 

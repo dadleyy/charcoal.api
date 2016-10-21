@@ -11,10 +11,10 @@ import "github.com/sizethree/miritos.api/activity"
 import "github.com/sizethree/miritos.api/filestore"
 
 type ServerRuntime struct {
-	Log                *log.Logger
-	DatabaseConnection *db.Connection
-	Queue              chan activity.Message
-	Mux                *Multiplexer
+	Log      *log.Logger
+	DBConfig db.Config
+	Queue    chan activity.Message
+	Mux      *Multiplexer
 }
 
 // request
@@ -35,7 +35,6 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) R
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
-		database:  server.DatabaseConnection,
 		queue:     server.Queue,
 		log:       server.Log,
 		bucket:    bucket,
@@ -61,6 +60,20 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 
 	// build the request runtime
 	runtime := server.Request(request, &params)
+
+	var err error
+
+	// attempt to prepare a db connection for this request and error out if
+	// something goes wrong along the way.
+	if runtime.database, err = db.Open(server.DBConfig); err != nil {
+		server.Log.Debugf("error matching route: %s", request.URL.Path)
+		response.WriteHeader(http.StatusNotFound)
+		fmt.Fprintf(response, "not found")
+		return
+	}
+
+	// once this function finishes we're done with the request.
+	defer runtime.database.Close()
 
 	var renderer BucketRenderer
 
