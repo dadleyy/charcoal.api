@@ -6,17 +6,17 @@ import "database/sql"
 
 type Photo struct {
 	Common
-	Label string `json:"label"`
-	File uint `json:"file"`
+	Label  string        `json:"label"`
+	File   uint          `json:"file"`
 	Author sql.NullInt64 `json:"author"`
-	Width int `json:"width"`
-	Height int `json:"height"`
+	Width  int           `json:"width"`
+	Height int           `json:"height"`
 }
 
 type serializedPhoto struct {
 	Photo
 	Author interface{} `json:"author"`
-	Url string `json:"url"`
+	Url    string      `json:"url"`
 }
 
 func (photo Photo) Url() string {
