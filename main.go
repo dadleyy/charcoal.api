@@ -73,10 +73,21 @@ func main() {
 
 	mux.GET("/user-roles", routes.FindRoles, middleware.RequireClient)
 
+	// clients
+	mux.GET("/clients", routes.FindClients, middleware.RequireClient)
+
+	mux.GET("/google-accounts", routes.FindGoogleAccounts, middleware.RequireUser)
+
+	// client admins
 	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireUser)
+
+	// client tokens
+	mux.GET("/client-tokens", routes.FindClientTokens, middleware.RequireUser)
 
 	mux.GET("/display-schedules", routes.FindDisplaySchedules, middleware.RequireClient)
 	mux.PATCH("/display-schedules/:id", routes.UpdateDisplaySchedule, middleware.RequireUser)
+
+	mux.GET("/user-role-mappings", routes.FindUserRoleMappings, middleware.RequireUser)
 
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
