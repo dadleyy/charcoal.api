@@ -112,11 +112,16 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
-	// publish this event to the activity stream
-	runtime.Publish(activity.Message{&runtime.User, &photo, "created"})
-
-	// add our result to the response
 	runtime.AddResult(photo.Public())
+
+	if runtime.User.ID >= 1 {
+		// publish this event to the activity stream
+		runtime.Publish(activity.Message{&runtime.User, &photo, "created"})
+		return nil
+	}
+
+	runtime.Debugf("publishing photo upload w/ client not user")
+	runtime.Publish(activity.Message{&runtime.Client, &photo, "created"})
 
 	return nil
 }

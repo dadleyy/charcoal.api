@@ -68,6 +68,9 @@ func main() {
 	// special route - returns all active activities based on their display schedules.
 	mux.GET("/activity/live", routes.FindLiveActivity, middleware.RequireClient)
 
+	mux.GET("/oauth/instagram/prompt", routes.InstaOauthRedirect)
+	mux.GET("/oauth/instagram/auth", routes.InstaOauthReceiveCode)
+
 	mux.GET("/oauth/google/prompt", routes.GoogleOauthRedirect)
 	mux.GET("/oauth/google/auth", routes.GoogleOauthReceiveCode)
 

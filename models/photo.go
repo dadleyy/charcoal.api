@@ -20,8 +20,7 @@ type serializedPhoto struct {
 }
 
 func (photo Photo) Url() string {
-	root := os.Getenv("API_HOME")
-	return fmt.Sprintf("%s/photos?filter[id]=eq(%d)", root, photo.ID)
+	return fmt.Sprintf("/photos?filter[id]=eq(%d)", photo.ID)
 }
 
 func (photo Photo) Type() string {

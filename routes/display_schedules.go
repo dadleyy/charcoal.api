@@ -78,11 +78,11 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 
 		// if we're updating the approval but a start/end date has not been set, we need to require
 		// them in this body.
-		if schedule.End == nil {
+		if schedule.End == nil && approval == "APPROVED" {
 			validate.Require("end")
 		}
 
-		if schedule.Start == nil {
+		if schedule.Start == nil && approval == "APPROVED" {
 			validate.Require("start")
 		}
 	}
