@@ -1,6 +1,5 @@
 package models
 
-import "os"
 import "fmt"
 import "database/sql"
 
@@ -30,14 +29,12 @@ func (photo Photo) Type() string {
 func (photo Photo) Public() interface{} {
 	var author interface{}
 
+	author = nil
 	if photo.Author.Valid {
 		author = photo.Author.Int64
-	} else {
-		author = nil
 	}
 
-	root := os.Getenv("API_HOME")
-	url := fmt.Sprintf("%s/photos/%d/view", root, photo.ID)
+	url := fmt.Sprintf("/photos/%d/view", photo.ID)
 
 	result := serializedPhoto{photo, author, url}
 	return result

@@ -13,6 +13,25 @@ import "github.com/albrow/forms"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 
+func FindInstagramPosts(runtime *net.RequestRuntime) error {
+	var accounts []models.InstagramPhoto
+	blueprint := runtime.Blueprint()
+
+	total, err := blueprint.Apply(&accounts, runtime.Database())
+
+	if err != nil {
+		return err
+	}
+
+	for _, account := range accounts {
+		runtime.AddResult(account.Public())
+	}
+
+	runtime.SetMeta("toal", total)
+
+	return nil
+}
+
 func CreateInstagramPost(runtime *net.RequestRuntime) error {
 	data, err := forms.Parse(runtime.Request)
 
@@ -27,13 +46,28 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 	validator.Require("id")
 	validator.Require("caption")
 	validator.Require("owner")
+	validator.MinLength("id", 8)
+	validator.MinLength("owner", 8)
 
 	if validator.HasErrors() {
 		runtime.Debugf("bad form: %s", strings.Join(validator.Messages(), " | "))
 		return runtime.AddError(fmt.Errorf("BAD_DATA"))
 	}
 
+	gramid := data.Get("id")
 	file := data.GetFile("photo")
+	dupes := 0
+
+	ig := models.InstagramPhoto{InstagramID: gramid}
+
+	runtime.Debugf("checking for duplicate instagram id: %s", gramid)
+
+	check := runtime.Database().Model(&ig).Where("instagram_id = ?", gramid)
+
+	if err := check.Count(&dupes).Error; err != nil || dupes > 0 {
+		runtime.Debugf("duplicate instagram record: %s", gramid)
+		return runtime.AddError(fmt.Errorf("DUPLICATE_RECORD"))
+	}
 
 	if file == nil {
 		runtime.Debugf("no \"photo\" value found in post form")
@@ -98,7 +132,7 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
-	ig := models.InstagramPhoto{
+	ig = models.InstagramPhoto{
 		Photo:       photo.ID,
 		Owner:       data.Get("owner"),
 		Caption:     data.Get("caption"),
@@ -120,5 +154,6 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 	}
 
 	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", ormfile.Key, width, height)
+	runtime.AddResult(ig.Public())
 	return nil
 }

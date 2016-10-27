@@ -10,3 +10,20 @@ type InstagramPhoto struct {
 	Photo       uint          `json:"photo"`
 	Client      sql.NullInt64 `json:"client"`
 }
+
+type serializedInstagramPhoto struct {
+	InstagramPhoto
+	Client interface{} `json:"client"`
+}
+
+func (photo InstagramPhoto) Public() interface{} {
+	var author interface{}
+
+	author = nil
+	if photo.Client.Valid {
+		author = photo.Client.Int64
+	}
+
+	result := serializedInstagramPhoto{photo, author}
+	return result
+}
