@@ -92,6 +92,8 @@ func main() {
 
 	mux.GET("/user-role-mappings", routes.FindUserRoleMappings, middleware.RequireUser)
 
+	mux.POST("/instagram", routes.CreateInstagramPost, middleware.RequireClient)
+
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
 	mux.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)

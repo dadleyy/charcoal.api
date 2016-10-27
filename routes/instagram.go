@@ -1,131 +1,124 @@
 package routes
 
-import "os"
 import "fmt"
-import "net/url"
-import "net/http"
+import "bytes"
+import "image"
+import "strings"
 import "io/ioutil"
-import "encoding/json"
+import _ "image/jpeg"
+import _ "image/png"
+
+import "github.com/albrow/forms"
 
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 
-const INSTAGRAM_AUTH_ENDPOINT = "https://api.instagram.com/oauth/authorize"
-const INSTAGRAM_TOKEN_ENDPOINT = "https://api.instagram.com/oauth/access_token"
+func CreateInstagramPost(runtime *net.RequestRuntime) error {
+	data, err := forms.Parse(runtime.Request)
 
-func InstaOauthRedirect(runtime *net.RequestRuntime) error {
-	clientid := os.Getenv("INSTAGRAM_CLIENT_ID")
-	redir := os.Getenv("INSTAGRAM_REDIRECT_URL")
-	fin, err := url.Parse(INSTAGRAM_AUTH_ENDPOINT)
+	// bad form file - error out
+	if err != nil {
+		runtime.Debugf("unable to parse instagram post body data")
+		return runtime.AddError(err)
+	}
+
+	validator := data.Validator()
+
+	validator.Require("id")
+	validator.Require("caption")
+	validator.Require("owner")
+
+	if validator.HasErrors() {
+		runtime.Debugf("bad form: %s", strings.Join(validator.Messages(), " | "))
+		return runtime.AddError(fmt.Errorf("BAD_DATA"))
+	}
+
+	file := data.GetFile("photo")
+
+	if file == nil {
+		runtime.Debugf("no \"photo\" value found in post form")
+		return runtime.AddError(fmt.Errorf("BAD_FILE"))
+	}
+
+	mime := file.Header.Get("Content-Type")
+
+	if len(mime) == 0 {
+		return runtime.AddError(fmt.Errorf("BAD_FILE_CONTENT_TYPE"))
+	}
+
+	content, err := file.Open()
+	defer content.Close()
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
+		runtime.Debugf("unable to open photo file: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("BAD_FILE"))
 	}
 
-	query := runtime.URL.Query()
+	buffer, err := ioutil.ReadAll(content)
 
-	requester := query.Get("client_id")
-
-	if len(requester) == 0 {
-		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
+	// bad form file - error out
+	if err != nil || len(buffer) == 0 {
+		return runtime.AddError(err)
 	}
 
-	var client models.Client
+	reader := bytes.NewReader(buffer)
 
-	if err := runtime.Database().Where("client_id = ?", requester).First(&client).Error; err != nil {
-		runtime.Errorf("invalid client id used in insta auth: %s", clientid)
-		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
-	}
-
-	if len(client.RedirectUri) == 0 {
-		runtime.Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
-		return runtime.AddError(fmt.Errorf("MISSING_REDIRECT_URI"))
-	}
-
-	queries := make(url.Values)
-
-	queries.Set("response_type", "code")
-	queries.Set("redirect_uri", redir)
-	queries.Set("client_id", clientid)
-
-	// set the state that gets sent to instagram (which will get sent back to us) to the client id
-	// proved to us that represents the client opening this dialog.
-	queries.Set("state", requester)
-
-	fin.RawQuery = queries.Encode()
-
-	runtime.Debugf("sending user to %s", fin.String())
-
-	runtime.Redirect(fin.String())
-	return nil
-}
-
-func InstaOauthReceiveCode(runtime *net.RequestRuntime) error {
-	query := runtime.URL.Query()
-
-	// extract the code sent from instagram and the "state" which is the client id originally sent
-	// during the outh prompt so that we know who to add a token to.
-	code := query.Get("code")
-	state := query.Get("state")
-
-	if len(state) == 0 {
-		runtime.Errorf("unable to find state sent back from instagram")
-		return runtime.AddError(fmt.Errorf("BAD_CLIENT"))
-	}
-
-	var client models.Client
-
-	if err := runtime.Database().Where("client_id = ?", state).First(&client).Error; err != nil {
-		runtime.Errorf("invalid client id used in instagram auth: %s", state)
-		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
-	}
-
-	if len(client.RedirectUri) == 0 {
-		runtime.Errorf("unable to find auth code sent from instagram")
-		return runtime.AddError(fmt.Errorf(ERR_BAD_AUTH_CODE))
-	}
-
-	if len(code) == 0 {
-		runtime.Errorf("unable to find auth code sent from instagram")
-		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
-		return nil
-	}
-
-	packet := url.Values{
-		"client_secret": {os.Getenv("INSTAGRAM_CLIENT_SECRET")},
-		"client_id":     {os.Getenv("INSTAGRAM_CLIENT_ID")},
-		"grant_type":    {"authorization_code"},
-		"redirect_uri":  {os.Getenv("INSTAGRAM_REDIRECT_URL")},
-		"code":          {code},
-	}
-
-	result, err := http.PostForm(INSTAGRAM_TOKEN_ENDPOINT, packet)
+	// attempt to decode the image and get it's dimensions
+	image, _, err := image.DecodeConfig(reader)
 
 	if err != nil {
-		runtime.Debugf("bad instagram token resopnse: %s", err.Error())
-		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
-		return nil
+		runtime.Errorf("unable to decode image: %s", err.Error())
+		return runtime.AddError(err)
 	}
 
-	defer result.Body.Close()
+	width, height := image.Width, image.Height
 
-	tdata, err := ioutil.ReadAll(result.Body)
+	if width == 0 || height == 0 || width > MAX_PHOTO_WIDTH || height > MAX_PHOTO_HEIGHT {
+		runtime.Debugf("bad image sizes")
+		return runtime.AddError(fmt.Errorf("BAD_IMAGE_SIZES"))
+	}
+
+	// attempt to use the runtime to persist the file uploaded
+	ormfile, err := runtime.PersistFile(buffer, mime)
 
 	if err != nil {
-		runtime.Debugf("bad instagram token resopnse: %s", err.Error())
-		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
-		return nil
+		runtime.Debugf("failed persisting: %s", err.Error())
+		return runtime.AddError(err)
 	}
 
-	var tresult struct {
-		AccessToken string `json:"access_token"`
+	// with the persisted file, create the new photo object that will be saved to the orm
+	photo := models.Photo{
+		File:   ormfile.ID,
+		Width:  width,
+		Height: height,
 	}
 
-	if err := json.Unmarshal(tdata, &tresult); err != nil {
-		runtime.Debugf("bad instagram token resopnse: %s", err.Error())
-		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
-		return nil
+	// attempt to create the photo record in the database
+	if err := runtime.Database().Create(&photo).Error; err != nil {
+		return runtime.AddError(err)
 	}
 
+	ig := models.InstagramPhoto{
+		Photo:       photo.ID,
+		Owner:       data.Get("owner"),
+		Caption:     data.Get("caption"),
+		InstagramID: data.Get("id"),
+	}
+
+	ig.Client.Scan(runtime.Client.ID)
+
+	// attempt to create the photo record in the database
+	if err := runtime.Database().Create(&ig).Error; err != nil {
+		runtime.Debugf("failed saving instagram: %s", err.Error())
+		runtime.Database().Unscoped().Delete(&photo)
+		return runtime.AddError(err)
+	}
+
+	// let the file record know that it is owned
+	if err := runtime.Database().Model(&ormfile).Update("status", "OWNED").Error; err != nil {
+		return runtime.AddError(err)
+	}
+
+	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", ormfile.Key, width, height)
 	return nil
 }

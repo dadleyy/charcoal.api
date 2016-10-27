@@ -41,10 +41,17 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_FILE"))
 	}
 
-	content, err := file.Open()
 	mime := file.Header.Get("Content-Type")
 
-	if err != nil || len(mime) == 0 {
+	if len(mime) == 0 {
+		return runtime.AddError(fmt.Errorf("BAD_FILE_CONTENT_TYPE"))
+	}
+
+	content, err := file.Open()
+	defer content.Close()
+
+	if err != nil {
+		runtime.Debugf("unable to open uploaded multipart file")
 		return runtime.AddError(fmt.Errorf("BAD_FILE"))
 	}
 
