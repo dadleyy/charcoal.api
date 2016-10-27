@@ -1,5 +1,6 @@
 package models
 
+import "fmt"
 import "database/sql"
 
 type InstagramPhoto struct {
@@ -9,6 +10,14 @@ type InstagramPhoto struct {
 	Caption     string        `json:"caption"`
 	Photo       uint          `json:"photo"`
 	Client      sql.NullInt64 `json:"client"`
+}
+
+func (photo InstagramPhoto) Url() string {
+	return fmt.Sprintf("/instagram?filter[id]=eq(%d)", photo.ID)
+}
+
+func (photo InstagramPhoto) Type() string {
+	return "application/vnd.miritos.instagram-photo+json"
 }
 
 type serializedInstagramPhoto struct {

@@ -12,6 +12,7 @@ import "github.com/albrow/forms"
 
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/activity"
 
 func FindInstagramPosts(runtime *net.RequestRuntime) error {
 	var accounts []models.InstagramPhoto
@@ -155,5 +156,6 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 
 	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", ormfile.Key, width, height)
 	runtime.AddResult(ig.Public())
+	runtime.Publish(activity.Message{&runtime.Client, &ig, "created"})
 	return nil
 }
