@@ -21,7 +21,7 @@ type ServerRuntime struct {
 //
 // Given http.Request and UrlParam references, this function will return the request context
 // that will ultimately be sent down the handlerfunc chain matched by the multiplexer.
-func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) RequestRuntime {
+func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (RequestRuntime, error) {
 	errors := make([]error, 0)
 	results := make([]Result, 0)
 	meta := make(map[string]interface{})
@@ -32,6 +32,12 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) R
 
 	fs := filestore.S3FileStore{}
 
+	database, err := db.Open(server.DBConfig)
+
+	if err != nil {
+		return RequestRuntime{}, err
+	}
+
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
@@ -39,9 +45,10 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) R
 		log:       server.Log,
 		bucket:    bucket,
 		fs:        fs,
+		database:  database,
 	}
 
-	return runtime
+	return runtime, nil
 }
 
 // ServeHTTP
@@ -59,13 +66,11 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 	}
 
 	// build the request runtime
-	runtime := server.Request(request, &params)
-
-	var err error
+	runtime, err := server.Request(request, &params)
 
 	// attempt to prepare a db connection for this request and error out if
 	// something goes wrong along the way.
-	if runtime.database, err = db.Open(server.DBConfig); err != nil {
+	if err != nil {
 		server.Log.Debugf("error matching route: %s", request.URL.Path)
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response, "not found")

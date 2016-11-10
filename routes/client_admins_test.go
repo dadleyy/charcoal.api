@@ -89,8 +89,8 @@ func TestFindClientAdminBadUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, database, queue, nil}
-	request := runtime.Request(stub, &net.UrlParams{})
+	runtime := net.ServerRuntime{logger, dbconf, queue, nil}
+	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
 
@@ -135,8 +135,8 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, database, queue, nil}
-	request := runtime.Request(stub, &net.UrlParams{})
+	runtime := net.ServerRuntime{logger, dbconf, queue, nil}
+	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
 	database.Where("email = ?", "test-1@client-admin-test.com").Find(&request.User)
