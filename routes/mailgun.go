@@ -31,6 +31,8 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	var processor mg.ActivityProcessor
 	start := strings.Split(message.Subject, ":")[0]
 
+	runtime.Debugf("received message, subject line: \"%s\"", message.Subject)
+
 	switch start {
 	case "image", "photo":
 		processor = &mg.ImageProcessor{runtime.Database(), runtime.Photos(), os.Getenv("MAILGUN_API_KEY")}
