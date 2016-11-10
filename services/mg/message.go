@@ -6,7 +6,7 @@ import "golang.org/x/net/html"
 
 type Message struct {
 	From       string       `json:"From"`
-	Subject    string       `json:"subject"`
+	Subject    string       `json:"Subject"`
 	Body       string       `json:"body-html"`
 	ContentMap ContentIdMap `json:"content-id-map"`
 }
