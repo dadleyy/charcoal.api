@@ -113,23 +113,15 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_IMAGE_SIZES"))
 	}
 
-	// attempt to use the runtime to persist the file uploaded
-	ormfile, err := runtime.PersistFile(buffer, mime)
-
-	if err != nil {
-		runtime.Debugf("failed persisting: %s", err.Error())
-		return runtime.AddError(err)
-	}
+	photos := runtime.Photos()
 
 	// with the persisted file, create the new photo object that will be saved to the orm
-	photo := models.Photo{
-		File:   ormfile.ID,
-		Width:  width,
-		Height: height,
-	}
+	photo := models.Photo{Width: width, Height: height}
 
-	// attempt to create the photo record in the database
-	if err := runtime.Database().Create(&photo).Error; err != nil {
+	// attempt to use the runtime to persist the file uploaded
+
+	if err := photos.Persist(buffer, mime, &photo); err != nil {
+		runtime.Debugf("failed persisting: %s", err.Error())
 		return runtime.AddError(err)
 	}
 
@@ -149,12 +141,7 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
-	// let the file record know that it is owned
-	if err := runtime.Database().Model(&ormfile).Update("status", "OWNED").Error; err != nil {
-		return runtime.AddError(err)
-	}
-
-	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", ormfile.Key, width, height)
+	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", photo.ID, width, height)
 	runtime.AddResult(ig.Public())
 	runtime.Publish(activity.Message{&runtime.Client, &ig, "created"})
 	return nil

@@ -8,6 +8,7 @@ import "github.com/labstack/gommon/log"
 import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/activity"
+import "github.com/sizethree/miritos.api/services"
 import "github.com/sizethree/miritos.api/filestore"
 
 const DEFAULT_BLUEPRINT_LIMIT = 100
@@ -15,13 +16,13 @@ const DEFAULT_BLUEPRINT_LIMIT = 100
 type RequestRuntime struct {
 	*http.Request
 	*UrlParams
+	fs       filestore.FileSaver
 	Client   models.Client
 	database *db.Connection
 	log      *log.Logger
 	queue    chan activity.Message
 	User     models.User
 	bucket   ResponseBucket
-	store    filestore.FileSaver
 }
 
 func (runtime *RequestRuntime) Errorf(format string, args ...interface{}) {
@@ -48,10 +49,6 @@ func (runtime *RequestRuntime) AddResult(r Result) {
 	runtime.bucket.results = append(runtime.bucket.results, r)
 }
 
-func (runtime *RequestRuntime) DownloadUrl(file *models.File) (string, error) {
-	return runtime.store.DownloadUrl(file)
-}
-
 func (runtime *RequestRuntime) Redirect(url string) {
 	runtime.bucket.redirect = url
 }
@@ -60,23 +57,13 @@ func (runtime *RequestRuntime) Proxy(url string) {
 	runtime.bucket.proxy = url
 }
 
-func (runtime *RequestRuntime) PersistFile(buffer []byte, mime string) (models.File, error) {
-	ofile, err := runtime.store.Upload(buffer, mime)
-
-	if err != nil {
-		return models.File{}, err
-	}
-
-	if err := runtime.Database().Create(&ofile).Error; err != nil {
-		return models.File{}, err
-	}
-
-	return ofile, nil
-}
-
 func (runtime *RequestRuntime) AddError(e error) error {
 	runtime.bucket.errors = append(runtime.bucket.errors, e)
 	return e
+}
+
+func (runtime *RequestRuntime) DownloadUrl(f *models.File) (string, error) {
+	return runtime.fs.DownloadUrl(f)
 }
 
 func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
@@ -85,6 +72,10 @@ func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
 
 func (runtime *RequestRuntime) Publish(msg activity.Message) {
 	runtime.queue <- msg
+}
+
+func (runtime *RequestRuntime) Photos() services.PhotoSaver {
+	return services.PhotoSaver{runtime.Database(), runtime.fs}
 }
 
 func (runtime *RequestRuntime) Blueprint() Blueprint {

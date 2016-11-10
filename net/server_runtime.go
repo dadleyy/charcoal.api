@@ -38,7 +38,7 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) R
 		queue:     server.Queue,
 		log:       server.Log,
 		bucket:    bucket,
-		store:     fs,
+		fs:        fs,
 	}
 
 	return runtime

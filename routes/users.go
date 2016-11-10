@@ -30,8 +30,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		runtime.AddError(err)
-		return nil
+		return runtime.AddError(err)
 	}
 
 	validator := body.Validator()

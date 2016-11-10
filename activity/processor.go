@@ -13,25 +13,28 @@ const statusRejected string = "REJECTED"
 type semaphore chan struct{}
 
 type Processor struct {
-	Logger *log.Logger
+	Logger             *log.Logger
 	DatabaseConnection *db.Connection
-	Queue chan Message
+	Queue              chan Message
 }
 
-func create(message Message, conn *db.Connection, out chan<- error, waitlist semaphore) {
+func create(message Message, conn *db.Connection, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
 	// wait until someone has released a token from the semaphore
 	waitlist <- struct{}{}
 
 	item := models.Activity{
-		Type: message.Verb,
-		ActorUrl: message.Actor.Url(),
-		ActorType: message.Actor.Type(),
-		ObjectUrl: message.Object.Url(),
+		Type:       message.Verb,
+		ActorUrl:   message.Actor.Url(),
+		ActorType:  message.Actor.Type(),
+		ObjectUrl:  message.Object.Url(),
 		ObjectType: message.Object.Type(),
 	}
 
+	defer def.Done()
+
 	if err := conn.Create(&item).Error; err != nil {
 		out <- err
+
 		// release our token by receiving from the channel
 		<-waitlist
 		return
@@ -62,7 +65,7 @@ func (engine *Processor) Begin() {
 	for message := range engine.Queue {
 		deferred.Add(1)
 		engine.Logger.Debugf("spawning creator goroutine for message: %s", message.Verb)
-		go create(message, engine.DatabaseConnection, makers, waitlist)
+		go create(message, engine.DatabaseConnection, makers, waitlist, &deferred)
 	}
 
 	go func() {
@@ -71,7 +74,9 @@ func (engine *Processor) Begin() {
 	}()
 
 	for err := range makers {
-		if err == nil { continue }
+		if err == nil {
+			continue
+		}
 		engine.Logger.Errorf("ERROR: %s", err.Error())
 	}
 }

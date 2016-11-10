@@ -6,7 +6,7 @@ type Object interface {
 }
 
 type Message struct {
-	Actor Object
+	Actor  Object
 	Object Object
-	Verb string
+	Verb   string
 }

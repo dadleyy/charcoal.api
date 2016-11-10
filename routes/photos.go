@@ -87,36 +87,23 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 	}
 
 	// attempt to use the runtime to persist the file uploaded
-	ormfile, err := runtime.PersistFile(buffer, mime)
-
-	if err != nil {
-		runtime.Debugf("failed persisting: %s", err.Error())
-		return runtime.AddError(err)
-	}
-
-	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", ormfile.Key, width, height)
+	photos := runtime.Photos()
 
 	// with the persisted file, create the new photo object that will be saved to the orm
 	photo := models.Photo{
 		Label:  label,
-		File:   ormfile.ID,
 		Width:  width,
 		Height: height,
+	}
+
+	if err := photos.Persist(buffer, mime, &photo); err != nil {
+		runtime.Debugf("failed persisting: %s", err.Error())
+		return runtime.AddError(err)
 	}
 
 	if runtime.User.ID >= 1 {
 		runtime.Debugf("associating user #%d with photo \"%s\"", runtime.User.ID, photo.Label)
 		photo.Author.Scan(runtime.User.ID)
-	}
-
-	// attempt to create the photo record in the database
-	if err := runtime.Database().Create(&photo).Error; err != nil {
-		return runtime.AddError(err)
-	}
-
-	// let the file record know that it is owned
-	if err := runtime.Database().Model(&ormfile).Update("status", "OWNED").Error; err != nil {
-		return runtime.AddError(err)
 	}
 
 	runtime.AddResult(photo.Public())
