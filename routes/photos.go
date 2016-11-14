@@ -13,6 +13,7 @@ import "github.com/albrow/forms"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/activity"
+import "github.com/sizethree/miritos.api/services"
 
 const MIN_PHOTO_LABEL_LENGTH = 2
 const MAX_PHOTO_WIDTH = 2048
@@ -104,13 +105,14 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 	if runtime.User.ID >= 1 {
 		runtime.Debugf("associating user #%d with photo \"%s\"", runtime.User.ID, photo.Label)
 		photo.Author.Scan(runtime.User.ID)
+		runtime.Database().Save(&photo)
 	}
 
 	runtime.AddResult(photo.Public())
 
 	if runtime.User.ID >= 1 {
 		// publish this event to the activity stream
-		runtime.Publish(activity.Message{&runtime.User, &photo, "created"})
+		runtime.Publish(activity.Message{&runtime.User, &photo, activity.VerbCreated})
 		return nil
 	}
 
@@ -146,6 +148,38 @@ func ViewPhoto(runtime *net.RequestRuntime) error {
 	}
 
 	runtime.Proxy(url)
+	return nil
+}
+
+func DestroyPhoto(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_PHOTO_ID"))
+	}
+
+	var photo models.Photo
+
+	if err := runtime.Database().First(&photo, id).Error; err != nil {
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	uman := services.UserManager{runtime.Database()}
+	admin := uman.IsAdmin(&runtime.User)
+
+	// if we arent an admin, and the photo has an author, make sure its the current user
+	if admin != true && photo.Author.Valid && photo.Author.Int64 != int64(runtime.User.ID) {
+		runtime.Debugf("user %d attempted to delete photo %d w/o permission", runtime.User.ID, photo.Author.Int64)
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	photos := runtime.Photos()
+
+	if err := photos.Destroy(&photo); err != nil {
+		return runtime.AddError(err)
+	}
+
+	runtime.Publish(activity.Message{&runtime.Client, &photo, activity.VerbDeleted})
 	return nil
 }
 

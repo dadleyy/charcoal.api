@@ -101,6 +101,7 @@ func main() {
 	mux.POST("/photos", routes.CreatePhoto, middleware.RequireClient)
 	mux.GET("/photos", routes.FindPhotos, middleware.RequireClient)
 	mux.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)
+	mux.DELETE("/photos/:id", routes.DestroyPhoto, middleware.RequireUser)
 
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{logger, dbconf, stream, &mux}

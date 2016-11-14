@@ -35,3 +35,13 @@ func (saver *PhotoSaver) Persist(buffer []byte, mime string, out *models.Photo) 
 
 	return nil
 }
+
+func (saver *PhotoSaver) Destroy(photo *models.Photo) error {
+	cursor := saver.Model(&models.File{}).Where("id = ?", photo.File)
+
+	if err := cursor.Update("status", "ABANDONDED").Error; err != nil {
+		return err
+	}
+
+	return saver.Unscoped().Delete(photo).Error
+}

@@ -1,7 +1,7 @@
 package net
 
 type Multiplexer struct {
-	routes []Route
+	routes     []Route
 	middleware []MiddlewareFunc
 }
 
@@ -51,6 +51,10 @@ func (mux *Multiplexer) GET(path string, handler HandlerFunc, middleware ...Midd
 
 func (mux *Multiplexer) PATCH(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {
 	mux.add("PATCH", path, handler, middleware)
+}
+
+func (mux *Multiplexer) DELETE(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {
+	mux.add("DELETE", path, handler, middleware)
 }
 
 func (mux *Multiplexer) POST(path string, handler HandlerFunc, middleware ...MiddlewareFunc) {
