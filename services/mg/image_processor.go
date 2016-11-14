@@ -27,6 +27,11 @@ type ImageProcessor struct {
 
 type semaphore chan struct{}
 
+type processedPhoto struct {
+	ProcessedItem
+	Photo models.Photo
+}
+
 func (processor *ImageProcessor) Process(message *Message, outputs chan ProcessedItem) {
 	// close once we're done
 	defer close(outputs)
@@ -67,7 +72,7 @@ func (processor *ImageProcessor) Process(message *Message, outputs chan Processe
 
 	waitlist := make(semaphore, 10)
 	var deferred sync.WaitGroup
-	processed := make(chan ProcessedItem)
+	processed := make(chan processedPhoto)
 
 	for _, image := range images {
 		deferred.Add(1)
@@ -82,11 +87,21 @@ func (processor *ImageProcessor) Process(message *Message, outputs chan Processe
 	go finish()
 
 	for result := range processed {
-		outputs <- result
+		if result.Error != nil {
+			outputs <- result.ProcessedItem
+			continue
+		}
+
+		// set the photo's author
+		result.Photo.Author.Scan(author.ID)
+		processor.Save(&result.Photo)
+		result.Message.Actor = author
+
+		outputs <- result.ProcessedItem
 	}
 }
 
-func (p *ImageProcessor) single(img ContentItem, caption string, out chan ProcessedItem, queue semaphore, def *sync.WaitGroup) {
+func (p *ImageProcessor) single(img ContentItem, caption string, out chan processedPhoto, queue semaphore, def *sync.WaitGroup) {
 	// push into our semaphore which blocks until there is an open "slot"
 	queue <- struct{}{}
 
@@ -103,7 +118,7 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out chan Proces
 
 	// if we failed opening a request, be done
 	if err != nil {
-		out <- ProcessedItem{Error: err, Item: img}
+		out <- processedPhoto{ProcessedItem: ProcessedItem{Error: err, Item: img}}
 		return
 	}
 
@@ -117,7 +132,7 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out chan Proces
 
 	// if we failed opening a request, be done
 	if err != nil {
-		out <- ProcessedItem{Error: err, Item: img}
+		out <- processedPhoto{ProcessedItem: ProcessedItem{Error: err, Item: img}}
 		return
 	}
 
@@ -128,7 +143,7 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out chan Proces
 
 	// if we failed opening a request, be done
 	if err != nil {
-		out <- ProcessedItem{Error: err, Item: img}
+		out <- processedPhoto{ProcessedItem: ProcessedItem{Error: err, Item: img}}
 		return
 	}
 
@@ -139,17 +154,17 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out chan Proces
 
 	// if we failed opening a request, be done
 	if err != nil || config.Height == 0 || config.Width == 0 {
-		out <- ProcessedItem{Error: fmt.Errorf("BAD_IMAGE"), Item: img}
+		out <- processedPhoto{ProcessedItem: ProcessedItem{Error: fmt.Errorf("BAD_IMAGE"), Item: img}}
 		return
 	}
 
 	photo := models.Photo{Width: config.Width, Height: config.Height, Label: caption}
 
 	if err := p.Photos.Persist(buffer, img.ContentType, &photo); err != nil {
-		out <- ProcessedItem{Error: err, Item: img}
+		out <- processedPhoto{ProcessedItem: ProcessedItem{Error: err, Item: img}}
 		return
 	}
 
 	message := activity.Message{&models.Client{}, &photo, "created"}
-	out <- ProcessedItem{Error: nil, Item: img, Message: message}
+	out <- processedPhoto{Photo: photo, ProcessedItem: ProcessedItem{Error: nil, Item: img, Message: message}}
 }

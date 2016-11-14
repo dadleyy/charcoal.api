@@ -84,7 +84,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("FAILED"))
 	}
 
-	runtime.Debugf("associated user[%d] with client[%d]")
+	runtime.Debugf("associated user[%d] with client[%d]", user.ID, runtime.Client.ID)
 	runtime.AddResult(cleanseUser(user))
 
 	return nil
