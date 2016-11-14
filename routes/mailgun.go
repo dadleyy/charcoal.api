@@ -9,6 +9,7 @@ import "github.com/sizethree/miritos.api/services/mg"
 
 func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	secret := os.Getenv("MAILGUN_WEBHOOK_SECRET")
+	key := os.Getenv("MAILGUN_API_KEY")
 	query := runtime.URL.Query()
 
 	if v, ok := query["secret"]; !ok || len(v) != 1 || v[0] != secret {
@@ -21,17 +22,15 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 		return err
 	}
 
-	runtime.Debugf("received message-id from mailgun: \"%s\"", body.Get("Message-Id"))
-	return nil
+	client := mg.Client{key}
 
-	var message mg.Message
-	message.ContentMap = make(mg.ContentIdMap)
+	location := body.Get("message-url")
 
-	/*
-		if err := body.BindJSON(&message); err != nil {
-			return err
-		}
-	*/
+	if valid := len(location) >= 2; valid != true {
+		return fmt.Errorf("BAD_MESSAGE_URL")
+	}
+
+	message, err := client.Retreive(location)
 
 	var processor mg.ActivityProcessor
 	start := strings.Split(message.Subject, ":")[0]
@@ -40,7 +39,7 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 
 	switch start {
 	case "image", "photo":
-		processor = &mg.ImageProcessor{runtime.Database(), runtime.Photos(), os.Getenv("MAILGUN_API_KEY")}
+		processor = &mg.ImageProcessor{runtime.Database(), runtime.Photos(), key}
 	default:
 		return fmt.Errorf("INVALID_SUBJECT_LINE")
 	}

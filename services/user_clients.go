@@ -17,14 +17,19 @@ type UserClientManager struct {
 	*db.Connection
 }
 
-func PemDecodePath(path string) (*pem.Block, error) {
+func decodePrivateJwtToken(path string) (*pem.Block, error) {
 	buf, err := ioutil.ReadFile(path)
 
 	if err != nil {
 		return nil, err
 	}
 
-	block, _ := pem.Decode(buf)
+	block, rest := pem.Decode(buf)
+
+	if len(rest) > 0 {
+		return nil, fmt.Errorf("BAD_PEM_DECODE")
+	}
+
 	return block, nil
 }
 
@@ -34,7 +39,7 @@ func (engine *UserClientManager) Validate(input string, client *models.Client) e
 
 	where := engine.Where("token = ?", input)
 
-	if err := where.First(&token).Error; err != nil{
+	if err := where.First(&token).Error; err != nil {
 		return errors.New("ERR_BAD_TOKEN")
 	}
 
@@ -46,7 +51,7 @@ func (engine *UserClientManager) Validate(input string, client *models.Client) e
 		return errors.New("ERR_NO_USER_FOR_CLIENT")
 	}
 
-	block, err := PemDecodePath(os.Getenv("JWT_PUBLIC_KEY"))
+	block, err := decodePrivateJwtToken(os.Getenv("JWT_PUBLIC_KEY"))
 
 	if err != nil {
 		return errors.New("ERR_BAD_PUBLIC_KEY")
@@ -82,7 +87,7 @@ func (engine *UserClientManager) Associate(user *models.User, client *models.Cli
 
 	result = models.ClientToken{
 		Client: client.ID,
-		User: user.ID,
+		User:   user.ID,
 	}
 
 	var tcount uint
@@ -95,17 +100,21 @@ func (engine *UserClientManager) Associate(user *models.User, client *models.Cli
 		return result, nil
 	}
 
-	privblock, err := PemDecodePath(os.Getenv("JWT_PRIVATE_KEY"))
+	block, err := decodePrivateJwtToken(os.Getenv("JWT_PRIVATE_KEY"))
 
 	if err != nil {
-		return models.ClientToken{}, err
+		return models.ClientToken{}, fmt.Errorf("BAD_PRIVATE_KEY_DECODE: %s", err.Error())
 	}
 
-	if privblock == nil {
-		return models.ClientToken{}, errors.New("BAD_KEY")
+	if x509.IsEncryptedPEMBlock(block) {
+		return models.ClientToken{}, fmt.Errorf("ENCRYPTED_BLOCK")
 	}
 
-	rsapriv, err = x509.ParsePKCS1PrivateKey(privblock.Bytes)
+	rsapriv, err = x509.ParsePKCS1PrivateKey(block.Bytes)
+
+	if err != nil {
+		return models.ClientToken{}, fmt.Errorf("BAD_PARSE_BLOCK: %s", err.Error())
+	}
 
 	claims := jws.Claims{
 		"token": fmt.Sprintf("%s:%d", client.ClientID, user.ID),
@@ -113,14 +122,10 @@ func (engine *UserClientManager) Associate(user *models.User, client *models.Cli
 
 	token := jws.NewJWT(claims, crypto.SigningMethodRS512)
 
-	if err != nil {
-		return models.ClientToken{}, err
-	}
-
 	sbuf, err := token.Serialize(rsapriv)
 
 	if err != nil {
-		return models.ClientToken{}, err
+		return models.ClientToken{}, fmt.Errorf("BAD_SERIALIZATION: %s", err.Error())
 	}
 
 	result.Token = string(sbuf)
