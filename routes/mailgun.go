@@ -3,7 +3,9 @@ package routes
 import "os"
 import "fmt"
 import "strings"
-import "github.com/albrow/forms"
+import "io/ioutil"
+
+// import "github.com/albrow/forms"
 
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/services/mg"
@@ -16,17 +18,23 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
 	}
 
-	body, err := forms.Parse(runtime.Request)
+	body, err := ioutil.ReadAll(runtime.Request.Body)
+
 	if err != nil {
-		return runtime.AddError(err)
+		return err
 	}
+
+	fmt.Printf("----- body:\n%s\n-----\n", string(body))
+	return nil
 
 	var message mg.Message
 	message.ContentMap = make(mg.ContentIdMap)
 
-	if err := body.BindJSON(&message); err != nil {
-		return err
-	}
+	/*
+		if err := body.BindJSON(&message); err != nil {
+			return err
+		}
+	*/
 
 	var processor mg.ActivityProcessor
 	start := strings.Split(message.Subject, ":")[0]
