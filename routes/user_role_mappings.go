@@ -13,7 +13,7 @@ func FindUserRoleMappings(runtime *net.RequestRuntime) error {
 
 	// if this is not an admin user, make sure we are limiting to the current user
 	if uman.IsAdmin(&runtime.User) != true {
-		runtime.Debugf("user is not admin, limiting google maps search to current user")
+		runtime.Debugf("user is not admin, limiting role maps search to current user")
 		blueprint.Filter("filter[user]", fmt.Sprintf("eq(%d)", runtime.User.ID))
 	}
 

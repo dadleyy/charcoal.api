@@ -4,24 +4,15 @@ import "fmt"
 import "net/http"
 import "encoding/json"
 
-type ContentItem struct {
-	Url         string `json:"url"`
-	ContentType string `json:"content-type"`
-	Name        string `json:"name"`
-}
-
-type ContentIdMap map[string]ContentItem
-
 type Client struct {
 	ApiKey string
 }
 
 func (client Client) Retreive(url string) (Message, error) {
 	req, err := http.NewRequest("GET", url, nil)
-	var result Message
 
 	if err != nil {
-		return result, err
+		return Message{}, err
 	}
 
 	get := &http.Client{}
@@ -30,17 +21,17 @@ func (client Client) Retreive(url string) (Message, error) {
 	response, err := get.Do(req)
 
 	if err != nil {
-		return result, err
+		return Message{}, err
 	}
 
 	defer response.Body.Close()
 
 	deocode := json.NewDecoder(response.Body)
 
-	result.ContentMap = make(ContentIdMap)
+	result := Message{ContentMap: make(ContentIdMap)}
 
 	if err := deocode.Decode(&result); err != nil {
-		return result, err
+		return Message{}, err
 	}
 
 	if len(result.ContentMap) == 0 {

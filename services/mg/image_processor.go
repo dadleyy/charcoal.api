@@ -8,6 +8,7 @@ import "strings"
 import "net/http"
 import "net/mail"
 import "io/ioutil"
+import _ "image/gif"
 import _ "image/jpeg"
 import _ "image/png"
 
@@ -16,32 +17,30 @@ import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/activity"
 import "github.com/sizethree/miritos.api/services"
 
+const ErrUnkownUser = "unkown user"
+
 type ImageProcessor struct {
 	*db.Connection
 	Photos services.PhotoSaver
 	ApiKey string
 }
 
-type ProcessedItem struct {
-	Error   error
-	Message activity.Message
-	Item    ContentItem
-}
-
 type semaphore chan struct{}
-type outputs chan ProcessedItem
 
-func (processor *ImageProcessor) Process(message *Message) ([]activity.Message, error) {
-	activities := make([]activity.Message, 0)
+func (processor *ImageProcessor) Process(message *Message, outputs chan ProcessedItem) {
+	// close once we're done
+	defer close(outputs)
 
 	if message == nil {
-		return activities, fmt.Errorf("INVALID_MESSAGE")
+		outputs <- ProcessedItem{Error: fmt.Errorf("INVALID_MESSAGE")}
+		return
 	}
 
 	parts := strings.SplitN(message.Subject, ":", 2)
 
 	if len(parts) < 2 || len(parts[1]) == 0 {
-		return activities, fmt.Errorf("BAD_CAPTION")
+		outputs <- ProcessedItem{Error: fmt.Errorf("BAD_SUBJECT_LINE")}
+		return
 	}
 
 	caption := strings.TrimSpace(parts[1])
@@ -49,24 +48,26 @@ func (processor *ImageProcessor) Process(message *Message) ([]activity.Message, 
 	email, err := mail.ParseAddress(message.From)
 
 	if err != nil {
-		return activities, err
+		outputs <- ProcessedItem{Error: err}
+		return
 	}
 
 	var author models.User
 
 	if err := processor.Where("email = ?", email.Address).Find(&author).Error; err != nil {
-		return activities, err
+		outputs <- ProcessedItem{Error: fmt.Errorf(ErrUnkownUser)}
+		return
 	}
 
 	images := message.Images()
 
-	if len(images) != 1 {
-		return activities, fmt.Errorf("BAD_IMAGES")
+	if len(images) == 0 {
+		return
 	}
 
 	waitlist := make(semaphore, 10)
 	var deferred sync.WaitGroup
-	processed := make(outputs)
+	processed := make(chan ProcessedItem)
 
 	for _, image := range images {
 		deferred.Add(1)
@@ -81,20 +82,11 @@ func (processor *ImageProcessor) Process(message *Message) ([]activity.Message, 
 	go finish()
 
 	for result := range processed {
-		if result.Error != nil {
-			continue
-		}
-
-		msg := result.Message
-		msg.Actor = author
-
-		activities = append(activities, msg)
+		outputs <- result
 	}
-
-	return activities, nil
 }
 
-func (p *ImageProcessor) single(img ContentItem, caption string, out outputs, queue semaphore, def *sync.WaitGroup) {
+func (p *ImageProcessor) single(img ContentItem, caption string, out chan ProcessedItem, queue semaphore, def *sync.WaitGroup) {
 	// push into our semaphore which blocks until there is an open "slot"
 	queue <- struct{}{}
 
@@ -111,7 +103,7 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out outputs, qu
 
 	// if we failed opening a request, be done
 	if err != nil {
-		out <- ProcessedItem{Error: fmt.Errorf("UNABLE_TO_LOAD"), Item: img}
+		out <- ProcessedItem{Error: err, Item: img}
 		return
 	}
 
@@ -123,6 +115,12 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out outputs, qu
 	// execute our get request
 	response, err := get.Do(req)
 
+	// if we failed opening a request, be done
+	if err != nil {
+		out <- ProcessedItem{Error: err, Item: img}
+		return
+	}
+
 	// once we're done with this function, clear out the body
 	defer response.Body.Close()
 
@@ -130,7 +128,7 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out outputs, qu
 
 	// if we failed opening a request, be done
 	if err != nil {
-		out <- ProcessedItem{Error: fmt.Errorf("UNABLE_TO_LOAD"), Item: img}
+		out <- ProcessedItem{Error: err, Item: img}
 		return
 	}
 
@@ -141,7 +139,7 @@ func (p *ImageProcessor) single(img ContentItem, caption string, out outputs, qu
 
 	// if we failed opening a request, be done
 	if err != nil || config.Height == 0 || config.Width == 0 {
-		out <- ProcessedItem{Error: fmt.Errorf("UNABLE_TO_LOAD"), Item: img}
+		out <- ProcessedItem{Error: fmt.Errorf("BAD_IMAGE"), Item: img}
 		return
 	}
 

@@ -70,9 +70,6 @@ func main() {
 
 	mux.POST("/callbacks/mailgun", routes.MailgunUploadHook)
 
-	mux.GET("/oauth/instagram/prompt", routes.InstaOauthRedirect)
-	mux.GET("/oauth/instagram/auth", routes.InstaOauthReceiveCode)
-
 	mux.GET("/oauth/google/prompt", routes.GoogleOauthRedirect)
 	mux.GET("/oauth/google/auth", routes.GoogleOauthReceiveCode)
 

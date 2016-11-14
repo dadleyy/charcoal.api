@@ -1,54 +1,36 @@
 package mg
 
-import "fmt"
 import "strings"
-import "golang.org/x/net/html"
 
-type Message struct {
-	From       string       `json:"From"`
-	Subject    string       `json:"Subject"`
-	Body       string       `json:"body-html"`
-	ContentMap ContentIdMap `json:"content-id-map"`
+type ContentItem struct {
+	Url         string `json:"url"`
+	ContentType string `json:"content-type"`
+	Name        string `json:"name"`
 }
 
+type ContentIdMap map[string]ContentItem
+type AttachmentList []ContentItem
+
+type Message struct {
+	From        string         `json:"From"`
+	Subject     string         `json:"Subject"`
+	Body        string         `json:"body-html"`
+	ContentMap  ContentIdMap   `json:"content-id-map"`
+	Attachments AttachmentList `json:"attachments"`
+}
+
+// Images
+//
+// returns an array of all the content items that are images.
 func (message *Message) Images() []ContentItem {
-	reader := strings.NewReader(message.Body)
-	tokenizer := html.NewTokenizer(reader)
 	result := make([]ContentItem, 0)
 
-	for {
-		chunk := tokenizer.Next()
-
-		if chunk == html.ErrorToken {
-			break
-		}
-
-		if chunk != html.StartTagToken {
+	for _, item := range message.Attachments {
+		if valid := strings.HasPrefix(item.ContentType, "image/"); valid != true {
 			continue
 		}
 
-		nameb, attrs := tokenizer.TagName()
-
-		if string(nameb) != "img" || attrs != true {
-			continue
-		}
-
-		key, val, attrs := tokenizer.TagAttr()
-
-		for ; attrs != false; key, val, attrs = tokenizer.TagAttr() {
-			if string(key) != "src" || strings.HasPrefix(string(val), "cid:") != true {
-				continue
-			}
-
-			cid := strings.TrimPrefix(string(val), "cid:")
-			item, ok := message.ContentMap[fmt.Sprintf("<%s>", cid)]
-
-			if !ok {
-				continue
-			}
-
-			result = append(result, item)
-		}
+		result = append(result, item)
 	}
 
 	return result

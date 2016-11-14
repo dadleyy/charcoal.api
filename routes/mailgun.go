@@ -13,6 +13,7 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	query := runtime.URL.Query()
 
 	if v, ok := query["secret"]; !ok || len(v) != 1 || v[0] != secret {
+		runtime.Debugf("invalid attempt on mailgun webhook: %s", query["secret"])
 		return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
 	}
 
@@ -35,7 +36,7 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	var processor mg.ActivityProcessor
 	start := strings.Split(message.Subject, ":")[0]
 
-	runtime.Debugf("received message, subject line: \"%s\"", message.Subject)
+	runtime.Debugf("received mailgun message: subject[\"%s\"] sender[%s]", message.Subject, message.From)
 
 	switch start {
 	case "image", "photo":
@@ -44,16 +45,18 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 		return fmt.Errorf("INVALID_SUBJECT_LINE")
 	}
 
-	activity, err := processor.Process(&message)
+	outputs := make(chan mg.ProcessedItem)
+	go processor.Process(&message, outputs)
 
-	if err != nil {
-		return err
-	}
+	for item := range outputs {
+		if err := item.Error; err != nil {
+			runtime.Debugf("failed processing item: %s", err.Error())
+			continue
+		}
 
-	runtime.Debugf("received message \"%s\" from: %s", message.Subject, message.From)
-
-	for _, item := range activity {
-		runtime.Publish(item)
+		message := item.Message
+		runtime.Debugf("successfully activity for object \"%s\", publishing...", message.Object.Url())
+		runtime.Publish(message)
 	}
 
 	return nil
