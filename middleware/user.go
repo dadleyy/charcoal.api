@@ -21,7 +21,7 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 		bearer := headers.Get("X-CLIENT-BEARER-TOKEN")
 
 		if len(bearer) < 1 {
-			runtime.Debugf("no bearer token header found while injecting user info");
+			runtime.Debugf("no bearer token header found while injecting user info")
 			return handler(runtime)
 		}
 
@@ -44,7 +44,6 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.Debugf("injected user \"%d\" auth, continuing", runtime.User.ID);
 		return handler(runtime)
 	}
 

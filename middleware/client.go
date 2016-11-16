@@ -40,7 +40,6 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.Debugf("injected client \"%d\" auth, continuing", runtime.Client.ID);
 		return handler(runtime)
 	}
 

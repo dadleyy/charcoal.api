@@ -88,6 +88,26 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 
 	response.Body.Close()
 
+	cursor := manager.Where("email = ?", info.Email)
+
+	// check to see if we have an existing google account and if so, return the user associated
+	// with it, as well as the token and client
+	if err := cursor.First(&result.GoogleAccount).Error; err == nil && result.GoogleAccount.ID >= 1 {
+		cursor := manager.Where("id = ?", result.GoogleAccount.User)
+
+		if err := cursor.First(&result.User).Error; err != nil {
+			return GoogleAuthenticationResult{}, fmt.Errorf("FOUND_DUPLICATE_NO_USER: %s", err.Error())
+		}
+
+		cursor = manager.Where("user = ? AND client = ?", result.User.ID, result.Client.ID)
+
+		if err := cursor.First(&result.ClientToken).Error; err != nil {
+			return GoogleAuthenticationResult{}, fmt.Errorf("FOUND_DUPLICATE_NO_CLIENT")
+		}
+
+		return result, nil
+	}
+
 	result.User = models.User{Email: &info.Email, Name: &info.Name}
 
 	usrmgr := UserManager{manager.Connection}
