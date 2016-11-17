@@ -16,7 +16,7 @@ func PrintUserRoles(runtime *net.RequestRuntime) error {
 	runtime.Debugf("looking for user roles associated w/ user[%d]", runtime.User.ID)
 	var maps []models.UserRoleMapping
 
-	if err := runtime.Database().Where("user = ?", runtime.User.ID).Find(&maps).Error; err != nil{
+	if err := runtime.Database().Where("user = ?", runtime.User.ID).Find(&maps).Error; err != nil {
 		runtime.Debugf("failed mapping lookup: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_LOOKUP"))
 	}
@@ -45,27 +45,19 @@ func PrintUserRoles(runtime *net.RequestRuntime) error {
 }
 
 func PrintClientTokens(runtime *net.RequestRuntime) error {
-	if runtime.Client.ID == 0 {
-		return runtime.AddError(fmt.Errorf("BAD_CLIENT"))
-	}
-
 	blueprint := runtime.Blueprint()
 	var tokens []models.ClientToken
+	offset := blueprint.Limit() * blueprint.Page()
 
-	blueprint.Filter("filter[client]", fmt.Sprint("eq(%d)", runtime.Client.ID))
+	cursor := runtime.Database().Limit(blueprint.Limit()).Offset(offset).Where("client = ?", runtime.Client.ID)
 
-	total, err := blueprint.Apply(&tokens, runtime.Database())
-
-	if err != nil {
-		runtime.Debugf("unable to apply client tokens: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("NO_TOKENS"))
+	if err := cursor.Find(&tokens).Error; err != nil {
+		return runtime.AddError(err)
 	}
 
-	for _, token := range tokens {
-		runtime.AddResult(token)
+	for _, t := range tokens {
+		runtime.AddResult(t)
 	}
-
-	runtime.SetMeta("total", total)
 
 	return nil
 }

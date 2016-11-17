@@ -8,6 +8,7 @@ type Client struct {
 	ClientID     string `json:"client_id"`
 	ClientSecret string `json:"-"`
 	RedirectUri  string `json:"redirect_uri"`
+	Description  string `json:"description"`
 }
 
 func (client Client) Url() string {

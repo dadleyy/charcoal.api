@@ -8,18 +8,20 @@ import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/services"
 
-const ERR_BAD_RUNTIME = "BAD_RUNTIME"
-const ERR_BAD_AUTH_CODE = "BAD_AUTH_CODE"
-const ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH = "NO_ASSOICATED_CLIENT"
-const GOOGLE_AUTH_ENDPOINT = "https://accounts.google.com/o/oauth2/v2/auth"
+const ErrBadAuthCode = "BAD_AUTH_CODE"
+const ErrNoClientAssociated = "NO_ASSOICATED_CLIENT"
+const ErrMissingClientRedirect = "NO_REDIRECT_URI"
+const ErrMissingAuthEndpoint = "BAD_AUTH_ENDPOINT"
+const ErrInvalidGoogleResponse = "BAD_GOOGLE_RESPONSE"
 
 func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 	clientid := os.Getenv("GOOGLE_CLIENT_ID")
 	redir := os.Getenv("GOOGLE_REDIRECT_URL")
-	fin, err := url.Parse(GOOGLE_AUTH_ENDPOINT)
+	fin, err := url.Parse(services.EndpointGoogleAuth)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
+		runtime.Errorf("trouble parsing google auth endpoint: %s", services.EndpointGoogleAuth)
+		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
 	}
 
 	query := runtime.URL.Query()
@@ -27,19 +29,19 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 	requester := query.Get("client_id")
 
 	if len(requester) == 0 {
-		return runtime.AddError(fmt.Errorf("BAD_AUTH_CONFIG"))
+		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
 	}
 
 	var client models.Client
 
 	if err := runtime.Database().Where("client_id = ?", requester).First(&client).Error; err != nil {
 		runtime.Errorf("invalid client id used in google auth: %s", clientid)
-		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
+		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
 	}
 
 	if len(client.RedirectUri) == 0 {
 		runtime.Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
-		return runtime.AddError(fmt.Errorf("MISSING_REDIRECT_URI"))
+		return runtime.AddError(fmt.Errorf(ErrMissingClientRedirect))
 	}
 
 	queries := make(url.Values)
@@ -70,19 +72,19 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 
 	if len(state) == 0 {
 		runtime.Errorf("unable to find state sent back from google")
-		return runtime.AddError(fmt.Errorf(ERR_NO_ASSOCIATED_CLIENT_GOOGLE_AUTH))
+		return runtime.AddError(fmt.Errorf(ErrInvalidGoogleResponse))
 	}
 
 	var client models.Client
 
 	if err := runtime.Database().Where("client_id = ?", state).First(&client).Error; err != nil {
 		runtime.Errorf("invalid client id used in google auth: %s", state)
-		return runtime.AddError(fmt.Errorf("BAD_CLIENT_ID"))
+		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
 	}
 
 	if len(client.RedirectUri) == 0 {
 		runtime.Errorf("unable to find auth code sent from google")
-		return runtime.AddError(fmt.Errorf(ERR_BAD_AUTH_CODE))
+		return runtime.AddError(fmt.Errorf(ErrBadAuthCode))
 	}
 
 	if len(code) == 0 {

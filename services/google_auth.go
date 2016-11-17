@@ -12,6 +12,7 @@ import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
 
 const EndpointGoogleInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
+const EndpointGoogleAuth = "https://accounts.google.com/o/oauth2/v2/auth"
 
 type GoogleUserInfo struct {
 	ID    string `json:"id"`

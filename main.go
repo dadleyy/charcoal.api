@@ -82,6 +82,7 @@ func main() {
 
 	// clients
 	mux.GET("/clients", routes.FindClients, middleware.RequireClient)
+	mux.POST("/clients", routes.CreateClient, middleware.RequireUser)
 
 	mux.GET("/google-accounts", routes.FindGoogleAccounts, middleware.RequireUser)
 
@@ -89,7 +90,8 @@ func main() {
 	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireUser)
 
 	// client tokens
-	mux.GET("/client-tokens", routes.FindClientTokens, middleware.RequireUser)
+	mux.GET("/client-tokens", routes.FindClientTokens, middleware.RequireUser, middleware.RequireAdmin)
+	mux.POST("/client-tokens", routes.CreateClientToken, middleware.RequireClient, middleware.RequireUser)
 
 	mux.GET("/display-schedules", routes.FindDisplaySchedules, middleware.RequireClient)
 	mux.PATCH("/display-schedules/:id", routes.UpdateDisplaySchedule, middleware.RequireUser)
