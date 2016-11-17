@@ -57,7 +57,12 @@ func main() {
 	mux.Use(middleware.InjectClient)
 	mux.Use(middleware.InjectUser)
 
-	mux.GET("/system", routes.System)
+	mux.GET("/system", routes.PrintSystem)
+	mux.PATCH("/system", routes.UpdateSystem, middleware.RequireUser, middleware.RequireAdmin)
+
+	mux.GET("/system/domains", routes.FindSystemEmailDomains, middleware.RequireUser, middleware.RequireAdmin)
+	mux.POST("/system/domains", routes.CreateSystemEmailDomain, middleware.RequireUser, middleware.RequireAdmin)
+	mux.DELETE("/system/domains/:id", routes.DestroySystemEmailDomain, middleware.RequireUser, middleware.RequireAdmin)
 
 	mux.GET("/auth/user", routes.PrintAuth, middleware.RequireUser)
 	mux.GET("/auth/roles", routes.PrintUserRoles, middleware.RequireUser)
@@ -91,7 +96,7 @@ func main() {
 
 	mux.GET("/user-role-mappings", routes.FindUserRoleMappings, middleware.RequireUser)
 	mux.POST("/user-role-mappings", routes.CreateUserRoleMapping, middleware.RequireUser)
-	mux.DELETE("/user-role-mappings/:id", routes.DestroyUserRoleMapping, middleware.RequireUser, middleware.RequierAdmin)
+	mux.DELETE("/user-role-mappings/:id", routes.DestroyUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
 
 	mux.POST("/instagram", routes.CreateInstagramPost, middleware.RequireClient)
 	mux.GET("/instagram", routes.FindInstagramPosts, middleware.RequireClient)

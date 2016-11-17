@@ -11,7 +11,7 @@ import "golang.org/x/oauth2/google"
 import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
 
-const GOOGLE_INFO_ENDPOINT = "https://www.googleapis.com/oauth2/v2/userinfo"
+const EndpointGoogleInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
 
 type GoogleUserInfo struct {
 	ID    string `json:"id"`
@@ -63,7 +63,7 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 		return result, err
 	}
 
-	lookup, err := url.Parse(GOOGLE_INFO_ENDPOINT)
+	lookup, err := url.Parse(EndpointGoogleInfo)
 
 	if err != nil {
 		return result, err
@@ -108,9 +108,15 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 		return result, nil
 	}
 
+	// at this point we know that there is no google account already associated with the email, so we should
+	// attempt to create (or find) the user record and associate it with a fresh google account record.
 	result.User = models.User{Email: &info.Email, Name: &info.Name}
 
 	usrmgr := UserManager{manager.Connection}
+
+	if usrmgr.ValidDomain(info.Email) != true {
+		return GoogleAuthenticationResult{}, fmt.Errorf(ErrUnauthorizedDomain)
+	}
 
 	if err := usrmgr.FindOrCreate(&result.User); err != nil {
 		return result, err

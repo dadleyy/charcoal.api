@@ -6,7 +6,7 @@ import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/services"
 
-const ERR_BAD_BEARER = "ERR_BAD_BEARER"
+const ErrBadBearerToken = "ERR_BAD_BEARER"
 
 func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 	inject := func(runtime *net.RequestRuntime) error {
@@ -53,7 +53,7 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 func RequireUser(handler net.HandlerFunc) net.HandlerFunc {
 	require := func(runtime *net.RequestRuntime) error {
 		if valid := runtime.User.ID >= 1; valid != true {
-			return runtime.AddError(fmt.Errorf(ERR_BAD_BEARER))
+			return runtime.AddError(fmt.Errorf(ErrBadBearerToken))
 		}
 
 		return handler(runtime)

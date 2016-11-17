@@ -4,7 +4,7 @@ import "fmt"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/services"
 
-func RequierAdmin(handler net.HandlerFunc) net.HandlerFunc {
+func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
 	check := func(runtime *net.RequestRuntime) error {
 		uman := services.UserManager{runtime.Database()}
 

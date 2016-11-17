@@ -45,6 +45,11 @@ func (runtime *RequestRuntime) Printf(format string, args ...interface{}) {
 	runtime.log.Printf(format, args...)
 }
 
+func (runtime *RequestRuntime) IsAdmin() bool {
+	uman := services.UserManager{runtime.Database()}
+	return uman.IsAdmin(&runtime.User)
+}
+
 func (runtime *RequestRuntime) AddResult(r Result) {
 	runtime.bucket.results = append(runtime.bucket.results, r)
 }

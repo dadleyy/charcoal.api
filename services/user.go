@@ -1,8 +1,12 @@
 package services
 
 import "fmt"
+import "strings"
+
 import "github.com/sizethree/miritos.api/db"
 import "github.com/sizethree/miritos.api/models"
+
+const ErrUnauthorizedDomain = "UNAUTHORIZED_DOMAIN"
 
 type UserManager struct {
 	*db.Connection
@@ -26,6 +30,45 @@ func (manager *UserManager) FindOrCreate(target *models.User) error {
 	}
 
 	return manager.Where(models.User{Email: target.Email}).FirstOrCreate(target).Error
+}
+
+func (manager *UserManager) ValidDomain(email string) bool {
+	email = strings.TrimSpace(email)
+	var settings models.SystemSettings
+
+	if err := manager.First(&settings).Error; err != nil {
+		return false
+	}
+
+	if settings.RestrictedEmailDomains == false {
+		return true
+	}
+
+	var whitelist []models.SystemEmailDomain
+
+	if err := manager.Find(&whitelist).Error; err != nil {
+		return false
+	}
+
+	last := strings.LastIndex(email, "@")
+
+	if last == -1 {
+		return false
+	}
+
+	if last+1 >= len(email) {
+		return false
+	}
+
+	domain := email[last+1:]
+
+	for _, allowed := range whitelist {
+		if allowed.Domain == domain {
+			return true
+		}
+	}
+
+	return false
 }
 
 func (manager *UserManager) IsAdmin(target *models.User) bool {

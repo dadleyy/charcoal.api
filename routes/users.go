@@ -67,6 +67,11 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	usrmgr := services.UserManager{runtime.Database()}
 
+	if usrmgr.ValidDomain(email) != true {
+		runtime.Debugf("attempt to sign up w/ invalid domain: %s", email)
+		return runtime.AddError(fmt.Errorf(services.ErrUnauthorizedDomain))
+	}
+
 	if dupe, err := usrmgr.IsDuplicate(&user); dupe || err != nil {
 		runtime.Debugf("duplicate user")
 		return runtime.AddError(fmt.Errorf("BAD_USER"))
