@@ -97,7 +97,7 @@ func main() {
 	mux.PATCH("/display-schedules/:id", routes.UpdateDisplaySchedule, middleware.RequireUser)
 
 	mux.GET("/user-role-mappings", routes.FindUserRoleMappings, middleware.RequireUser)
-	mux.POST("/user-role-mappings", routes.CreateUserRoleMapping, middleware.RequireUser)
+	mux.POST("/user-role-mappings", routes.CreateUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
 	mux.DELETE("/user-role-mappings/:id", routes.DestroyUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
 
 	mux.POST("/instagram", routes.CreateInstagramPost, middleware.RequireClient)

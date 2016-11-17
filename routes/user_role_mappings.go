@@ -29,12 +29,6 @@ func DestroyUserRoleMapping(runtime *net.RequestRuntime) error {
 }
 
 func CreateUserRoleMapping(runtime *net.RequestRuntime) error {
-	uman := services.UserManager{runtime.Database()}
-
-	if uman.IsAdmin(&runtime.User) != true {
-		return runtime.AddError(fmt.Errorf("BAD_PERMISSIONS"))
-	}
-
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
