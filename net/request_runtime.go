@@ -121,6 +121,10 @@ func (runtime *RequestRuntime) Blueprint() Blueprint {
 	return result
 }
 
+func (runtime *RequestRuntime) Cursor(start interface{}) *db.Connection {
+	return &db.Connection{runtime.database.Model(start)}
+}
+
 func (runtime *RequestRuntime) Database() *db.Connection {
 	return runtime.database
 }

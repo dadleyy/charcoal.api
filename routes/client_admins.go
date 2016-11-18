@@ -54,7 +54,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	// if we are not a system admin, make sure we can even mess with the current client
 	if god == false {
 		admin := 0
-		cursor := runtime.Database().Model(&models.ClientAdmin{})
+		cursor := runtime.Cursor(&models.ClientAdmin{})
 		if _ = cursor.Where("user = ? AND client = ?", runtime.User.ID, client).Count(&admin); admin == 0 {
 			runtime.Debugf("unauthorized attempt to make user %d admin of %d", user, client)
 			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
@@ -65,7 +65,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	mapping := models.ClientAdmin{User: uint(user), Client: runtime.Client.ID}
 
 	dupe := 0
-	cursor := runtime.Database().Model(&models.ClientAdmin{})
+	cursor := runtime.Cursor(&models.ClientAdmin{})
 
 	if _ = cursor.Where("user = ? AND client = ?", user, runtime.Client.ID).Count(&dupe); dupe != 0 {
 		runtime.Debugf("duplicate entry: user %d with client %d", user, runtime.Client.ID)
