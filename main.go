@@ -90,6 +90,7 @@ func main() {
 
 	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireClient, middleware.RequireUser)
 	mux.POST("/client-admins", routes.CreateClientAdmin, middleware.RequireClient, middleware.RequireUser)
+	mux.DELETE("/client-admins/:id", routes.DeleteClientAdmin, middleware.RequireClient, middleware.RequireUser)
 
 	mux.GET("/client-tokens", routes.FindClientTokens, middleware.RequireUser, middleware.RequireAdmin)
 	mux.POST("/client-tokens", routes.CreateClientToken, middleware.RequireClient, middleware.RequireUser)

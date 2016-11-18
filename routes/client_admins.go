@@ -8,6 +8,47 @@ import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
 import "github.com/sizethree/miritos.api/services"
 
+func DeleteClientAdmin(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
+	}
+
+	var record models.ClientAdmin
+
+	if err := runtime.Database().First(&record, id).Error; err != nil {
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	authorized := runtime.IsAdmin()
+
+	// if the user is not a system admin, check to see if they are an admin of the client
+	if authorized != true {
+		count := 0
+		cursor := runtime.Cursor(&models.ClientAdmin{}).Where("client = ? AND user = ?", record.Client, runtime.User.ID)
+
+		if err := cursor.Count(&count).Error; err != nil || count == 0 {
+			message := "unauthorized attempt to remove client admin user[%d] record[%d]: %v"
+			runtime.Debugf(message, runtime.User.ID, id, err)
+			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
+		}
+	}
+
+	if record.User == runtime.User.ID {
+		return runtime.AddError(fmt.Errorf("CANNOT_REMOVE_SELF"))
+	}
+
+	if err := runtime.Cursor(&models.ClientAdmin{}).Delete(&record).Error; err != nil {
+		runtime.Debugf("destroy client admin error: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
+	}
+
+	runtime.Debugf("succesfully removed user[%d] as admin of [%d]", record.User, record.Client)
+
+	return nil
+}
+
 func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 
