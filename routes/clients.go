@@ -26,6 +26,63 @@ func FindClients(runtime *net.RequestRuntime) error {
 	return nil
 }
 
+func UpdateClient(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
+	}
+
+	if god := runtime.IsAdmin(); god != true {
+		admin := 0
+		cursor := runtime.Cursor(&models.ClientAdmin{}).Where("client = ? AND user = ?", id, runtime.User.ID)
+
+		if _ = cursor.Count(&admin); admin == 0 {
+			return runtime.AddError(fmt.Errorf("UNAUTHORIZED: user[%d] client[%d]", runtime.User.ID, id))
+		}
+	}
+
+	var client models.Client
+
+	if err := runtime.Database().First(&client, id).Error; err != nil {
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	body, err := forms.Parse(runtime.Request)
+
+	if err != nil {
+		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
+	}
+
+	updates := make(map[string]interface{})
+
+	if body.KeyExists("description") {
+		updates["description"] = body.Get("description")
+	}
+
+	if body.KeyExists("redirect_uri") {
+		updates["redirect_uri"] = body.Get("redirect_uri")
+	}
+
+	if body.KeyExists("name") {
+		updates["name"] = body.Get("name")
+	}
+
+	if len(updates) == 0 {
+		runtime.AddResult(client)
+		return nil
+	}
+
+	if err := runtime.Database().Model(&client).Updates(updates).Error; err != nil {
+		runtime.Debugf("failed updating client: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	runtime.AddResult(client)
+
+	return nil
+}
+
 func CreateClient(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 

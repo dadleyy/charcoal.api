@@ -36,8 +36,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		runtime.AddError(fmt.Errorf("BAD_ID"))
-		return nil
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
 	}
 
 	manager := services.UserManager{runtime.Database()}

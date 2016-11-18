@@ -77,7 +77,7 @@ func CreateUserRoleMapping(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_CREATE"))
 	}
 
-	runtime.Debugf("added role %d to user %d", rid, uid)
+	runtime.AddResult(mapping)
 
 	return nil
 }

@@ -95,12 +95,13 @@ func TestFindClientAdminBadUser(t *testing.T) {
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
 
 	if err := FindClientAdmins(&request); err != nil {
-		t.Log("successfully errored out w/o valid user")
+		t.Log("successfully errored out w/o valid client")
 		return
 	}
 
 	t.Fatalf("should not have passed w/o error")
 }
+
 func TestFindClientAdminsValidUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 

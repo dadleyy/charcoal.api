@@ -80,19 +80,21 @@ func main() {
 
 	mux.GET("/user-roles", routes.FindRoles, middleware.RequireClient)
 
-	// clients
+	// client management
+	//
+	// These routes are more protected than others; often times it is necessary to check both
+	// the client AND the user to make sure that the action being performed is allowed.
 	mux.GET("/clients", routes.FindClients, middleware.RequireClient)
 	mux.POST("/clients", routes.CreateClient, middleware.RequireUser)
+	mux.PATCH("/clients/:id", routes.UpdateClient, middleware.RequireUser)
 
-	mux.GET("/google-accounts", routes.FindGoogleAccounts, middleware.RequireUser)
-
-	// client admins
 	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireClient, middleware.RequireUser)
 	mux.POST("/client-admins", routes.CreateClientAdmin, middleware.RequireClient, middleware.RequireUser)
 
-	// client tokens
 	mux.GET("/client-tokens", routes.FindClientTokens, middleware.RequireUser, middleware.RequireAdmin)
 	mux.POST("/client-tokens", routes.CreateClientToken, middleware.RequireClient, middleware.RequireUser)
+
+	mux.GET("/google-accounts", routes.FindGoogleAccounts, middleware.RequireUser)
 
 	mux.GET("/display-schedules", routes.FindDisplaySchedules, middleware.RequireClient)
 	mux.PATCH("/display-schedules/:id", routes.UpdateDisplaySchedule, middleware.RequireUser)
