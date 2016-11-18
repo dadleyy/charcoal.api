@@ -2,8 +2,85 @@ package routes
 
 import "fmt"
 
+import "strconv"
+import "github.com/albrow/forms"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
+
+func CreateClientAdmin(runtime *net.RequestRuntime) error {
+	body, err := forms.Parse(runtime.Request)
+
+	if err != nil {
+		return runtime.AddError(err)
+	}
+
+	validator := body.Validator()
+	validator.Require("user")
+
+	// if the validator picked up errors, add them to the request
+	// runtime and then return
+	if validator.HasErrors() == true {
+		for _, m := range validator.Messages() {
+			runtime.AddError(fmt.Errorf(m))
+		}
+
+		return nil
+	}
+
+	// attempt to parse out the user id from the body
+	user, err := strconv.Atoi(body.Get("user"))
+
+	if err != nil {
+		return runtime.AddError(fmt.Errorf("INVALID_USER"))
+	}
+
+	// by default, we're only allowed to add users to the admin list of the current client
+	client := runtime.Client.ID
+
+	god := runtime.IsAdmin()
+
+	// however, if the current user is a system admin, and a client has been provided, attempt to use it
+	if god && body.KeyExists("client") {
+		runtime.Debugf("admin attempting to make user %d admin of %v", body.Get("user"), body.Get("client"))
+		input, err := strconv.Atoi(body.Get("client"))
+
+		if err != nil {
+			return runtime.AddError(fmt.Errorf("INVALID_CLIENT"))
+		}
+
+		client = uint(input)
+	}
+
+	// if we are not a system admin, make sure we can even mess with the current client
+	if god == false {
+		admin := 0
+		cursor := runtime.Database().Model(&models.ClientAdmin{})
+		if _ = cursor.Where("user = ? AND client = ?", runtime.User.ID, client).Count(&admin); admin == 0 {
+			runtime.Debugf("unauthorized attempt to make user %d admin of %d", user, client)
+			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
+		}
+	}
+
+	runtime.Debugf("attempting to add user %d as admin to client %d", user, runtime.Client.ID)
+	mapping := models.ClientAdmin{User: uint(user), Client: runtime.Client.ID}
+
+	dupe := 0
+	cursor := runtime.Database().Model(&models.ClientAdmin{})
+
+	if _ = cursor.Where("user = ? AND client = ?", user, runtime.Client.ID).Count(&dupe); dupe != 0 {
+		runtime.Debugf("duplicate entry: user %d with client %d", user, runtime.Client.ID)
+		return runtime.AddError(fmt.Errorf("DUPLICATE_ENTRY"))
+	}
+
+	if err := runtime.Database().Create(&mapping).Error; err != nil {
+		runtime.Debugf("unable to create: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("FAILED_SAVE"))
+	}
+
+	runtime.AddResult(mapping)
+
+	return nil
+}
 
 func FindClientAdmins(runtime *net.RequestRuntime) error {
 	var results []models.ClientAdmin
