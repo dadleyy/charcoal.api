@@ -5,7 +5,7 @@ import "fmt"
 type Client struct {
 	Common
 	Name         string `json:"name"`
-	ClientID     string `json:"client_id"`
+	ClientID     string `json:"-"`
 	ClientSecret string `json:"-"`
 	RedirectUri  string `json:"redirect_uri"`
 	Description  string `json:"description"`

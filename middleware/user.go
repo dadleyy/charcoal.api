@@ -44,6 +44,8 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
+		runtime.SetMeta("user", runtime.User.Public())
+
 		return handler(runtime)
 	}
 

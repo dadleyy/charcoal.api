@@ -40,6 +40,8 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
+		runtime.SetMeta("client", runtime.Client)
+
 		return handler(runtime)
 	}
 

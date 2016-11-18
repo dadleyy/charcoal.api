@@ -6,8 +6,6 @@ import "github.com/sizethree/miritos.api/models"
 
 func PrintAuth(runtime *net.RequestRuntime) error {
 	runtime.AddResult(runtime.User.Public())
-	runtime.SetMeta("admin", runtime.IsAdmin())
-	runtime.SetMeta("client", runtime.Client)
 	return nil
 }
 
