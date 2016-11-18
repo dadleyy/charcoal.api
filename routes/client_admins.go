@@ -6,6 +6,7 @@ import "strconv"
 import "github.com/albrow/forms"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/services"
 
 func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
@@ -41,7 +42,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 
 	// however, if the current user is a system admin, and a client has been provided, attempt to use it
 	if god && body.KeyExists("client") {
-		runtime.Debugf("admin attempting to make user %d admin of %v", body.Get("user"), body.Get("client"))
+		runtime.Debugf("admin attempting to make user %d admin of %v", user, body.Get("client"))
 		input, err := strconv.Atoi(body.Get("client"))
 
 		if err != nil {
@@ -49,6 +50,10 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 		}
 
 		client = uint(input)
+
+		if err := runtime.Database().First(&models.Client{}, client).Error; err != nil {
+			return runtime.AddError(fmt.Errorf("CLIENT_NOT_FOUND"))
+		}
 	}
 
 	// if we are not a system admin, make sure we can even mess with the current client
@@ -61,20 +66,31 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 		}
 	}
 
-	runtime.Debugf("attempting to add user %d as admin to client %d", user, runtime.Client.ID)
-	mapping := models.ClientAdmin{User: uint(user), Client: runtime.Client.ID}
+	runtime.Debugf("attempting to add user %d as admin to client %d", user, client)
+	mapping := models.ClientAdmin{User: uint(user), Client: client}
 
 	dupe := 0
 	cursor := runtime.Cursor(&models.ClientAdmin{})
 
-	if _ = cursor.Where("user = ? AND client = ?", user, runtime.Client.ID).Count(&dupe); dupe != 0 {
-		runtime.Debugf("duplicate entry: user %d with client %d", user, runtime.Client.ID)
+	if _ = cursor.Where("user = ? AND client = ?", user, client).Count(&dupe); dupe != 0 {
+		runtime.Debugf("duplicate entry: user %d with client %d", user, client)
 		return runtime.AddError(fmt.Errorf("DUPLICATE_ENTRY"))
 	}
 
 	if err := runtime.Database().Create(&mapping).Error; err != nil {
 		runtime.Debugf("unable to create: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED_SAVE"))
+	}
+
+	if client != runtime.Client.ID {
+		manager := services.UserClientManager{runtime.Database()}
+
+		u := models.User{Common: models.Common{ID: uint(user)}}
+		c := models.Client{Common: models.Common{ID: client}}
+
+		if _, err := manager.Associate(&u, &c); err != nil {
+			runtime.Debugf("cant auto create admin clienttoken user[%d]-client[%d]: %s", user, client, err.Error())
+		}
 	}
 
 	runtime.AddResult(mapping)
