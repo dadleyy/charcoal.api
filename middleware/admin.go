@@ -9,7 +9,7 @@ func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
 	check := func(runtime *net.RequestRuntime) error {
 		uman := services.UserManager{runtime.Database()}
 
-		if uman.IsAdmin(&runtime.User) != true {
+		if uman.IsAdmin(&runtime.User) != true || runtime.Client.System != true {
 			return runtime.AddError(fmt.Errorf(errors.ErrUnauthorizedAdmin))
 		}
 

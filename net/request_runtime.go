@@ -47,7 +47,7 @@ func (runtime *RequestRuntime) Printf(format string, args ...interface{}) {
 
 func (runtime *RequestRuntime) IsAdmin() bool {
 	uman := services.UserManager{runtime.Database()}
-	return uman.IsAdmin(&runtime.User)
+	return uman.IsAdmin(&runtime.User) && runtime.Client.System == true
 }
 
 func (runtime *RequestRuntime) AddResult(r Result) {

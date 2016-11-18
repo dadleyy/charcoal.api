@@ -23,6 +23,7 @@ func TestUpdateClientRouteGodUser(t *testing.T) {
 		Name:         "clients-test1",
 		ClientID:     "test1-id",
 		ClientSecret: "test1-secret",
+		System:       true,
 	}
 
 	context.Request.User = models.User{

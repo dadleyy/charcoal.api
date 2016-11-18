@@ -134,6 +134,13 @@ func CreateClient(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
+	manager := services.UserClientManager{runtime.Database()}
+
+	if _, err := manager.Associate(&runtime.User, &client); err != nil {
+		runtime.Debugf("failed auto token for user[%d]-client[%d]: %s", runtime.User.ID, client.ID, err.Error())
+		return runtime.AddError(err)
+	}
+
 	runtime.AddResult(client)
 	return nil
 }

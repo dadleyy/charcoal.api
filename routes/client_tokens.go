@@ -14,7 +14,8 @@ func CreateClientToken(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
 	}
 
-	if runtime.Client.ID != 1 {
+	// only allow system clients to "artificially" create client tokens
+	if runtime.Client.System != true {
 		return runtime.AddError(fmt.Errorf("BAD_CLIENT"))
 	}
 
