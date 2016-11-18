@@ -36,8 +36,9 @@ func (manager *UserManager) ValidDomain(email string) bool {
 	email = strings.TrimSpace(email)
 	var settings models.SystemSettings
 
+	// no settings found - we're good to move on
 	if err := manager.First(&settings).Error; err != nil {
-		return false
+		return true
 	}
 
 	if settings.RestrictedEmailDomains == false {

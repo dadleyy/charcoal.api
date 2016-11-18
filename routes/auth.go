@@ -3,12 +3,11 @@ package routes
 import "fmt"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/services"
 
 func PrintAuth(runtime *net.RequestRuntime) error {
 	runtime.AddResult(runtime.User.Public())
-	uman := services.UserManager{runtime.Database()}
-	runtime.SetMeta("admin", uman.IsAdmin(&runtime.User))
+	runtime.SetMeta("admin", runtime.IsAdmin())
+	runtime.SetMeta("client", runtime.Client)
 	return nil
 }
 

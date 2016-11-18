@@ -82,7 +82,7 @@ func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, erro
 		result = filter.Apply(result)
 	}
 
-	e := result.Find(out).Count(&total).Error
+	e := result.Find(out).Count(&total).Commit().Error
 
 	return total, e
 }

@@ -87,7 +87,7 @@ func main() {
 	mux.GET("/google-accounts", routes.FindGoogleAccounts, middleware.RequireUser)
 
 	// client admins
-	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireUser)
+	mux.GET("/client-admins", routes.FindClientAdmins, middleware.RequireClient, middleware.RequireUser)
 
 	// client tokens
 	mux.GET("/client-tokens", routes.FindClientTokens, middleware.RequireUser, middleware.RequireAdmin)

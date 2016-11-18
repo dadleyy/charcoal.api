@@ -5,6 +5,7 @@ import "strconv"
 import "github.com/albrow/forms"
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
+import "github.com/sizethree/miritos.api/errors"
 
 const emailDomainRestriction = "restricted_email_domains"
 
@@ -16,7 +17,7 @@ func FindSystemEmailDomains(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
+		return runtime.AddError(fmt.Errorf(errors.ErrFailedQuery))
 	}
 
 	for _, domains := range domains {
@@ -54,7 +55,7 @@ func CreateSystemEmailDomain(runtime *net.RequestRuntime) error {
 	existing := 0
 
 	if err := cursor.Where("domain = ?", domain.Domain).Count(&existing).Error; err != nil || existing >= 1 {
-		return runtime.AddError(fmt.Errorf("DUPLICATE_ENTRY"))
+		return runtime.AddError(fmt.Errorf(errors.ErrDuplicateEntry))
 	}
 
 	if err := cursor.Create(&domain).Error; err != nil {

@@ -4,15 +4,12 @@ import "fmt"
 
 import "github.com/sizethree/miritos.api/net"
 import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/services"
 
 func FindClientAdmins(runtime *net.RequestRuntime) error {
 	var results []models.ClientAdmin
 	blueprint := runtime.Blueprint()
 
-	uman := services.UserManager{runtime.Database()}
-
-	if uman.IsAdmin(&runtime.User) != true {
+	if runtime.IsAdmin() != true {
 		runtime.Debugf("user is not admin, limiting query to client[%d]", runtime.Client.ID)
 		err := blueprint.Filter("filter[client]", fmt.Sprintf("eq(%d)", runtime.Client.ID))
 
