@@ -76,13 +76,14 @@ func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, erro
 	var total int
 	limit, offset := print.limit, print.limit*print.page
 
-	result := &db.Connection{client.Begin().Limit(limit).Offset(offset)}
+	result := client
 
 	for _, filter := range print.filters {
 		result = filter.Apply(result)
 	}
 
-	e := result.Find(out).Count(&total).Commit().Error
+	e := result.Limit(limit).Offset(offset).Find(out).Error
+	result.Model(out).Count(&total)
 
 	return total, e
 }
