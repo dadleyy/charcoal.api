@@ -6,7 +6,7 @@
 .env
 /env
 .keys
-meritoss.api
+miritos.api
 node_modules
 vendor/*/
 
