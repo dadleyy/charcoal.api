@@ -2,6 +2,13 @@ package models
 
 import "fmt"
 import "database/sql"
+import "github.com/jinzhu/gorm"
+import "github.com/satori/go.uuid"
+
+type serializedInstagramPhoto struct {
+	InstagramPhoto
+	Client interface{} `json:"client"`
+}
 
 type InstagramPhoto struct {
 	Common
@@ -10,22 +17,28 @@ type InstagramPhoto struct {
 	Caption     string        `json:"caption"`
 	Photo       uint          `json:"photo"`
 	Client      sql.NullInt64 `json:"client"`
+	Uuid        string        `json:"uuid"`
 }
 
-func (photo InstagramPhoto) Url() string {
+func (photo *InstagramPhoto) Identifier() string {
+	return photo.Uuid
+}
+
+func (photo *InstagramPhoto) Url() string {
 	return fmt.Sprintf("/instagram?filter[id]=eq(%d)", photo.ID)
 }
 
-func (photo InstagramPhoto) Type() string {
+func (photo *InstagramPhoto) Type() string {
 	return "application/vnd.miritos.instagram-photo+json"
 }
 
-type serializedInstagramPhoto struct {
-	InstagramPhoto
-	Client interface{} `json:"client"`
+func (photo *InstagramPhoto) BeforeCreate(tx *gorm.DB) error {
+	id := uuid.NewV4()
+	photo.Uuid = id.String()
+	return nil
 }
 
-func (photo InstagramPhoto) Public() interface{} {
+func (photo *InstagramPhoto) Public() interface{} {
 	var author interface{}
 
 	author = nil
@@ -33,6 +46,6 @@ func (photo InstagramPhoto) Public() interface{} {
 		author = photo.Client.Int64
 	}
 
-	result := serializedInstagramPhoto{photo, author}
+	result := serializedInstagramPhoto{*photo, author}
 	return result
 }

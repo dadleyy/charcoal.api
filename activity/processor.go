@@ -30,8 +30,10 @@ func create(message Message, conn *db.Connection, out chan<- error, waitlist sem
 		Type:       message.Verb,
 		ActorUrl:   message.Actor.Url(),
 		ActorType:  message.Actor.Type(),
+		ActorUuid:  message.Actor.Identifier(),
 		ObjectUrl:  message.Object.Url(),
 		ObjectType: message.Object.Type(),
+		ObjectUuid: message.Object.Identifier(),
 	}
 
 	defer def.Done()
@@ -103,9 +105,21 @@ func (engine *Processor) Begin() {
 	makers := make(chan error)
 	waitlist := make(semaphore, 20)
 
+	listen := func() {
+		for err := range makers {
+			if err == nil {
+				continue
+			}
+
+			engine.Logger.Errorf("ERROR: %s", err.Error())
+		}
+	}
+
+	go listen()
+
 	for message := range engine.Queue {
 		deferred.Add(1)
-		engine.Debugf(spawnLog, message.Verb, message.Object.Url(), message.Actor.Url())
+		engine.Debugf(spawnLog, message.Verb, message.Object.Identifier(), message.Actor.Identifier())
 
 		if message.Verb == VerbDeleted {
 			go destroy(message, engine.DatabaseConnection, makers, waitlist, &deferred)
@@ -115,17 +129,7 @@ func (engine *Processor) Begin() {
 		go create(message, engine.DatabaseConnection, makers, waitlist, &deferred)
 	}
 
-	finish := func() {
-		deferred.Wait()
-		close(makers)
-	}
-
-	go finish()
-
-	for err := range makers {
-		if err == nil {
-			continue
-		}
-		engine.Logger.Errorf("ERROR: %s", err.Error())
-	}
+	deferred.Wait()
+	close(makers)
+	close(waitlist)
 }

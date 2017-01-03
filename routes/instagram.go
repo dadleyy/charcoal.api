@@ -141,7 +141,7 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
-	runtime.Debugf("uploaded \"%s\" (width: %d, height: %d, size)", photo.ID, width, height)
+	runtime.Debugf("uploaded \"%d\" (width: %d, height: %d, size)", photo.ID, width, height)
 	runtime.AddResult(ig.Public())
 	runtime.Publish(activity.Message{&runtime.Client, &ig, "created"})
 	return nil

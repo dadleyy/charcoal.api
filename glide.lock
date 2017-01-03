@@ -1,5 +1,5 @@
-hash: 3c8cf101a33f3cf144dc0a0a63e4ee90a5a31573b3f30b940f25ec41163ad715
-updated: 2016-10-19T09:37:04.435991452-04:00
+hash: 37aa553f28d299e7190e10d72003ea6b02b2f13006402c5a22fb5308e5066317
+updated: 2017-01-03T11:12:58.922211863-05:00
 imports:
 - name: cloud.google.com/go
   version: 61a09b43cee7329f083691f0b048d7707f538191
@@ -65,6 +65,8 @@ imports:
   version: 56b76bdf51f7708750eac80fa38b952bb9f32639
 - name: github.com/pborman/uuid
   version: 3d4f2ba23642d3cfd06bd4b54cf03d99d95c0f1b
+- name: github.com/satori/go.uuid
+  version: 879c5887cd475cd7864858769793b2ceb0d44feb
 - name: github.com/SermoDigital/jose
   version: b10f12c5188d355a3eacc61aba9abd3eb6b3b787
   subpackages:

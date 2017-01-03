@@ -95,7 +95,7 @@ func (processor *ImageProcessor) Process(message *Message, outputs chan Processe
 		// set the photo's author
 		result.Photo.Author.Scan(author.ID)
 		processor.Save(&result.Photo)
-		result.Message.Actor = author
+		result.Message.Actor = &author
 
 		outputs <- result.ProcessedItem
 	}

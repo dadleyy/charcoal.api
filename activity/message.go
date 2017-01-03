@@ -3,6 +3,7 @@ package activity
 type Object interface {
 	Type() string
 	Url() string
+	Identifier() string
 }
 
 type Message struct {
