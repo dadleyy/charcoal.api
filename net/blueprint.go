@@ -95,7 +95,8 @@ type inOp struct {
 
 func (op *inOp) Apply(client *db.Connection) *db.Connection {
 	ins := strings.Split(op.value, ",")
-	return &db.Connection{client.Where("id in (?)", ins)}
+	query := fmt.Sprintf("%s in (?)", op.field)
+	return &db.Connection{client.Where(query, []string(ins))}
 }
 
 func (op *inOp) String() string {

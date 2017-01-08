@@ -18,7 +18,7 @@ func FindActivity(runtime *net.RequestRuntime) error {
 	}
 
 	for _, item := range results {
-		runtime.Debugf("adding item %d, actor_url %s", item.ID, item.ObjectUrl)
+		runtime.Debugf("adding item %d, object uuid \"%s\"", item.ID, item.ObjectUuid)
 		runtime.AddResult(item)
 	}
 
