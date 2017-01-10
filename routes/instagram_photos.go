@@ -47,8 +47,8 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 	validator.Require("id")
 	validator.Require("caption")
 	validator.Require("owner")
-	validator.MinLength("id", 8)
-	validator.MinLength("owner", 8)
+	validator.MinLength("id", 2)
+	validator.MinLength("owner", 2)
 
 	if validator.HasErrors() {
 		runtime.Debugf("bad form: %s", strings.Join(validator.Messages(), " | "))
