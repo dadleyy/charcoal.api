@@ -104,8 +104,11 @@ func main() {
 	mux.POST("/user-role-mappings", routes.CreateUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
 	mux.DELETE("/user-role-mappings/:id", routes.DestroyUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
 
-	mux.POST("/instagram", routes.CreateInstagramPost, middleware.RequireClient)
-	mux.GET("/instagram", routes.FindInstagramPosts, middleware.RequireClient)
+	mux.POST("/instagram-photos", routes.CreateInstagramPost, middleware.RequireClient)
+	mux.GET("/instagram-photos", routes.FindInstagramPosts, middleware.RequireClient)
+
+	mux.POST("/instagram-accounts", routes.CreateInstagramAccount, middleware.RequireClient)
+	mux.GET("/instagram-accounts", routes.FindInstagramAccounts, middleware.RequireClient)
 
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
