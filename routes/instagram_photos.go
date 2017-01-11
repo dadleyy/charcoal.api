@@ -47,6 +47,7 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 	validator.Require("id")
 	validator.Require("caption")
 	validator.Require("owner")
+	validator.RequireFile("photo")
 	validator.MinLength("id", 2)
 	validator.MinLength("owner", 2)
 
@@ -61,7 +62,16 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 
 	ig := models.InstagramPhoto{InstagramID: gramid}
 
-	runtime.Debugf("checking for duplicate instagram id: %s", gramid)
+	runtime.Debugf("checking for associated account: %s", data.Get("owner"))
+
+	var owner models.InstagramAccount
+
+	if err := runtime.Cursor(&owner).Where("instagram_id = ?", data.Get("owner")).First(&owner).Error; err != nil {
+		runtime.Debugf("unable to find instagram account: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("BAD_ACCOUNT"))
+	}
+
+	runtime.Debugf("found account[%d], checking for duplicate instagram id: %s", owner.ID, gramid)
 
 	check := runtime.Database().Model(&ig).Where("instagram_id = ?", gramid)
 
@@ -126,10 +136,11 @@ func CreateInstagramPost(runtime *net.RequestRuntime) error {
 	}
 
 	ig = models.InstagramPhoto{
-		Photo:       photo.ID,
-		Owner:       data.Get("owner"),
-		Caption:     data.Get("caption"),
-		InstagramID: data.Get("id"),
+		Photo:            photo.ID,
+		Owner:            data.Get("owner"),
+		Caption:          strings.TrimSpace(data.Get("caption")),
+		InstagramID:      data.Get("id"),
+		InstagramAccount: int64(owner.ID),
 	}
 
 	ig.Client.Scan(runtime.Client.ID)
