@@ -2,8 +2,8 @@ package routes
 
 import "bytes"
 import "testing"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/routes/testutils"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/routes/testutils"
 
 func TestUpdateClientRouteGodUser(t *testing.T) {
 	body := []byte("{\"name\": \"updated-name\"}")

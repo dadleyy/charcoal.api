@@ -10,8 +10,8 @@ import "encoding/pem"
 import "github.com/SermoDigital/jose/jws"
 import "github.com/SermoDigital/jose/crypto"
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/models"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/models"
 
 type UserClientManager struct {
 	*db.Connection

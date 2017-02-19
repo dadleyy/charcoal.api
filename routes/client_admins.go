@@ -4,9 +4,9 @@ import "fmt"
 
 import "strconv"
 import "github.com/albrow/forms"
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/services"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/services"
 
 func DeleteClientAdmin(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")

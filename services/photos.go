@@ -1,8 +1,8 @@
 package services
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/filestore"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/filestore"
 
 type PhotoSaver struct {
 	*db.Connection

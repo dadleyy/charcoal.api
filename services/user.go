@@ -3,8 +3,8 @@ package services
 import "fmt"
 import "strings"
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/models"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/models"
 
 const ErrUnauthorizedDomain = "UNAUTHORIZED_DOMAIN"
 

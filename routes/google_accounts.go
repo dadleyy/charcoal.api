@@ -1,9 +1,9 @@
 package routes
 
 import "fmt"
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/services"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/services"
 
 func FindGoogleAccounts(runtime *net.RequestRuntime) error {
 	var accounts []models.GoogleAccount

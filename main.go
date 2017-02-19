@@ -8,11 +8,11 @@ import "github.com/labstack/gommon/log"
 
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/routes"
-import "github.com/sizethree/miritos.api/activity"
-import "github.com/sizethree/miritos.api/middleware"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/routes"
+import "github.com/dadleyy/charcoal.api/activity"
+import "github.com/dadleyy/charcoal.api/middleware"
 
 func main() {
 	err := godotenv.Load()
@@ -103,12 +103,6 @@ func main() {
 	mux.GET("/user-role-mappings", routes.FindUserRoleMappings, middleware.RequireUser)
 	mux.POST("/user-role-mappings", routes.CreateUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
 	mux.DELETE("/user-role-mappings/:id", routes.DestroyUserRoleMapping, middleware.RequireUser, middleware.RequireAdmin)
-
-	mux.POST("/instagram-photos", routes.CreateInstagramPost, middleware.RequireClient)
-	mux.GET("/instagram-photos", routes.FindInstagramPosts, middleware.RequireClient)
-
-	mux.POST("/instagram-accounts", routes.CreateInstagramAccount, middleware.RequireClient)
-	mux.GET("/instagram-accounts", routes.FindInstagramAccounts, middleware.RequireClient)
 
 	mux.GET("/users", routes.FindUser, middleware.RequireClient)
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)

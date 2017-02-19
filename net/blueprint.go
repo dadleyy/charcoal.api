@@ -2,7 +2,7 @@ package net
 
 import "fmt"
 import "strings"
-import "github.com/sizethree/miritos.api/db"
+import "github.com/dadleyy/charcoal.api/db"
 
 type Blueprint struct {
 	limit   int

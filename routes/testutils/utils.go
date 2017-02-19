@@ -8,9 +8,9 @@ import "github.com/joho/godotenv"
 import "github.com/labstack/gommon/log"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/activity"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/activity"
 
 type TestRouteUtil struct {
 	Database *db.Connection

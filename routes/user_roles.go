@@ -2,8 +2,8 @@ package routes
 
 import "fmt"
 
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
 
 func FindRoles(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()

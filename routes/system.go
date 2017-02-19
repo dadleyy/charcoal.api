@@ -3,9 +3,9 @@ package routes
 import "fmt"
 import "strconv"
 import "github.com/albrow/forms"
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/errors"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/errors"
 
 const emailDomainRestriction = "restricted_email_domains"
 

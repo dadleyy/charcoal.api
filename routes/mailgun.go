@@ -4,8 +4,8 @@ import "os"
 import "fmt"
 import "strings"
 
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/services/mg"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/services/mg"
 
 func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	secret := os.Getenv("MAILGUN_WEBHOOK_SECRET")

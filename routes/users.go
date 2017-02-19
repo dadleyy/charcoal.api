@@ -4,9 +4,9 @@ import "fmt"
 import "github.com/albrow/forms"
 import "golang.org/x/crypto/bcrypt"
 
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/services"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/services"
 
 func hash(password string) (string, error) {
 	result, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)

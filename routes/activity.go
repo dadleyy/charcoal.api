@@ -3,8 +3,8 @@ package routes
 import "fmt"
 import "time"
 
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
 
 func FindActivity(runtime *net.RequestRuntime) error {
 	var results []models.Activity

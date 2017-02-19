@@ -4,7 +4,7 @@ import "fmt"
 import "strings"
 import "encoding/base64"
 
-import "github.com/sizethree/miritos.api/net"
+import "github.com/dadleyy/charcoal.api/net"
 
 const ERR_BAD_RUNTIME = "BAD_RUNTIME"
 const ERR_MISSING_CLIENT_ID = "MISSING_CLIENT_ID"

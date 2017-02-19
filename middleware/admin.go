@@ -1,9 +1,9 @@
 package middleware
 
 import "fmt"
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/errors"
-import "github.com/sizethree/miritos.api/services"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/errors"
+import "github.com/dadleyy/charcoal.api/services"
 
 func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
 	check := func(runtime *net.RequestRuntime) error {

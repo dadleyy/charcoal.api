@@ -3,8 +3,8 @@ package activity
 import "sync"
 import "github.com/labstack/gommon/log"
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/models"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/models"
 
 const statusPending string = "PENDING"
 const statusApproved string = "APPROVED"

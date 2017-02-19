@@ -1,1 +1,0 @@
-build: ./auto/build.sh

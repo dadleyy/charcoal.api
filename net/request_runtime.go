@@ -5,11 +5,11 @@ import "strings"
 import "net/http"
 
 import "github.com/labstack/gommon/log"
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/activity"
-import "github.com/sizethree/miritos.api/services"
-import "github.com/sizethree/miritos.api/filestore"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/activity"
+import "github.com/dadleyy/charcoal.api/services"
+import "github.com/dadleyy/charcoal.api/filestore"
 
 const DEFAULT_BLUEPRINT_LIMIT = 100
 

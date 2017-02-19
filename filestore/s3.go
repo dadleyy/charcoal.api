@@ -12,7 +12,7 @@ import "github.com/aws/aws-sdk-go/service/s3"
 import "github.com/aws/aws-sdk-go/aws/session"
 import "github.com/aws/aws-sdk-go/aws/credentials"
 
-import "github.com/sizethree/miritos.api/models"
+import "github.com/dadleyy/charcoal.api/models"
 
 const ERR_BAD_IMAGE_TYPE = "BAD_IMAGE_TYPE"
 const ERR_BAD_IMAGE_UUID = "BAD_UUID_GENERATED"

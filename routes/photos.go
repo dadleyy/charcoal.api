@@ -10,10 +10,10 @@ import _ "image/png"
 
 import "github.com/albrow/forms"
 
-import "github.com/sizethree/miritos.api/net"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/activity"
-import "github.com/sizethree/miritos.api/services"
+import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/activity"
+import "github.com/dadleyy/charcoal.api/services"
 
 const MIN_PHOTO_LABEL_LENGTH = 2
 const MAX_PHOTO_WIDTH = 2048

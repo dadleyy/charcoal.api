@@ -1,6 +1,6 @@
 package mg
 
-import "github.com/sizethree/miritos.api/activity"
+import "github.com/dadleyy/charcoal.api/activity"
 
 type ProcessedItem struct {
 	Error   error

@@ -12,10 +12,10 @@ import _ "image/gif"
 import _ "image/jpeg"
 import _ "image/png"
 
-import "github.com/sizethree/miritos.api/db"
-import "github.com/sizethree/miritos.api/models"
-import "github.com/sizethree/miritos.api/activity"
-import "github.com/sizethree/miritos.api/services"
+import "github.com/dadleyy/charcoal.api/db"
+import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/activity"
+import "github.com/dadleyy/charcoal.api/services"
 
 const ErrUnkownUser = "unkown user"
 
