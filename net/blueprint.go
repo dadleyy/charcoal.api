@@ -72,20 +72,21 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	return nil
 }
 
-func (print *Blueprint) Apply(out interface{}, client *db.Connection) (int, error) {
+func (print *Blueprint) Apply(out interface{}, cursor *db.Connection) (int, error) {
 	var total int
 	limit, offset := print.limit, print.limit*print.page
 
-	result := client
-
 	for _, filter := range print.filters {
-		result = filter.Apply(result)
+		cursor = filter.Apply(cursor)
 	}
 
-	e := result.Limit(limit).Offset(offset).Find(out).Error
-	result.Model(out).Count(&total)
+	if e := cursor.Limit(limit).Offset(offset).Find(out).Error; e != nil {
+		return -1, e
+	}
 
-	return total, e
+	cursor.Model(out).Count(&total)
+
+	return total, nil
 }
 
 type inOp struct {

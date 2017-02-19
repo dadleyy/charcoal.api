@@ -5,7 +5,3 @@ type UserRoleMapping struct {
 	User uint `json:"user"`
 	Role uint `json:"role"`
 }
-
-func (mapping UserRoleMapping) Public() interface{} {
-	return mapping
-}

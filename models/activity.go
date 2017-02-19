@@ -14,7 +14,3 @@ type Activity struct {
 func (activity Activity) TableName() string {
 	return "activity"
 }
-
-func (activity Activity) Public() interface{} {
-	return activity
-}

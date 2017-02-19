@@ -108,6 +108,9 @@ func main() {
 	mux.POST("/users", routes.CreateUser, middleware.RequireClient)
 	mux.PATCH("/users/:id", routes.UpdateUser, middleware.RequireUser)
 
+	mux.POST("/games", routes.CreateGame, middleware.RequireUser)
+	mux.GET("/games", routes.FindGames, middleware.RequireUser)
+
 	mux.POST("/photos", routes.CreatePhoto, middleware.RequireClient)
 	mux.GET("/photos", routes.FindPhotos, middleware.RequireClient)
 	mux.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)

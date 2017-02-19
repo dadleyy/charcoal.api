@@ -2,8 +2,6 @@ package models
 
 import "fmt"
 import "database/sql"
-import "github.com/jinzhu/gorm"
-import "github.com/satori/go.uuid"
 
 type Photo struct {
 	Common
@@ -12,7 +10,6 @@ type Photo struct {
 	Author sql.NullInt64 `json:"author"`
 	Width  int           `json:"width"`
 	Height int           `json:"height"`
-	Uuid   string        `json:"uuid"`
 }
 
 type serializedPhoto struct {
@@ -27,16 +24,6 @@ func (photo *Photo) Url() string {
 
 func (photo *Photo) Type() string {
 	return "application/vnd.miritos.photo+json"
-}
-
-func (photo *Photo) Identifier() string {
-	return photo.Uuid
-}
-
-func (photo *Photo) BeforeCreate(tx *gorm.DB) error {
-	id := uuid.NewV4()
-	photo.Uuid = id.String()
-	return nil
 }
 
 func (photo *Photo) Public() interface{} {
