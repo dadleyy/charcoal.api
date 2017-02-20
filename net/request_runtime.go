@@ -16,33 +16,13 @@ const DEFAULT_BLUEPRINT_LIMIT = 100
 type RequestRuntime struct {
 	*http.Request
 	*UrlParams
+	*log.Logger
 	fs       filestore.FileSaver
 	Client   models.Client
 	database *db.Connection
-	log      *log.Logger
 	queue    chan activity.Message
 	User     models.User
 	bucket   ResponseBucket
-}
-
-func (runtime *RequestRuntime) Errorf(format string, args ...interface{}) {
-	runtime.log.Errorf(format, args...)
-}
-
-func (runtime *RequestRuntime) Warnf(format string, args ...interface{}) {
-	runtime.log.Warnf(format, args...)
-}
-
-func (runtime *RequestRuntime) Infof(format string, args ...interface{}) {
-	runtime.log.Infof(format, args...)
-}
-
-func (runtime *RequestRuntime) Debugf(format string, args ...interface{}) {
-	runtime.log.Debugf(format, args...)
-}
-
-func (runtime *RequestRuntime) Printf(format string, args ...interface{}) {
-	runtime.log.Printf(format, args...)
 }
 
 func (runtime *RequestRuntime) IsAdmin() bool {

@@ -41,8 +41,8 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
+		Logger:    server.Log,
 		queue:     server.Queue,
-		log:       server.Log,
 		bucket:    bucket,
 		fs:        fs,
 		database:  database,
