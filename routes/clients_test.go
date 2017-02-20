@@ -2,8 +2,17 @@ package routes
 
 import "bytes"
 import "testing"
+import "github.com/jinzhu/gorm"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/routes/testutils"
+
+func clean(db *gorm.DB) {
+	db.Exec("DELETE FROM user_role_mappings where id > 1")
+	db.Exec("DELETE FROM client_admins where id > 1")
+	db.Exec("DELETE FROM clients where id > 1")
+	db.Exec("DELETE FROM users where id > 1")
+	db.Exec("DELETE FROM client_tokens where id > 1")
+}
 
 func TestUpdateClientRouteGodUser(t *testing.T) {
 	body := []byte("{\"name\": \"updated-name\"}")
@@ -21,8 +30,8 @@ func TestUpdateClientRouteGodUser(t *testing.T) {
 	context.Request.Client = models.Client{
 		Common:       models.Common{ID: 1337},
 		Name:         "clients-test1",
-		ClientID:     "test1-id",
-		ClientSecret: "test1-secret",
+		ClientID:     "123123123",
+		ClientSecret: "client-admin-routes-secret",
 		System:       true,
 	}
 
@@ -37,13 +46,7 @@ func TestUpdateClientRouteGodUser(t *testing.T) {
 	mapping := models.UserRoleMapping{User: context.Request.User.ID, Role: 1}
 	db.Create(&mapping)
 
-	clean := func() {
-		db.Unscoped().Delete(&mapping)
-		db.Unscoped().Delete(&context.Request.Client)
-		db.Unscoped().Delete(&context.Request.User)
-	}
-
-	defer clean()
+	defer clean(db)
 
 	err := UpdateClient(&context.Request)
 
@@ -87,13 +90,7 @@ func TestUpdateClientRouteAuthorizedUser(t *testing.T) {
 	mapping := models.ClientAdmin{Client: 1337, User: 9999}
 	db.Create(&mapping)
 
-	clean := func() {
-		db.Unscoped().Delete(&mapping)
-		db.Unscoped().Delete(&context.Request.Client)
-		db.Unscoped().Delete(&context.Request.User)
-	}
-
-	defer clean()
+	defer clean(db)
 
 	err := UpdateClient(&context.Request)
 
@@ -128,8 +125,8 @@ func TestUpdateClientRouteRandomClientAuthorizedUser(t *testing.T) {
 	target := models.Client{
 		Common:       models.Common{ID: 789},
 		Name:         "clients",
-		ClientID:     "test1-id",
-		ClientSecret: "test1-secret",
+		ClientID:     "test2-id",
+		ClientSecret: "test2-secret",
 	}
 
 	context.Request.User = models.User{
@@ -145,14 +142,7 @@ func TestUpdateClientRouteRandomClientAuthorizedUser(t *testing.T) {
 	mapping := models.ClientAdmin{Client: 789, User: 123}
 	db.Create(&mapping)
 
-	clean := func() {
-		db.Unscoped().Delete(&target)
-		db.Unscoped().Delete(&mapping)
-		db.Unscoped().Delete(&context.Request.Client)
-		db.Unscoped().Delete(&context.Request.User)
-	}
-
-	defer clean()
+	defer clean(db)
 
 	err := UpdateClient(&context.Request)
 
@@ -194,8 +184,10 @@ func TestUpdateClientRouteUnauthorizedUser(t *testing.T) {
 	db.Create(&context.Request.User)
 
 	clean := func() {
-		db.Unscoped().Delete(&context.Request.Client)
-		db.Unscoped().Delete(&context.Request.User)
+		db.Exec("DELETE FROM client_admins where id > 1")
+		db.Exec("DELETE FROM clients where id > 1")
+		db.Exec("DELETE FROM users where id > 1")
+		db.Exec("DELETE FROM client_tokens where id > 1")
 	}
 
 	defer clean()

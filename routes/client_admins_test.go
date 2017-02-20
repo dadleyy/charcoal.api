@@ -1,11 +1,11 @@
 package routes
 
 import "os"
-import "fmt"
 import "bytes"
 import "testing"
 import "net/http"
 
+import "github.com/jinzhu/gorm"
 import "github.com/joho/godotenv"
 import "github.com/labstack/gommon/log"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
@@ -15,29 +15,17 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
-func after(database *db.Connection) {
-	var u models.User
-	var c models.Client
-
-	database.Where("client_id = ?", "test1-id").Find(&c)
-	database.Where("email = ?", "test-1@client-admin-test.com").Find(&u)
-
-	database.Unscoped().Delete(&models.ClientAdmin{User: u.ID, Client: c.ID})
-
-	ch := database.Unscoped().Where("client_id in (?)", []string{"test1-id", "test2-id", "test3-id"})
-
-	if err := ch.Delete(&models.Client{}).Error; err != nil {
-		fmt.Print(err.Error())
-	}
-
-	uh := database.Unscoped().Where("email in (?)", []string{"test-1@client-admin-test.com", "test-2@client-admin-test.com"})
-
-	if err := uh.Delete(&models.User{}).Error; err != nil {
-		fmt.Print(err.Error())
-	}
+func after(db *gorm.DB) {
+	db.Exec("DELETE FROM user_role_mappings where id > 1")
+	db.Exec("DELETE FROM client_admins where id > 1")
+	db.Exec("DELETE FROM client_tokens where id > 1")
+	db.Exec("DELETE FROM clients where id > 1")
+	db.Exec("DELETE FROM users where id > 1")
 }
 
-func before(database *db.Connection) {
+func before(database *gorm.DB) {
+	after(database)
+
 	database.Create(&models.Client{Name: "client-admin-test1", ClientID: "test1-id", ClientSecret: "test1-secret"})
 	database.Create(&models.Client{Name: "client-admin-test2", ClientID: "test2-id", ClientSecret: "test2-secret"})
 	database.Create(&models.Client{Name: "client-admin-test3", ClientID: "test3-id", ClientSecret: "test3-secret"})
@@ -67,7 +55,7 @@ func TestFindClientAdminBadUser(t *testing.T) {
 		os.Getenv("DB_DEBUG") == "true",
 	}
 
-	database, err := db.Open(dbconf)
+	database, err := gorm.Open("mysql", dbconf.String())
 	defer database.Close()
 
 	if err != nil {
@@ -89,7 +77,7 @@ func TestFindClientAdminBadUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, dbconf, queue, nil}
+	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
 	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
@@ -114,7 +102,7 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		os.Getenv("DB_DEBUG") == "true",
 	}
 
-	database, err := db.Open(dbconf)
+	database, err := gorm.Open("mysql", dbconf.String())
 	defer database.Close()
 
 	if err != nil {
@@ -136,7 +124,7 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, dbconf, queue, nil}
+	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
 	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
