@@ -45,10 +45,10 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
+		FileSaver: fs,
 		Logger:    server.Logger,
 		queue:     server.Queue,
 		bucket:    bucket,
-		fs:        fs,
 		database:  database,
 	}
 

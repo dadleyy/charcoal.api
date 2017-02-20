@@ -17,7 +17,7 @@ type RequestRuntime struct {
 	*http.Request
 	*UrlParams
 	*log.Logger
-	fs       filestore.FileSaver
+	filestore.FileSaver
 	Client   models.Client
 	database *db.Connection
 	queue    chan activity.Message
@@ -47,10 +47,6 @@ func (runtime *RequestRuntime) AddError(e error) error {
 	return e
 }
 
-func (runtime *RequestRuntime) DownloadUrl(f *models.File) (string, error) {
-	return runtime.fs.DownloadUrl(f)
-}
-
 func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
 	runtime.bucket.meta[key] = val
 }
@@ -60,7 +56,7 @@ func (runtime *RequestRuntime) Publish(msg activity.Message) {
 }
 
 func (runtime *RequestRuntime) Photos() services.PhotoSaver {
-	return services.PhotoSaver{runtime.Database(), runtime.fs}
+	return services.PhotoSaver{runtime.Database(), runtime.FileSaver}
 }
 
 func (runtime *RequestRuntime) Blueprint() Blueprint {
