@@ -37,8 +37,6 @@ func main() {
 		port = "8080"
 	}
 
-	database, err := db.Open(dbconf)
-
 	if err != nil {
 		panic(err)
 	}
@@ -117,12 +115,23 @@ func main() {
 	mux.DELETE("/photos/:id", routes.DestroyPhoto, middleware.RequireUser)
 
 	// create the server runtime and the activity processor runtime
-	runtime := net.ServerRuntime{logger, dbconf, stream, &mux}
-	processor := activity.Processor{logger, database, stream}
-	server := net.Server{nil, &runtime}
+	runtime := net.ServerRuntime{
+		Logger: logger,
+		Config: net.RuntimeConfig{dbconf},
+		Queue:  stream,
+		Mux:    &mux,
+	}
+
+	processor := activity.Processor{
+		Logger: logger,
+		Queue:  stream,
+		Config: activity.ProcessorConfig{dbconf},
+	}
+
+	server := net.Server{nil, logger, &runtime}
 
 	// start the server & processor
-	server.Logger().Debugf(fmt.Sprintf("starting"))
+	logger.Debugf(fmt.Sprintf("starting"))
 	go processor.Begin()
 	server.Run(fmt.Sprintf(":%s", port))
 }

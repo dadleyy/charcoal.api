@@ -16,10 +16,15 @@ const VerbDeleted = "deleted"
 
 type semaphore chan struct{}
 
+type ProcessorConfig struct {
+	DB db.Config
+}
+
 type Processor struct {
 	*log.Logger
-	DatabaseConnection *db.Connection
-	Queue              chan Message
+	Queue  chan Message
+	Config ProcessorConfig
+	db     *db.Connection
 }
 
 func create(message Message, conn *db.Connection, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
@@ -105,6 +110,14 @@ func (engine *Processor) Begin() {
 	makers := make(chan error)
 	waitlist := make(semaphore, 20)
 
+	engine.db = new(db.Connection)
+
+	if err := db.Open(engine.Config.DB, engine.db); err != nil {
+		panic(err)
+	}
+
+	defer engine.db.Close()
+
 	listen := func() {
 		for err := range makers {
 			if err == nil {
@@ -122,11 +135,11 @@ func (engine *Processor) Begin() {
 		engine.Debugf(spawnLog, message.Verb, message.Object.Identifier(), message.Actor.Identifier())
 
 		if message.Verb == VerbDeleted {
-			go destroy(message, engine.DatabaseConnection, makers, waitlist, &deferred)
+			go destroy(message, engine.db, makers, waitlist, &deferred)
 			continue
 		}
 
-		go create(message, engine.DatabaseConnection, makers, waitlist, &deferred)
+		go create(message, engine.db, makers, waitlist, &deferred)
 	}
 
 	deferred.Wait()
