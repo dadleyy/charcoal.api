@@ -95,7 +95,7 @@ func FindUserRoleMappings(runtime *net.RequestRuntime) error {
 	}
 
 	// limit this query to to current user only
-	total, err := blueprint.Apply(&maps, runtime.Database())
+	total, err := blueprint.Apply(&maps)
 
 	if err != nil {
 		return err

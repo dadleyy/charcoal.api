@@ -10,7 +10,7 @@ func FindClients(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
 	var clients []models.Client
 
-	total, err := blueprint.Apply(&clients, runtime.Database())
+	total, err := blueprint.Apply(&clients)
 
 	if err != nil {
 		runtime.Debugf("unable to query clients: %s", err.Error())

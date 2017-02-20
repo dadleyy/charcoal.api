@@ -5,6 +5,7 @@ import "strings"
 import "github.com/jinzhu/gorm"
 
 type Blueprint struct {
+	*gorm.DB
 	limit   int
 	page    int
 	orderby string
@@ -72,9 +73,10 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	return nil
 }
 
-func (print *Blueprint) Apply(out interface{}, cursor *gorm.DB) (int, error) {
+func (print *Blueprint) Apply(out interface{}) (int, error) {
 	var total int
 	limit, offset := print.limit, print.limit*print.page
+	cursor := print.DB
 
 	for _, filter := range print.filters {
 		cursor = filter.Apply(cursor)

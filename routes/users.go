@@ -182,7 +182,7 @@ func FindUser(runtime *net.RequestRuntime) error {
 	blue := runtime.Blueprint()
 	var users []models.User
 
-	count, err := blue.Apply(&users, runtime.Database())
+	count, err := blue.Apply(&users)
 
 	if err != nil {
 		return runtime.AddError(fmt.Errorf("BAD_BLUEPRINT"))

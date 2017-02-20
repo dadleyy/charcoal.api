@@ -13,7 +13,7 @@ func FindSystemEmailDomains(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
 	var domains []models.SystemEmailDomain
 
-	total, err := blueprint.Apply(&domains, runtime.Database())
+	total, err := blueprint.Apply(&domains)
 
 	if err != nil {
 		runtime.Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())

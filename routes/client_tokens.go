@@ -61,7 +61,7 @@ func FindClientTokens(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
 
 	// limit this query to to current user only
-	total, err := blueprint.Apply(&tokens, runtime.Database())
+	total, err := blueprint.Apply(&tokens)
 
 	if err != nil {
 		runtime.Debugf("problem retreiving client tokens: %s", err.Error())

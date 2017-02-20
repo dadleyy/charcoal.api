@@ -166,7 +166,7 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 		}
 	}
 
-	total, err := blueprint.Apply(&results, runtime.Database())
+	total, err := blueprint.Apply(&results)
 
 	if err != nil {
 		runtime.Debugf("BAD_LOOKUP: %s", err.Error())

@@ -63,7 +63,7 @@ func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 }
 
 func (runtime *RequestRuntime) Blueprint() Blueprint {
-	result := Blueprint{limit: DEFAULT_BLUEPRINT_LIMIT, page: 0}
+	result := Blueprint{runtime.DB, DEFAULT_BLUEPRINT_LIMIT, 0, "", make(FilterList, 0)}
 
 	values := runtime.URL.Query()
 

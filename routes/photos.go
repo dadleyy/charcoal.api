@@ -187,7 +187,7 @@ func FindPhotos(runtime *net.RequestRuntime) error {
 	var results []models.Photo
 	blueprint := runtime.Blueprint()
 
-	total, err := blueprint.Apply(&results, runtime.Database())
+	total, err := blueprint.Apply(&results)
 
 	if err != nil {
 		runtime.Debugf("bad photo lookup: %s", err.Error())

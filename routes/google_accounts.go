@@ -18,7 +18,7 @@ func FindGoogleAccounts(runtime *net.RequestRuntime) error {
 	}
 
 	// limit this query to to current user only
-	total, err := blueprint.Apply(&accounts, runtime.Database())
+	total, err := blueprint.Apply(&accounts)
 
 	if err != nil {
 		return err

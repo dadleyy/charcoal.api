@@ -16,7 +16,7 @@ func FindDisplaySchedules(runtime *net.RequestRuntime) error {
 	var results []models.DisplaySchedule
 	blueprint := runtime.Blueprint()
 
-	total, err := blueprint.Apply(&results, runtime.Database())
+	total, err := blueprint.Apply(&results)
 
 	if err != nil {
 		runtime.Debugf("bad schedule lookup query: %s (page: %d, limit: %d)", err.Error(), blueprint.Page(), blueprint.Limit())

@@ -33,7 +33,7 @@ func CreateGame(runtime *net.RequestRuntime) error {
 
 func FindGames(runtime *net.RequestRuntime) error {
 	var results []models.Game
-	cursor := runtime.Cursor(&runtime.User)
+	cursor := runtime.Model(&runtime.User)
 
 	if err := cursor.Related(&results, "Games").Error; err != nil {
 		fmt.Errorf("failed game lookup: %s", err.Error())
