@@ -1,6 +1,7 @@
 package activity
 
 import "sync"
+import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/db"
@@ -24,10 +25,10 @@ type Processor struct {
 	*log.Logger
 	Queue  chan Message
 	Config ProcessorConfig
-	db     *db.Connection
+	db     *gorm.DB
 }
 
-func create(message Message, conn *db.Connection, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
+func create(message Message, conn *gorm.DB, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
 	// wait until someone has released a token from the semaphore
 	waitlist <- struct{}{}
 
@@ -68,7 +69,7 @@ func create(message Message, conn *db.Connection, out chan<- error, waitlist sem
 	out <- nil
 }
 
-func destroy(message Message, conn *db.Connection, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
+func destroy(message Message, conn *gorm.DB, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
 	// wait until someone has released a token from the semaphore
 	waitlist <- struct{}{}
 
@@ -110,12 +111,13 @@ func (engine *Processor) Begin() {
 	makers := make(chan error)
 	waitlist := make(semaphore, 20)
 
-	engine.db = new(db.Connection)
+	database, err := gorm.Open("mysql", engine.Config.DB.String())
 
-	if err := db.Open(engine.Config.DB, engine.db); err != nil {
+	if err != nil {
 		panic(err)
 	}
 
+	engine.db = database
 	defer engine.db.Close()
 
 	listen := func() {

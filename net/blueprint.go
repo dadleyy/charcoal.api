@@ -2,7 +2,7 @@ package net
 
 import "fmt"
 import "strings"
-import "github.com/dadleyy/charcoal.api/db"
+import "github.com/jinzhu/gorm"
 
 type Blueprint struct {
 	limit   int
@@ -12,7 +12,7 @@ type Blueprint struct {
 }
 
 type BlueprintFilter interface {
-	Apply(*db.Connection) *db.Connection
+	Apply(*gorm.DB) *gorm.DB
 	String() string
 }
 
@@ -72,7 +72,7 @@ func (print *Blueprint) Filter(key string, opstr string) error {
 	return nil
 }
 
-func (print *Blueprint) Apply(out interface{}, cursor *db.Connection) (int, error) {
+func (print *Blueprint) Apply(out interface{}, cursor *gorm.DB) (int, error) {
 	var total int
 	limit, offset := print.limit, print.limit*print.page
 
@@ -94,10 +94,10 @@ type inOp struct {
 	value string
 }
 
-func (op *inOp) Apply(client *db.Connection) *db.Connection {
+func (op *inOp) Apply(client *gorm.DB) *gorm.DB {
 	ins := strings.Split(op.value, ",")
 	query := fmt.Sprintf("%s in (?)", op.field)
-	return &db.Connection{client.Where(query, []string(ins))}
+	return client.Where(query, []string(ins))
 }
 
 func (op *inOp) String() string {
@@ -114,9 +114,9 @@ type sizeOp struct {
 	operator string
 }
 
-func (op *sizeOp) Apply(client *db.Connection) *db.Connection {
+func (op *sizeOp) Apply(client *gorm.DB) *gorm.DB {
 	clause := fmt.Sprintf("%s %s ?", op.field, op.operator)
-	return &db.Connection{client.Where(clause, op.value)}
+	return client.Where(clause, op.value)
 }
 
 func (op *sizeOp) String() string {
@@ -132,6 +132,6 @@ func (op *noOp) String() string {
 	return ""
 }
 
-func (op *noOp) Apply(client *db.Connection) *db.Connection {
+func (op *noOp) Apply(client *gorm.DB) *gorm.DB {
 	return client
 }

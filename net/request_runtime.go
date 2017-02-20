@@ -4,8 +4,9 @@ import "strconv"
 import "strings"
 import "net/http"
 
+import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
-import "github.com/dadleyy/charcoal.api/db"
+
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/services"
@@ -17,16 +18,18 @@ type RequestRuntime struct {
 	*http.Request
 	*UrlParams
 	*log.Logger
+	*gorm.DB
 	filestore.FileSaver
-	Client   models.Client
-	database *db.Connection
-	queue    chan activity.Message
-	User     models.User
-	bucket   ResponseBucket
+
+	Client models.Client
+	User   models.User
+
+	queue  chan activity.Message
+	bucket ResponseBucket
 }
 
 func (runtime *RequestRuntime) IsAdmin() bool {
-	uman := services.UserManager{runtime.Database()}
+	uman := services.UserManager{runtime.DB}
 	return uman.IsAdmin(&runtime.User) && runtime.Client.System == true
 }
 
@@ -56,7 +59,7 @@ func (runtime *RequestRuntime) Publish(msg activity.Message) {
 }
 
 func (runtime *RequestRuntime) Photos() services.PhotoSaver {
-	return services.PhotoSaver{runtime.Database(), runtime.FileSaver}
+	return services.PhotoSaver{runtime.DB, runtime.FileSaver}
 }
 
 func (runtime *RequestRuntime) Blueprint() Blueprint {
@@ -97,10 +100,14 @@ func (runtime *RequestRuntime) Blueprint() Blueprint {
 	return result
 }
 
-func (runtime *RequestRuntime) Cursor(start interface{}) *db.Connection {
-	return &db.Connection{runtime.database.Model(start)}
+func (runtime *RequestRuntime) Close() {
+	runtime.DB.Close()
 }
 
-func (runtime *RequestRuntime) Database() *db.Connection {
-	return runtime.database
+func (runtime *RequestRuntime) Cursor(start interface{}) *gorm.DB {
+	return runtime.Model(start)
+}
+
+func (runtime *RequestRuntime) Database() *gorm.DB {
+	return runtime.DB
 }

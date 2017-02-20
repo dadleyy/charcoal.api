@@ -6,9 +6,9 @@ import "net/url"
 import "net/http"
 import "encoding/json"
 import "golang.org/x/oauth2"
+import "github.com/jinzhu/gorm"
 import "golang.org/x/oauth2/google"
 
-import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/models"
 
 const EndpointGoogleInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -21,7 +21,7 @@ type GoogleUserInfo struct {
 }
 
 type GoogleAuthentication struct {
-	*db.Connection
+	*gorm.DB
 }
 
 type GoogleAuthenticationResult struct {
@@ -113,7 +113,7 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 	// attempt to create (or find) the user record and associate it with a fresh google account record.
 	result.User = models.User{Email: &info.Email, Name: &info.Name}
 
-	usrmgr := UserManager{manager.Connection}
+	usrmgr := UserManager{manager.DB}
 
 	if usrmgr.ValidDomain(info.Email) != true {
 		return GoogleAuthenticationResult{}, fmt.Errorf(ErrUnauthorizedDomain)
@@ -123,7 +123,7 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 		return result, err
 	}
 
-	clientmgr := UserClientManager{manager.Connection}
+	clientmgr := UserClientManager{manager.DB}
 
 	result.ClientToken, err = clientmgr.Associate(&result.User, &result.Client)
 

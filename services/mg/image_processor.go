@@ -11,8 +11,8 @@ import "io/ioutil"
 import _ "image/gif"
 import _ "image/jpeg"
 import _ "image/png"
+import "github.com/jinzhu/gorm"
 
-import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/services"
@@ -20,7 +20,7 @@ import "github.com/dadleyy/charcoal.api/services"
 const ErrUnkownUser = "unkown user"
 
 type ImageProcessor struct {
-	*db.Connection
+	*gorm.DB
 	Photos services.PhotoSaver
 	ApiKey string
 }

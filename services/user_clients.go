@@ -7,14 +7,14 @@ import "io/ioutil"
 import "crypto/rsa"
 import "crypto/x509"
 import "encoding/pem"
+import "github.com/jinzhu/gorm"
 import "github.com/SermoDigital/jose/jws"
 import "github.com/SermoDigital/jose/crypto"
 
-import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/models"
 
 type UserClientManager struct {
-	*db.Connection
+	*gorm.DB
 }
 
 func decodePrivateJwtToken(path string) (*pem.Block, error) {

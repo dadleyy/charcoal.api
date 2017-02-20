@@ -4,6 +4,7 @@ import "io"
 import "fmt"
 import "time"
 import "net/http"
+import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/db"
@@ -36,20 +37,23 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 
 	fs := filestore.S3FileStore{}
 
-	database := new(db.Connection)
+	database, err := gorm.Open("mysql", server.Config.DB.String())
 
-	if err := db.Open(server.Config.DB, database); err != nil {
+	if err != nil {
 		return RequestRuntime{}, err
 	}
+
+	database.LogMode(server.Config.DB.Debug == true)
 
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
 		FileSaver: fs,
 		Logger:    server.Logger,
-		queue:     server.Queue,
-		bucket:    bucket,
-		database:  database,
+		DB:        database,
+
+		queue:  server.Queue,
+		bucket: bucket,
 	}
 
 	return runtime, nil
@@ -82,7 +86,7 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 	}
 
 	// once this function finishes we're done with the request.
-	defer runtime.database.Close()
+	defer runtime.Close()
 
 	var renderer BucketRenderer
 
