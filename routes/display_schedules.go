@@ -19,11 +19,10 @@ func FindDisplaySchedules(runtime *net.RequestRuntime) error {
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		runtime.Debugf("bad schedule lookup query: %s (page: %d, limit: %d)", err.Error(), blueprint.Page(), blueprint.Limit())
+		runtime.Debugf("bad schedule lookup query: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
 	}
 
-	runtime.Debugf("display schedule find(page: %d, limit: %d)", blueprint.Page(), blueprint.Limit())
 	for _, item := range results {
 		runtime.AddResult(item)
 	}

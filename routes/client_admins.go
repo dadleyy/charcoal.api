@@ -26,7 +26,7 @@ func DeleteClientAdmin(runtime *net.RequestRuntime) error {
 	// if the user is not a system admin, check to see if they are an admin of the client
 	if authorized != true {
 		count := 0
-		cursor := runtime.Cursor(&models.ClientAdmin{}).Where("client = ? AND user = ?", record.Client, runtime.User.ID)
+		cursor := runtime.Model(&models.ClientAdmin{}).Where("client = ? AND user = ?", record.Client, runtime.User.ID)
 
 		if err := cursor.Count(&count).Error; err != nil || count == 0 {
 			message := "unauthorized attempt to remove client admin user[%d] record[%d]: %v"
@@ -39,7 +39,7 @@ func DeleteClientAdmin(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("CANNOT_REMOVE_SELF"))
 	}
 
-	if err := runtime.Cursor(&models.ClientAdmin{}).Delete(&record).Error; err != nil {
+	if err := runtime.Model(&models.ClientAdmin{}).Delete(&record).Error; err != nil {
 		runtime.Debugf("destroy client admin error: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
 	}
@@ -100,7 +100,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	// if we are not a system admin, make sure we can even mess with the current client
 	if god == false {
 		admin := 0
-		cursor := runtime.Cursor(&models.ClientAdmin{})
+		cursor := runtime.Model(&models.ClientAdmin{})
 		if _ = cursor.Where("user = ? AND client = ?", runtime.User.ID, client).Count(&admin); admin == 0 {
 			runtime.Debugf("unauthorized attempt to make user %d admin of %d", user, client)
 			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
@@ -111,7 +111,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	mapping := models.ClientAdmin{User: uint(user), Client: client}
 
 	dupe := 0
-	cursor := runtime.Cursor(&models.ClientAdmin{})
+	cursor := runtime.Model(&models.ClientAdmin{})
 
 	if _ = cursor.Where("user = ? AND client = ?", user, client).Count(&dupe); dupe != 0 {
 		runtime.Debugf("duplicate entry: user %d with client %d", user, client)

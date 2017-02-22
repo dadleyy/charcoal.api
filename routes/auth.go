@@ -43,13 +43,12 @@ func PrintUserRoles(runtime *net.RequestRuntime) error {
 }
 
 func PrintClientTokens(runtime *net.RequestRuntime) error {
-	blueprint := runtime.Blueprint()
 	var tokens []models.ClientToken
-	offset := blueprint.Limit() * blueprint.Page()
 
-	cursor := runtime.Limit(blueprint.Limit()).Offset(offset).Where("client = ?", runtime.Client.ID)
+	cursor := runtime.Where("client = ?", runtime.Client.ID)
+	blueprint := runtime.Blueprint(cursor)
 
-	if err := cursor.Find(&tokens).Error; err != nil {
+	if _, err := blueprint.Apply(&tokens); err != nil {
 		return runtime.AddError(err)
 	}
 

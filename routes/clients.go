@@ -36,7 +36,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 
 	if god := runtime.IsAdmin(); god != true {
 		admin := 0
-		cursor := runtime.Cursor(&models.ClientAdmin{}).Where("client = ? AND user = ?", id, runtime.User.ID)
+		cursor := runtime.Model(&models.ClientAdmin{}).Where("client = ? AND user = ?", id, runtime.User.ID)
 
 		if _ = cursor.Count(&admin); admin == 0 {
 			return runtime.AddError(fmt.Errorf("UNAUTHORIZED: user[%d] client[%d]", runtime.User.ID, id))

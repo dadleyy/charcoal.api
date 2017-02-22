@@ -185,6 +185,7 @@ func FindUser(runtime *net.RequestRuntime) error {
 	count, err := blue.Apply(&users)
 
 	if err != nil {
+		runtime.Debugf("failed applying blueprint: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_BLUEPRINT"))
 	}
 
