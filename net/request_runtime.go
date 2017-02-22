@@ -7,12 +7,14 @@ import "net/http"
 import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/util"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/services"
 import "github.com/dadleyy/charcoal.api/filestore"
 
-const DEFAULT_BLUEPRINT_LIMIT = 100
+const BlueprintDefaultLimit = 100
+const BlueprintMaxLimit = 500
 
 type RequestRuntime struct {
 	*http.Request
@@ -64,29 +66,20 @@ func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 
 func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
 	cursor := runtime.DB
+	limit, page, orderby := BlueprintDefaultLimit, 0, ""
 
 	if len(scopes) >= 1 {
 		cursor = scopes[0]
 	}
 
-	result := Blueprint{cursor, DEFAULT_BLUEPRINT_LIMIT, 0, "", make(FilterList, 0)}
-
 	values := runtime.URL.Query()
 
-	if page, ok := values["page"]; ok && len(page) == 1 {
-		ipage, err := strconv.Atoi(page[0])
-
-		if err == nil {
-			result.page = ipage
-		}
+	if i, err := strconv.Atoi(values.Get("page")); err == nil {
+		page = util.MaxInt(i, 0)
 	}
 
-	if limit, ok := values["limit"]; ok && len(limit) == 1 {
-		ilimit, err := strconv.Atoi(limit[0])
-
-		if err == nil {
-			result.limit = ilimit
-		}
+	if i, err := strconv.Atoi(values.Get("limit")); err == nil {
+		limit = util.MinInt(BlueprintMaxLimit, i)
 	}
 
 	for key, values := range values {
@@ -97,7 +90,7 @@ func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
 		}
 	}
 
-	return result
+	return Blueprint{cursor, limit, page, orderby}
 }
 
 func (runtime *RequestRuntime) Close() {

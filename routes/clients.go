@@ -5,6 +5,7 @@ import "github.com/albrow/forms"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
+import "github.com/dadleyy/charcoal.api/util"
 
 func FindClients(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
@@ -110,8 +111,8 @@ func CreateClient(runtime *net.RequestRuntime) error {
 		Name:         body.Get("name"),
 		Description:  body.Get("description"),
 		RedirectUri:  body.Get("redirect_uri"),
-		ClientID:     services.RandStringBytesMaskImprSrc(20),
-		ClientSecret: services.RandStringBytesMaskImprSrc(40),
+		ClientID:     util.RandStringBytesMaskImprSrc(20),
+		ClientSecret: util.RandStringBytesMaskImprSrc(40),
 	}
 
 	cursor := runtime.Model(&client).Where("name = ?", client.Name)
