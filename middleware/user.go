@@ -25,7 +25,7 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
-		clientmgr := services.UserClientManager{runtime.Database()}
+		clientmgr := services.UserClientManager{runtime.DB}
 
 		if err := clientmgr.Validate(bearer, &client); err != nil {
 			runtime.Debugf("unable to validate bearer \"%s\" for client \"%d", bearer, client.ID)
@@ -34,12 +34,12 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 
 		var token models.ClientToken
 
-		if err := runtime.Database().Where("token = ?", bearer).First(&token).Error; err != nil {
+		if err := runtime.Where("token = ?", bearer).First(&token).Error; err != nil {
 			runtime.Debugf("unable to find token from %s", bearer)
 			return handler(runtime)
 		}
 
-		if err := runtime.Database().First(&runtime.User, token.User).Error; err != nil {
+		if err := runtime.First(&runtime.User, token.User).Error; err != nil {
 			runtime.Debugf("unable to find user from %s", bearer)
 			return handler(runtime)
 		}

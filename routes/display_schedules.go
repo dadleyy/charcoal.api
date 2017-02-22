@@ -40,7 +40,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_ID"))
 	}
 
-	manager := services.UserManager{runtime.Database()}
+	manager := services.UserManager{runtime.DB}
 
 	if admin := manager.IsAdmin(&runtime.User); admin != true {
 		return runtime.AddError(fmt.Errorf("NON_ADMIN"))
@@ -48,7 +48,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 
 	var schedule models.DisplaySchedule
 
-	if err := runtime.Database().First(&schedule, id).Error; err != nil {
+	if err := runtime.First(&schedule, id).Error; err != nil {
 		runtime.Debugf("failed lookup: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_SCHEDULE"))
 	}
@@ -140,7 +140,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("END_BEFORE_START"))
 	}
 
-	if err := runtime.Database().Model(&schedule).Updates(updates).Error; err != nil {
+	if err := runtime.Model(&schedule).Updates(updates).Error; err != nil {
 		runtime.Debugf("error updating schedule: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED_SAVE"))
 	}

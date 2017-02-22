@@ -34,7 +34,7 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 
 	var client models.Client
 
-	if err := runtime.Database().Where("client_id = ?", requester).First(&client).Error; err != nil {
+	if err := runtime.Where("client_id = ?", requester).First(&client).Error; err != nil {
 		runtime.Errorf("invalid client id used in google auth: %s", clientid)
 		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
 	}
@@ -77,7 +77,7 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 
 	var client models.Client
 
-	if err := runtime.Database().Where("client_id = ?", state).First(&client).Error; err != nil {
+	if err := runtime.Where("client_id = ?", state).First(&client).Error; err != nil {
 		runtime.Errorf("invalid client id used in google auth: %s", state)
 		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
 	}
@@ -93,7 +93,7 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	authman := services.GoogleAuthentication{runtime.Database()}
+	authman := services.GoogleAuthentication{runtime.DB}
 
 	result, err := authman.Process(&client, code)
 

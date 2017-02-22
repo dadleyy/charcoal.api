@@ -16,11 +16,11 @@ func DestroyUserRoleMapping(runtime *net.RequestRuntime) error {
 
 	var mapping models.UserRoleMapping
 
-	if err := runtime.Database().Where("id = ?", id).First(&mapping).Error; err != nil {
+	if err := runtime.Where("id = ?", id).First(&mapping).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	if err := runtime.Database().Unscoped().Delete(&mapping).Error; err != nil {
+	if err := runtime.Unscoped().Delete(&mapping).Error; err != nil {
 		runtime.Debugf("unable to delete role mapping: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("CANT_DELETE"))
 	}
@@ -67,13 +67,13 @@ func CreateUserRoleMapping(runtime *net.RequestRuntime) error {
 	mapping := models.UserRoleMapping{Role: uint(rid), User: uint(uid)}
 	duplicate := 0
 
-	cursor := runtime.Database().Model(&mapping).Where("user = ? AND role = ?", uid, rid)
+	cursor := runtime.Model(&mapping).Where("user = ? AND role = ?", uid, rid)
 
 	if _ = cursor.Count(&duplicate); duplicate >= 1 {
 		return runtime.AddError(fmt.Errorf("MAPPING_EXISTS"))
 	}
 
-	if err := runtime.Database().Create(&mapping).Error; err != nil {
+	if err := runtime.Create(&mapping).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("BAD_CREATE"))
 	}
 
@@ -86,12 +86,12 @@ func FindUserRoleMappings(runtime *net.RequestRuntime) error {
 	var maps []models.UserRoleMapping
 	blueprint := runtime.Blueprint()
 
-	uman := services.UserManager{runtime.Database()}
+	uman := services.UserManager{runtime.DB}
 
 	// if this is not an admin user, make sure we are limiting to the current user
 	if uman.IsAdmin(&runtime.User) != true {
 		runtime.Debugf("user is not admin, limiting role maps search to current user")
-		blueprint.Filter("filter[user]", fmt.Sprintf("eq(%d)", runtime.User.ID))
+		blueprint = runtime.Blueprint(runtime.Where("user = ?", runtime.User.ID))
 	}
 
 	// limit this query to to current user only

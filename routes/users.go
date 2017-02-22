@@ -65,7 +65,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	user := models.User{Email: &email, Password: &password, Name: &name}
 
-	usrmgr := services.UserManager{runtime.Database()}
+	usrmgr := services.UserManager{runtime.DB}
 
 	if usrmgr.ValidDomain(email) != true {
 		runtime.Debugf("attempt to sign up w/ invalid domain: %s", email)
@@ -77,12 +77,12 @@ func CreateUser(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_USER"))
 	}
 
-	if err := runtime.Database().Create(&user).Error; err != nil {
+	if err := runtime.Create(&user).Error; err != nil {
 		runtime.Debugf("unable to save: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED"))
 	}
 
-	clientmgr := services.UserClientManager{runtime.Database()}
+	clientmgr := services.UserClientManager{runtime.DB}
 
 	if _, err := clientmgr.Associate(&user, &runtime.Client); err != nil {
 		runtime.Debugf("unable to associate: %s", err.Error())
@@ -128,7 +128,7 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 
 		updates["email"] = email
 
-		manager := services.UserManager{runtime.Database()}
+		manager := services.UserManager{runtime.DB}
 
 		if dupe, err := manager.IsDuplicate(&models.User{Email: &email}); (email != current) && (err != nil || dupe) {
 			return runtime.AddError(fmt.Errorf("BAD_EMAIL"))
@@ -168,7 +168,7 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	if err := runtime.Database().Model(&runtime.User).Updates(updates).Error; err != nil {
+	if err := runtime.Model(&runtime.User).Updates(updates).Error; err != nil {
 		runtime.AddError(err)
 		return nil
 	}

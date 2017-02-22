@@ -18,7 +18,6 @@ func FindActivity(runtime *net.RequestRuntime) error {
 	}
 
 	for _, item := range results {
-		runtime.Debugf("adding item %d, object uuid \"%s\"", item.ID, item.ObjectUuid)
 		runtime.AddResult(item)
 	}
 
@@ -32,7 +31,7 @@ func FindLiveActivity(runtime *net.RequestRuntime) error {
 	today := time.Now()
 
 	conditions := "start < ? AND end > ? AND approval = 'APPROVED'"
-	cursor := runtime.Database().Where(conditions, today, today).Select("distinct activity")
+	cursor := runtime.Where(conditions, today, today).Select("distinct activity")
 	blueprint := runtime.Blueprint(cursor)
 
 	count, err := blueprint.Apply(&schedules)
@@ -51,13 +50,12 @@ func FindLiveActivity(runtime *net.RequestRuntime) error {
 
 	var activities []models.Activity
 
-	if err := runtime.Database().Where("id in (?)", ids).Find(&activities).Error; err != nil {
+	if err := runtime.Where("id in (?)", ids).Find(&activities).Error; err != nil {
 		runtime.Debugf("unable to load current feed: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED"))
 	}
 
 	for _, act := range activities {
-		runtime.Debugf("activity: %v", act)
 		runtime.AddResult(act.Public())
 	}
 

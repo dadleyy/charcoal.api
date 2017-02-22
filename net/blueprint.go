@@ -26,10 +26,6 @@ func (print *Blueprint) Page() int {
 	return print.page
 }
 
-func (print *Blueprint) Filter(key string, opstr string) error {
-	return nil
-}
-
 func (print *Blueprint) Apply(out interface{}) (int, error) {
 	var total int
 	limit, offset := print.limit, print.limit*print.page

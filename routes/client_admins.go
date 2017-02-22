@@ -17,7 +17,7 @@ func DeleteClientAdmin(runtime *net.RequestRuntime) error {
 
 	var record models.ClientAdmin
 
-	if err := runtime.Database().First(&record, id).Error; err != nil {
+	if err := runtime.First(&record, id).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
@@ -92,7 +92,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 
 		client = uint(input)
 
-		if err := runtime.Database().First(&models.Client{}, client).Error; err != nil {
+		if err := runtime.First(&models.Client{}, client).Error; err != nil {
 			return runtime.AddError(fmt.Errorf("CLIENT_NOT_FOUND"))
 		}
 	}
@@ -118,13 +118,13 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("DUPLICATE_ENTRY"))
 	}
 
-	if err := runtime.Database().Create(&mapping).Error; err != nil {
+	if err := runtime.Create(&mapping).Error; err != nil {
 		runtime.Debugf("unable to create: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED_SAVE"))
 	}
 
 	if client != runtime.Client.ID {
-		manager := services.UserClientManager{runtime.Database()}
+		manager := services.UserClientManager{runtime.DB}
 
 		u := models.User{Common: models.Common{ID: uint(user)}}
 		c := models.Client{Common: models.Common{ID: client}}
@@ -145,15 +145,10 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 
 	if runtime.IsAdmin() != true {
 		runtime.Debugf("user is not admin, limiting query to client[%d]", runtime.Client.ID)
-		err := blueprint.Filter("filter[client]", fmt.Sprintf("eq(%d)", runtime.Client.ID))
-
-		if err != nil {
-			runtime.Debugf("filter problem: %s", err.Error())
-			return runtime.AddError(fmt.Errorf("PROBLEM"))
-		}
+		blueprint = runtime.Blueprint(runtime.Where("client = ?", runtime.Client.ID))
 
 		// make sure user is even able to see this client's admins by being a client admin themselces
-		query := runtime.Database().Where("client = ? AND user = ?", runtime.Client.ID, runtime.User.ID)
+		query := runtime.Where("client = ? AND user = ?", runtime.Client.ID, runtime.User.ID)
 
 		if err := query.Find(&results).Error; err != nil {
 			runtime.Debugf("failed getting client admins for current situation problem: %s", err.Error())

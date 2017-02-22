@@ -14,14 +14,14 @@ func CreateGame(runtime *net.RequestRuntime) error {
 
 	game := models.Game{Owner: runtime.User}
 
-	if err := runtime.Database().Create(&game).Error; err != nil {
+	if err := runtime.Create(&game).Error; err != nil {
 		runtime.Errorf("failed saving new game: %s", err.Error())
 		return runtime.AddError(err)
 	}
 
 	membership := models.GameMembership{User: runtime.User, Game: game}
 
-	if err := runtime.Database().Create(&membership).Error; err != nil {
+	if err := runtime.Create(&membership).Error; err != nil {
 		runtime.Errorf("unable to create initial membership: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_GAME_CREATE"))
 	}

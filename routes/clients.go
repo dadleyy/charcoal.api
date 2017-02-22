@@ -44,7 +44,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 
 	var client models.Client
 
-	if err := runtime.Database().First(&client, id).Error; err != nil {
+	if err := runtime.First(&client, id).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
@@ -73,7 +73,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	if err := runtime.Database().Model(&client).Updates(updates).Error; err != nil {
+	if err := runtime.Model(&client).Updates(updates).Error; err != nil {
 		runtime.Debugf("failed updating client: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
@@ -114,7 +114,7 @@ func CreateClient(runtime *net.RequestRuntime) error {
 		ClientSecret: services.RandStringBytesMaskImprSrc(40),
 	}
 
-	cursor := runtime.Database().Model(&client).Where("name = ?", client.Name)
+	cursor := runtime.Model(&client).Where("name = ?", client.Name)
 	existing := 0
 
 	if err := cursor.Count(&existing).Error; err != nil || existing >= 1 {
@@ -129,12 +129,12 @@ func CreateClient(runtime *net.RequestRuntime) error {
 
 	admin := models.ClientAdmin{Client: client.ID, User: runtime.User.ID}
 
-	if err := runtime.Database().Create(&admin).Error; err != nil {
+	if err := runtime.Create(&admin).Error; err != nil {
 		runtime.Debugf("failed automatically creating admin for client %d: %s", client.ID, err.Error())
 		return runtime.AddError(err)
 	}
 
-	manager := services.UserClientManager{runtime.Database()}
+	manager := services.UserClientManager{runtime.DB}
 
 	if _, err := manager.Associate(&runtime.User, &client); err != nil {
 		runtime.Debugf("failed auto token for user[%d]-client[%d]: %s", runtime.User.ID, client.ID, err.Error())

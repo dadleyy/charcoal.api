@@ -95,12 +95,6 @@ func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
 		if filterable == false || len(values) != 1 {
 			continue
 		}
-
-		value := values[0]
-
-		if err := result.Filter(key, value); err != nil {
-			runtime.AddError(err)
-		}
 	}
 
 	return result
@@ -112,8 +106,4 @@ func (runtime *RequestRuntime) Close() {
 
 func (runtime *RequestRuntime) Cursor(start interface{}) *gorm.DB {
 	return runtime.Model(start)
-}
-
-func (runtime *RequestRuntime) Database() *gorm.DB {
-	return runtime.DB
 }
