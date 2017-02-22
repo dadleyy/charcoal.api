@@ -11,6 +11,10 @@ type Activity struct {
 	ObjectUuid string `json:"object_uuid"`
 }
 
+func (activity Activity) Public() interface{} {
+	return activity
+}
+
 func (activity Activity) TableName() string {
 	return "activity"
 }

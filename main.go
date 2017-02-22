@@ -109,6 +109,9 @@ func main() {
 	mux.POST("/games", routes.CreateGame, middleware.RequireUser)
 	mux.GET("/games", routes.FindGames, middleware.RequireUser)
 
+	mux.POST("/game-memberships", routes.CreateGameMembership, middleware.RequireUser)
+	mux.GET("/game-memberships", routes.FindGameMemberships, middleware.RequireUser)
+
 	mux.POST("/photos", routes.CreatePhoto, middleware.RequireClient)
 	mux.GET("/photos", routes.FindPhotos, middleware.RequireClient)
 	mux.GET("/photos/:id/view", routes.ViewPhoto, middleware.RequireClient)

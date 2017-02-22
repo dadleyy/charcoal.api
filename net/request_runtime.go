@@ -62,8 +62,14 @@ func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 	return services.PhotoSaver{runtime.DB, runtime.FileSaver}
 }
 
-func (runtime *RequestRuntime) Blueprint() Blueprint {
-	result := Blueprint{runtime.DB, DEFAULT_BLUEPRINT_LIMIT, 0, "", make(FilterList, 0)}
+func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
+	cursor := runtime.DB
+
+	if len(scopes) >= 1 {
+		cursor = scopes[0]
+	}
+
+	result := Blueprint{cursor, DEFAULT_BLUEPRINT_LIMIT, 0, "", make(FilterList, 0)}
 
 	values := runtime.URL.Query()
 

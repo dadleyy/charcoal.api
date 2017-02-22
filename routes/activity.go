@@ -28,20 +28,17 @@ func FindActivity(runtime *net.RequestRuntime) error {
 }
 
 func FindLiveActivity(runtime *net.RequestRuntime) error {
-	blueprint := runtime.Blueprint()
-	today := time.Now()
 	var schedules []models.DisplaySchedule
-	count := uint(0)
+	today := time.Now()
 
-	offset := blueprint.Limit() * blueprint.Page()
+	conditions := "start < ? AND end > ? AND approval = 'APPROVED'"
+	cursor := runtime.Database().Where(conditions, today, today).Select("distinct activity")
+	blueprint := runtime.Blueprint(cursor)
 
-	cursor := runtime.Database().Limit(blueprint.Limit()).Offset(offset)
-
-	// add the clauses that will give us only approved schedules that are currently running
-	cursor = cursor.Where("start < ? AND end > ? AND approval = 'APPROVED'", today, today)
+	count, err := blueprint.Apply(&schedules)
 
 	// select distinct activities
-	if err := cursor.Select("distinct activity").Find(&schedules).Count(&count).Error; err != nil {
+	if err != nil {
 		runtime.Debugf("unable to load current feed: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED"))
 	}
@@ -60,6 +57,7 @@ func FindLiveActivity(runtime *net.RequestRuntime) error {
 	}
 
 	for _, act := range activities {
+		runtime.Debugf("activity: %v", act)
 		runtime.AddResult(act.Public())
 	}
 
