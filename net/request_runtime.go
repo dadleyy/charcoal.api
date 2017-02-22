@@ -50,6 +50,10 @@ func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
 	runtime.bucket.meta[key] = val
 }
 
+func (runtime *RequestRuntime) SetTotal(total int) {
+	runtime.SetMeta("count", total)
+}
+
 func (runtime *RequestRuntime) Publish(msg activity.Message) {
 	runtime.queue <- msg
 }

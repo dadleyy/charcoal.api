@@ -2,7 +2,8 @@ package models
 
 type Game struct {
 	Common
-	OwnerID uint `json:"owner" gorm:"column:owner_id"`
+	OwnerID uint `json:"owner_id" gorm:"column:owner_id"`
 
-	Owner User `json:"-"`
+	GameMemberships []GameMembership `json:"-"`
+	Owner           User             `json:"-"`
 }
