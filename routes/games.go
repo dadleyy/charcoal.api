@@ -31,11 +31,40 @@ func CreateGame(runtime *net.RequestRuntime) error {
 	return nil
 }
 
+func DestroyGame(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
+	}
+
+	var game models.Game
+
+	if err := runtime.First(&game, id).Error; err != nil {
+		runtime.Debugf("error looking for game: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if runtime.IsAdmin() == false && game.OwnerID != runtime.User.ID {
+		runtime.Debugf("cannot delete game - user[%d] isn't owner", runtime.User.ID)
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if err := runtime.Model(&game).Update("status", "ENDED").Error; err != nil {
+		runtime.Debugf("problem deleting game: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+	}
+
+	return nil
+}
+
 func FindGames(runtime *net.RequestRuntime) error {
 	var results []models.Game
-	cursor := runtime.Model(&runtime.User)
+	blueprint := runtime.Blueprint()
 
-	if err := cursor.Related(&results, "Games").Error; err != nil {
+	total, err := blueprint.Apply(&results)
+
+	if err != nil {
 		fmt.Errorf("failed game lookup: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
@@ -43,6 +72,8 @@ func FindGames(runtime *net.RequestRuntime) error {
 	for _, item := range results {
 		runtime.AddResult(item)
 	}
+
+	runtime.SetTotal(total)
 
 	return nil
 }

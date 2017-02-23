@@ -108,6 +108,7 @@ func main() {
 
 	mux.POST("/games", routes.CreateGame, middleware.RequireUser)
 	mux.GET("/games", routes.FindGames, middleware.RequireUser)
+	mux.DELETE("/games/:id", routes.DestroyGame, middleware.RequireUser)
 
 	mux.POST("/game-rounds", routes.CreateGameRound, middleware.RequireUser)
 	mux.GET("/game-rounds", routes.FindGameRounds, middleware.RequireUser)

@@ -179,8 +179,8 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 }
 
 func FindUser(runtime *net.RequestRuntime) error {
-	blue := runtime.Blueprint()
 	var users []models.User
+	blue := runtime.Blueprint()
 
 	count, err := blue.Apply(&users)
 

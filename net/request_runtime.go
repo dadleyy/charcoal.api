@@ -75,7 +75,7 @@ func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
 		cursor = scopes[0]
 	}
 
-	return Blueprint{cursor, runtime.URL.Query()}
+	return Blueprint{cursor, runtime.Logger, runtime.URL.Query()}
 }
 
 func (runtime *RequestRuntime) Close() {

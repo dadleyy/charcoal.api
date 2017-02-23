@@ -6,6 +6,9 @@ import "strings"
 import "net/url"
 
 import "github.com/jinzhu/gorm"
+import "github.com/gedex/inflector"
+import "github.com/labstack/gommon/log"
+
 import "github.com/dadleyy/charcoal.api/util"
 
 const BlueprintDefaultLimit = 100
@@ -15,6 +18,8 @@ const BlueprintFilterEnd = "]"
 
 type Blueprint struct {
 	*gorm.DB
+	*log.Logger
+
 	values url.Values
 }
 
@@ -42,6 +47,15 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 
 		column := strings.TrimSuffix(strings.TrimPrefix(key, BlueprintFilterStart), BlueprintFilterEnd)
 		operation, target := value[0], strings.TrimSuffix(value[1], ")")
+
+		if bits := strings.Split(column, "."); len(bits) == 2 {
+			print.Debugf("found an association query: %s - %s(%s)", column, operation, target)
+			scope := print.NewScope(out)
+			other, fk := inflector.Pluralize(bits[0]), fmt.Sprintf("%s_id", inflector.Singularize(bits[0]))
+			join := fmt.Sprintf("JOIN %s ON %s.id = %s.%s", other, other, scope.TableName(), fk)
+			column = fmt.Sprintf("%s.%s", other, bits[1])
+			cursor = cursor.Joins(join)
+		}
 
 		switch operation {
 		case "in":
