@@ -3,6 +3,7 @@ package net
 import "net/http"
 
 import "github.com/jinzhu/gorm"
+import "github.com/albrow/forms"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/models"
@@ -22,6 +23,11 @@ type RequestRuntime struct {
 
 	queue  chan activity.Message
 	bucket ResponseBucket
+}
+
+func (runtime *RequestRuntime) Form() (*forms.Data, error) {
+	body, err := forms.Parse(runtime.Request)
+	return body, err
 }
 
 func (runtime *RequestRuntime) IsAdmin() bool {

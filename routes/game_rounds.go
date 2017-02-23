@@ -5,6 +5,7 @@ import "strconv"
 import "github.com/albrow/forms"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/services"
 
 func CreateGameRound(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
@@ -64,33 +65,72 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
 	}
 
-	round, updates := models.GameRound{}, make(map[string]interface{})
+	round, game := models.GameRound{}, models.Game{}
 
 	if err := runtime.First(&round, id).Error; err != nil {
 		runtime.Debugf("unable to find round[%d]: %s", id, err.Error())
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
+	if err := runtime.First(&game, round.GameID).Error; err != nil {
+		runtime.Debugf("unable to find game[%d]: %s", round.GameID, err.Error())
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	manager := services.GameManager{runtime.DB, game}
+
+	if manager.IsMember(runtime.User) == false {
+		runtime.Debugf("user %d is not in game %d, cannot update", runtime.User, game.ID)
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if body.KeyExists("vice_president_id") {
+		vp, err := strconv.Atoi(body.Get("vice_president_id"))
+
+		if err != nil {
+			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidVicePresident))
+		}
+
+		runtime.Debugf("up. vp of game[%d], round[%d] to user[%d]", game.ID, round.ID, vp)
+
+		if err := manager.UpdateVicePresident(vp, round); err != nil {
+			runtime.Debugf("failed vp update: %s", err.Error())
+			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidVicePresident))
+		}
+	}
+
+	if body.KeyExists("asshole_id") {
+		ass, err := strconv.Atoi(body.Get("asshole_id"))
+
+		if err != nil {
+			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
+		}
+
+		runtime.Debugf("up. ass of game[%d], round[%d] to user[%d]", game.ID, round.ID, ass)
+
+		if err := manager.UpdateAsshole(ass, round); err != nil {
+			runtime.Debugf("failed ass update: %s", err.Error())
+			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
+		}
+	}
+
 	if body.KeyExists("president_id") {
 		president, err := strconv.Atoi(body.Get("president_id"))
 
 		if err != nil {
-			return runtime.AddError(fmt.Errorf("INVALID_PRESIDENT"))
+			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
 		}
 
-		member, cursor := models.GameMembership{}, runtime.Where("user_id = ? AND game_id = ?", president, round.GameID)
+		runtime.Debugf("up. pressy of game[%d], round[%d] to user[%d]", game.ID, round.ID, president)
 
-		if err := cursor.First(&member).Error; err != nil {
-			runtime.Debugf("user[%d] not in game: %d, cannot be pres | %s", president, round.GameID, err.Error())
-			return runtime.AddError(fmt.Errorf("INVALID_PRESIDENT"))
+		if err := manager.UpdatePresident(president, round); err != nil {
+			runtime.Debugf("failed pressy update: %s", err.Error())
+			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
 		}
-
-		updates["president_id"] = president
 	}
 
-	if err := runtime.Model(&round).Updates(updates).Error; err != nil {
-		runtime.Debugf("failed updating round: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	if e := runtime.First(&round).Error; e != nil {
+		runtime.AddError(e)
 	}
 
 	runtime.AddResult(round.Public())
