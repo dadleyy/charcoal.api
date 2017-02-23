@@ -15,7 +15,7 @@ type Server struct {
 	Runtime *ServerRuntime
 }
 
-func (server *Server) Run(host string) {
+func (server *Server) Run(host string) error {
 	server.Server = &http.Server{
 		Addr:           host,
 		ReadTimeout:    10 * time.Second,
@@ -26,5 +26,5 @@ func (server *Server) Run(host string) {
 	server.Handler = server.Runtime
 
 	server.Debugf(fmt.Sprintf("binding to host[%s]", host))
-	server.ListenAndServe()
+	return server.ListenAndServe()
 }

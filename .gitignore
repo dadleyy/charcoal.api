@@ -9,6 +9,7 @@
 miritos.api
 node_modules
 vendor/*/
+charcoal.api
 
 # Folders
 _obj

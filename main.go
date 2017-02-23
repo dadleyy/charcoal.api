@@ -140,5 +140,8 @@ func main() {
 	// start the server & processor
 	logger.Debugf(fmt.Sprintf("starting"))
 	go processor.Begin()
-	server.Run(fmt.Sprintf(":%s", port))
+
+	if err := server.Run(fmt.Sprintf(":%s", port)); err != nil {
+		logger.Errorf("failed startup: %s", err.Error())
+	}
 }
