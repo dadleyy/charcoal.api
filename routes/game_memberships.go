@@ -7,6 +7,33 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
 
+func DestroyGameMembership(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
+	}
+
+	var membership models.GameMembership
+
+	if err := runtime.First(&membership, id).Error; err != nil {
+		runtime.Debugf("error looking for membership: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if runtime.IsAdmin() == false && membership.UserID != runtime.User.ID {
+		runtime.Debugf("cannot delete membership - user[%d] isn't owner", runtime.User.ID)
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if err := runtime.Delete(&membership).Error; err != nil {
+		runtime.Debugf("problem deleting membership: %s", err.Error())
+		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+	}
+
+	return nil
+}
+
 func CreateGameMembership(runtime *net.RequestRuntime) error {
 	body, err := runtime.Form()
 

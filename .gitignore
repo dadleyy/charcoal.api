@@ -10,6 +10,7 @@ miritos.api
 node_modules
 vendor/*/
 charcoal.api
+dump.rdb
 
 # Folders
 _obj

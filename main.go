@@ -116,6 +116,7 @@ func main() {
 
 	mux.POST("/game-memberships", routes.CreateGameMembership, middleware.RequireUser)
 	mux.GET("/game-memberships", routes.FindGameMemberships, middleware.RequireUser)
+	mux.DELETE("/game-memberships/:id", routes.DestroyGameMembership, middleware.RequireUser)
 
 	mux.POST("/photos", routes.CreatePhoto, middleware.RequireClient)
 	mux.GET("/photos", routes.FindPhotos, middleware.RequireClient)
