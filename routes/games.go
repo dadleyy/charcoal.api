@@ -12,7 +12,7 @@ func CreateGame(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
-	game := models.Game{Owner: runtime.User}
+	game := models.Game{Owner: runtime.User, Status: models.GameDefaultStatus}
 
 	if err := runtime.Create(&game).Error; err != nil {
 		runtime.Errorf("failed saving new game: %s", err.Error())

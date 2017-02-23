@@ -1,5 +1,7 @@
 package models
 
+const GameDefaultStatus = "ACTIVE"
+
 type Game struct {
 	Common
 	OwnerID uint   `json:"owner_id" gorm:"column:owner_id"`
