@@ -2,14 +2,13 @@ package services
 
 import "fmt"
 import "strings"
-
-import "github.com/dadleyy/charcoal.api/db"
+import "github.com/jinzhu/gorm"
 import "github.com/dadleyy/charcoal.api/models"
 
 const ErrUnauthorizedDomain = "UNAUTHORIZED_DOMAIN"
 
 type UserManager struct {
-	*db.Connection
+	*gorm.DB
 }
 
 func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {

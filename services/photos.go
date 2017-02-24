@@ -1,11 +1,11 @@
 package services
 
-import "github.com/dadleyy/charcoal.api/db"
+import "github.com/jinzhu/gorm"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/filestore"
 
 type PhotoSaver struct {
-	*db.Connection
+	*gorm.DB
 	filestore.FileSaver
 }
 

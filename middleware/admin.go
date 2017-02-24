@@ -7,7 +7,7 @@ import "github.com/dadleyy/charcoal.api/services"
 
 func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
 	check := func(runtime *net.RequestRuntime) error {
-		uman := services.UserManager{runtime.Database()}
+		uman := services.UserManager{runtime.DB}
 
 		if uman.IsAdmin(&runtime.User) != true || runtime.Client.System != true {
 			return runtime.AddError(fmt.Errorf(errors.ErrUnauthorizedAdmin))

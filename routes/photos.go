@@ -105,7 +105,7 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 	if runtime.User.ID >= 1 {
 		runtime.Debugf("associating user #%d with photo \"%s\"", runtime.User.ID, photo.Label)
 		photo.Author.Scan(runtime.User.ID)
-		runtime.Database().Save(&photo)
+		runtime.Save(&photo)
 	}
 
 	runtime.AddResult(photo.Public())
@@ -131,13 +131,13 @@ func ViewPhoto(runtime *net.RequestRuntime) error {
 
 	var photo models.Photo
 
-	if err := runtime.Database().First(&photo, id).Error; err != nil {
+	if err := runtime.First(&photo, id).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
 	var file models.File
 
-	if err := runtime.Database().First(&file, photo.File).Error; err != nil {
+	if err := runtime.First(&file, photo.File).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
@@ -160,11 +160,11 @@ func DestroyPhoto(runtime *net.RequestRuntime) error {
 
 	var photo models.Photo
 
-	if err := runtime.Database().First(&photo, id).Error; err != nil {
+	if err := runtime.First(&photo, id).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	uman := services.UserManager{runtime.Database()}
+	uman := services.UserManager{runtime.DB}
 	admin := uman.IsAdmin(&runtime.User)
 
 	// if we arent an admin, and the photo has an author, make sure its the current user
@@ -187,7 +187,7 @@ func FindPhotos(runtime *net.RequestRuntime) error {
 	var results []models.Photo
 	blueprint := runtime.Blueprint()
 
-	total, err := blueprint.Apply(&results, runtime.Database())
+	total, err := blueprint.Apply(&results)
 
 	if err != nil {
 		runtime.Debugf("bad photo lookup: %s", err.Error())

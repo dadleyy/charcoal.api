@@ -37,8 +37,6 @@ func main() {
 		port = "8080"
 	}
 
-	database, err := db.Open(dbconf)
-
 	if err != nil {
 		panic(err)
 	}
@@ -110,6 +108,15 @@ func main() {
 
 	mux.POST("/games", routes.CreateGame, middleware.RequireUser)
 	mux.GET("/games", routes.FindGames, middleware.RequireUser)
+	mux.DELETE("/games/:id", routes.DestroyGame, middleware.RequireUser)
+
+	mux.POST("/game-rounds", routes.CreateGameRound, middleware.RequireUser)
+	mux.GET("/game-rounds", routes.FindGameRounds, middleware.RequireUser)
+	mux.PATCH("/game-rounds/:id", routes.UpdateGameRound, middleware.RequireUser)
+
+	mux.POST("/game-memberships", routes.CreateGameMembership, middleware.RequireUser)
+	mux.GET("/game-memberships", routes.FindGameMemberships, middleware.RequireUser)
+	mux.DELETE("/game-memberships/:id", routes.DestroyGameMembership, middleware.RequireUser)
 
 	mux.POST("/photos", routes.CreatePhoto, middleware.RequireClient)
 	mux.GET("/photos", routes.FindPhotos, middleware.RequireClient)
@@ -117,12 +124,26 @@ func main() {
 	mux.DELETE("/photos/:id", routes.DestroyPhoto, middleware.RequireUser)
 
 	// create the server runtime and the activity processor runtime
-	runtime := net.ServerRuntime{logger, dbconf, stream, &mux}
-	processor := activity.Processor{logger, database, stream}
-	server := net.Server{nil, &runtime}
+	runtime := net.ServerRuntime{
+		Logger: logger,
+		Config: net.RuntimeConfig{dbconf},
+		Queue:  stream,
+		Mux:    &mux,
+	}
+
+	processor := activity.Processor{
+		Logger: logger,
+		Queue:  stream,
+		Config: activity.ProcessorConfig{dbconf},
+	}
+
+	server := net.Server{nil, logger, &runtime}
 
 	// start the server & processor
-	server.Logger().Debugf(fmt.Sprintf("starting"))
+	logger.Debugf(fmt.Sprintf("starting"))
 	go processor.Begin()
-	server.Run(fmt.Sprintf(":%s", port))
+
+	if err := server.Run(fmt.Sprintf(":%s", port)); err != nil {
+		logger.Errorf("failed startup: %s", err.Error())
+	}
 }

@@ -37,11 +37,11 @@ func CreateClientToken(runtime *net.RequestRuntime) error {
 	}
 
 	var client models.Client
-	if err := runtime.Database().Where("id = ?", target).First(&client).Error; err != nil {
+	if err := runtime.Where("id = ?", target).First(&client).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("CLIENT_NOT_FOUND"))
 	}
 
-	manager := services.UserClientManager{runtime.Database()}
+	manager := services.UserClientManager{runtime.DB}
 
 	result, err := manager.Associate(&runtime.User, &client)
 
@@ -61,7 +61,7 @@ func FindClientTokens(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
 
 	// limit this query to to current user only
-	total, err := blueprint.Apply(&tokens, runtime.Database())
+	total, err := blueprint.Apply(&tokens)
 
 	if err != nil {
 		runtime.Debugf("problem retreiving client tokens: %s", err.Error())

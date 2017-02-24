@@ -9,7 +9,7 @@ func FindRoles(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
 	var roles []models.UserRole
 
-	total, err := blueprint.Apply(&roles, runtime.Database())
+	total, err := blueprint.Apply(&roles)
 
 	if err != nil {
 		runtime.Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())

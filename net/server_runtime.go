@@ -4,17 +4,22 @@ import "io"
 import "fmt"
 import "time"
 import "net/http"
+import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/filestore"
 
+type RuntimeConfig struct {
+	DB db.Config
+}
+
 type ServerRuntime struct {
-	Log      *log.Logger
-	DBConfig db.Config
-	Queue    chan activity.Message
-	Mux      *Multiplexer
+	Logger *log.Logger
+	Config RuntimeConfig
+	Queue  chan activity.Message
+	Mux    *Multiplexer
 }
 
 // request
@@ -32,20 +37,23 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 
 	fs := filestore.S3FileStore{}
 
-	database, err := db.Open(server.DBConfig)
+	database, err := gorm.Open("mysql", server.Config.DB.String())
 
 	if err != nil {
 		return RequestRuntime{}, err
 	}
 
+	database.LogMode(server.Config.DB.Debug == true)
+
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
-		queue:     server.Queue,
-		log:       server.Log,
-		bucket:    bucket,
-		fs:        fs,
-		database:  database,
+		FileSaver: fs,
+		Logger:    server.Logger,
+		DB:        database,
+
+		queue:  server.Queue,
+		bucket: bucket,
 	}
 
 	return runtime, nil
@@ -59,7 +67,7 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 
 	// not found
 	if found == false {
-		server.Log.Debugf("error matching route: %s", request.URL.Path)
+		server.Logger.Debugf("error matching route: %s", request.URL.Path)
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response, "not found")
 		return
@@ -71,14 +79,14 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 	// attempt to prepare a db connection for this request and error out if
 	// something goes wrong along the way.
 	if err != nil {
-		server.Log.Debugf("error matching route: %s", request.URL.Path)
+		server.Logger.Debugf("error matching route: %s", request.URL.Path)
 		response.WriteHeader(http.StatusNotFound)
 		fmt.Fprintf(response, "not found")
 		return
 	}
 
 	// once this function finishes we're done with the request.
-	defer runtime.database.Close()
+	defer runtime.Close()
 
 	var renderer BucketRenderer
 
@@ -88,7 +96,7 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 	}
 
 	if err := handler(&runtime); err != nil {
-		server.Log.Debugf("error handling route: %s", err.Error())
+		server.Logger.Debugf("error handling route: %s", err.Error())
 		renderer.Render(response)
 		return
 	}
@@ -104,7 +112,7 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 		resp, err := http.Get(runtime.bucket.proxy)
 
 		if err != nil {
-			server.Log.Debugf("unable to download file: %s", err.Error())
+			server.Logger.Debugf("unable to download file: %s", err.Error())
 			fmt.Fprintf(response, "not found")
 			return
 		}
@@ -115,7 +123,7 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 		outh.Set("Content-Type", resp.Header.Get("Content-Type"))
 
 		response.WriteHeader(resp.StatusCode)
-		server.Log.Debugf("proxy-ing: \"%s\" | type[%s]", runtime.bucket.proxy, resp.Header.Get("Content-Type"))
+		server.Logger.Debugf("proxy-ing: \"%s\" | type[%s]", runtime.bucket.proxy, resp.Header.Get("Content-Type"))
 
 		defer resp.Body.Close()
 

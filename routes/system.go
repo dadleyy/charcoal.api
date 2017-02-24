@@ -13,7 +13,7 @@ func FindSystemEmailDomains(runtime *net.RequestRuntime) error {
 	blueprint := runtime.Blueprint()
 	var domains []models.SystemEmailDomain
 
-	total, err := blueprint.Apply(&domains, runtime.Database())
+	total, err := blueprint.Apply(&domains)
 
 	if err != nil {
 		runtime.Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())
@@ -51,7 +51,7 @@ func CreateSystemEmailDomain(runtime *net.RequestRuntime) error {
 	}
 
 	domain := models.SystemEmailDomain{Domain: body.Get("domain")}
-	cursor := runtime.Database().Model(&domain)
+	cursor := runtime.Model(&domain)
 	existing := 0
 
 	if err := cursor.Where("domain = ?", domain.Domain).Count(&existing).Error; err != nil || existing >= 1 {
@@ -75,11 +75,11 @@ func DestroySystemEmailDomain(runtime *net.RequestRuntime) error {
 
 	var domain models.SystemEmailDomain
 
-	if err := runtime.Database().First(&domain, id).Error; err != nil {
+	if err := runtime.First(&domain, id).Error; err != nil {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	if err := runtime.Database().Delete(&domain).Error; err != nil {
+	if err := runtime.Delete(&domain).Error; err != nil {
 		return runtime.AddError(err)
 	}
 
@@ -89,7 +89,7 @@ func DestroySystemEmailDomain(runtime *net.RequestRuntime) error {
 func UpdateSystem(runtime *net.RequestRuntime) error {
 	var settings models.SystemSettings
 
-	if err := runtime.Database().FirstOrCreate(&settings, models.SystemSettings{}).Error; err != nil {
+	if err := runtime.FirstOrCreate(&settings, models.SystemSettings{}).Error; err != nil {
 		return runtime.AddError(err)
 	}
 
@@ -116,7 +116,7 @@ func UpdateSystem(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	cursor := runtime.Database().Model(&settings).Where("id = ?", settings.ID)
+	cursor := runtime.Model(&settings).Where("id = ?", settings.ID)
 
 	if err := cursor.Updates(updates).Error; err != nil {
 		return runtime.AddError(err)
@@ -135,7 +135,7 @@ func PrintSystem(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	if err := runtime.Database().First(&settings).Error; err != nil {
+	if err := runtime.First(&settings).Error; err != nil {
 		return runtime.AddError(err)
 	}
 

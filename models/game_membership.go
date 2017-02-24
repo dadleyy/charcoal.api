@@ -2,11 +2,11 @@ package models
 
 type GameMembership struct {
 	Common
-	UserID uint `json:"user" gorm:"column:user_id"`
-	GameID uint `json:"game" gorm:"column:game_id"`
+	UserID uint `json:"user_id" gorm:"column:user_id"`
+	GameID uint `json:"game_id" gorm:"column:game_id"`
 
-	Game Game
-	User User
+	Game Game `json:"-"`
+	User User `json:"-"`
 }
 
 func (membership GameMembership) TableName() string {

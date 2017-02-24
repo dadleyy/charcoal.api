@@ -1,4 +1,4 @@
-package services
+package util
 
 import "time"
 import "math/rand"

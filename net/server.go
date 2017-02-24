@@ -11,12 +11,13 @@ type MiddlewareFunc func(HandlerFunc) HandlerFunc
 
 type Server struct {
 	*http.Server
+	*log.Logger
 	Runtime *ServerRuntime
 }
 
-func (server *Server) Run(host string) {
+func (server *Server) Run(host string) error {
 	server.Server = &http.Server{
-		Addr: host,
+		Addr:           host,
 		ReadTimeout:    10 * time.Second,
 		WriteTimeout:   10 * time.Second,
 		MaxHeaderBytes: 1 << 20,
@@ -24,11 +25,6 @@ func (server *Server) Run(host string) {
 
 	server.Handler = server.Runtime
 
-	server.Logger().Debugf(fmt.Sprintf("binding to host[%s]", host))
-	server.ListenAndServe()
+	server.Debugf(fmt.Sprintf("binding to host[%s]", host))
+	return server.ListenAndServe()
 }
-
-func (server *Server) Logger() *log.Logger {
-	return server.Runtime.Log
-}
-

@@ -40,7 +40,7 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 
 	switch start {
 	case "image", "photo":
-		processor = &mg.ImageProcessor{runtime.Database(), runtime.Photos(), key}
+		processor = &mg.ImageProcessor{runtime.DB, runtime.Photos(), key}
 	default:
 		return fmt.Errorf("INVALID_SUBJECT_LINE")
 	}

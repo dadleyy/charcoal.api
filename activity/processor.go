@@ -1,6 +1,7 @@
 package activity
 
 import "sync"
+import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/db"
@@ -16,13 +17,18 @@ const VerbDeleted = "deleted"
 
 type semaphore chan struct{}
 
-type Processor struct {
-	*log.Logger
-	DatabaseConnection *db.Connection
-	Queue              chan Message
+type ProcessorConfig struct {
+	DB db.Config
 }
 
-func create(message Message, conn *db.Connection, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
+type Processor struct {
+	*log.Logger
+	Queue  chan Message
+	Config ProcessorConfig
+	db     *gorm.DB
+}
+
+func create(message Message, conn *gorm.DB, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
 	// wait until someone has released a token from the semaphore
 	waitlist <- struct{}{}
 
@@ -63,7 +69,7 @@ func create(message Message, conn *db.Connection, out chan<- error, waitlist sem
 	out <- nil
 }
 
-func destroy(message Message, conn *db.Connection, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
+func destroy(message Message, conn *gorm.DB, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
 	// wait until someone has released a token from the semaphore
 	waitlist <- struct{}{}
 
@@ -105,6 +111,15 @@ func (engine *Processor) Begin() {
 	makers := make(chan error)
 	waitlist := make(semaphore, 20)
 
+	database, err := gorm.Open("mysql", engine.Config.DB.String())
+
+	if err != nil {
+		panic(err)
+	}
+
+	engine.db = database
+	defer engine.db.Close()
+
 	listen := func() {
 		for err := range makers {
 			if err == nil {
@@ -122,11 +137,11 @@ func (engine *Processor) Begin() {
 		engine.Debugf(spawnLog, message.Verb, message.Object.Identifier(), message.Actor.Identifier())
 
 		if message.Verb == VerbDeleted {
-			go destroy(message, engine.DatabaseConnection, makers, waitlist, &deferred)
+			go destroy(message, engine.db, makers, waitlist, &deferred)
 			continue
 		}
 
-		go create(message, engine.DatabaseConnection, makers, waitlist, &deferred)
+		go create(message, engine.db, makers, waitlist, &deferred)
 	}
 
 	deferred.Wait()

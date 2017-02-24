@@ -16,14 +16,13 @@ func FindDisplaySchedules(runtime *net.RequestRuntime) error {
 	var results []models.DisplaySchedule
 	blueprint := runtime.Blueprint()
 
-	total, err := blueprint.Apply(&results, runtime.Database())
+	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		runtime.Debugf("bad schedule lookup query: %s (page: %d, limit: %d)", err.Error(), blueprint.Page(), blueprint.Limit())
+		runtime.Debugf("bad schedule lookup query: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
 	}
 
-	runtime.Debugf("display schedule find(page: %d, limit: %d)", blueprint.Page(), blueprint.Limit())
 	for _, item := range results {
 		runtime.AddResult(item)
 	}
@@ -40,7 +39,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_ID"))
 	}
 
-	manager := services.UserManager{runtime.Database()}
+	manager := services.UserManager{runtime.DB}
 
 	if admin := manager.IsAdmin(&runtime.User); admin != true {
 		return runtime.AddError(fmt.Errorf("NON_ADMIN"))
@@ -48,7 +47,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 
 	var schedule models.DisplaySchedule
 
-	if err := runtime.Database().First(&schedule, id).Error; err != nil {
+	if err := runtime.First(&schedule, id).Error; err != nil {
 		runtime.Debugf("failed lookup: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("BAD_SCHEDULE"))
 	}
@@ -140,7 +139,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("END_BEFORE_START"))
 	}
 
-	if err := runtime.Database().Model(&schedule).Updates(updates).Error; err != nil {
+	if err := runtime.Model(&schedule).Updates(updates).Error; err != nil {
 		runtime.Debugf("error updating schedule: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED_SAVE"))
 	}

@@ -1,5 +1,5 @@
 hash: 37aa553f28d299e7190e10d72003ea6b02b2f13006402c5a22fb5308e5066317
-updated: 2017-01-03T11:12:58.922211863-05:00
+updated: 2017-02-23T17:06:05.536267086-05:00
 imports:
 - name: cloud.google.com/go
   version: 61a09b43cee7329f083691f0b048d7707f538191
@@ -36,6 +36,8 @@ imports:
   - private/waiter
   - service/s3
   - service/sts
+- name: github.com/gedex/inflector
+  version: 046f2c31204676e3623730ee70fd0964e05822e7
 - name: github.com/go-ini/ini
   version: 6e4869b434bd001f6983749881c7ead3545887d8
 - name: github.com/go-sql-driver/mysql
