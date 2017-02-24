@@ -189,7 +189,7 @@ func FindUser(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_BLUEPRINT"))
 	}
 
-	runtime.SetMeta("count", count)
+	runtime.SetTotal(count)
 
 	for _, u := range users {
 		runtime.AddResult(cleanseUser(u))

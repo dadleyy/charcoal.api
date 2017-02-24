@@ -14,7 +14,7 @@ func CreateGameRound(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
 	}
 
-	id, err := strconv.Atoi(body.Get("game"))
+	id, err := strconv.Atoi(body.Get("game_id"))
 
 	if err != nil {
 		return runtime.AddError(fmt.Errorf("MISSING_GAME_ID"))
@@ -79,8 +79,8 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 
 	manager := services.GameManager{runtime.DB, game}
 
-	if manager.IsMember(runtime.User) == false {
-		runtime.Debugf("user %d is not in game %d, cannot update", runtime.User, game.ID)
+	if manager.IsMember(runtime.User) == false && runtime.IsAdmin() == false {
+		runtime.Debugf("user %d is not in game %d, cannot update", runtime.User.ID, game.ID)
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
@@ -97,6 +97,10 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 			runtime.Debugf("failed vp update: %s", err.Error())
 			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidVicePresident))
 		}
+
+		if e := runtime.First(&round).Error; e != nil {
+			return runtime.AddError(e)
+		}
 	}
 
 	if body.KeyExists("asshole_id") {
@@ -112,6 +116,10 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 			runtime.Debugf("failed ass update: %s", err.Error())
 			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
 		}
+
+		if e := runtime.First(&round).Error; e != nil {
+			return runtime.AddError(e)
+		}
 	}
 
 	if body.KeyExists("president_id") {
@@ -126,6 +134,10 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 		if err := manager.UpdatePresident(president, round); err != nil {
 			runtime.Debugf("failed pressy update: %s", err.Error())
 			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
+		}
+
+		if e := runtime.First(&round).Error; e != nil {
+			return runtime.AddError(e)
 		}
 	}
 
