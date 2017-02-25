@@ -3,6 +3,12 @@ language: go
 go:
   - 1.7.x
 
+services:
+  - mysql
+
+before_install:
+  - mysql -u $DB_USERNAME -h $DB_HOSTNAME --password=$DB_PASSWORD -e 'show tables;' $DB_DATABASE
+
 script: 
   - go get -u github.com/Masterminds/glide
   - glide install
