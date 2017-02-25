@@ -9,8 +9,10 @@ services:
 before_install:
   - mysql -u $DB_USERNAME -h $DB_HOSTNAME --password=$DB_PASSWORD -e 'show tables;' $DB_DATABASE
 
-script: 
+install:
   - go get -u github.com/Masterminds/glide
   - glide install
+
+script: 
   - touch .env
   - go test -v $(go list ./... | grep -v /vendor/)
