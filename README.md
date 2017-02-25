@@ -1,4 +1,6 @@
-# Charcoal [![Build Status](https://travis-ci.org/dadleyy/charcoal.api.svg?branch=master)](https://travis-ci.org/dadleyy/charcoal.api)
+![charcoal logo](https://cloud.githubusercontent.com/assets/1545348/23335841/c0e97bce-fb8b-11e6-8cab-c5af83ed66af.png)
+
+[![Build Status](https://travis-ci.org/dadleyy/charcoal.api.svg?branch=master)](https://travis-ci.org/dadleyy/charcoal.api)
 
 [golang](https://golang.org) backend responsible for persisting information to the database and providing an HTTP/JSON api for [charcoal.ui](https://github.com/dadleyy/charcoal.ui) client consumption.
 
