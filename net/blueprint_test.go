@@ -2,6 +2,6 @@ package net
 
 import "testing"
 
-func TestBlueprintFilters() {
+func TestBlueprintFilters(t *testing.T) {
 
 }
