@@ -33,13 +33,14 @@ func New(method, template, real, contenttype string, reader io.Reader) *TestRout
 
 	database, _ := gorm.Open("mysql", dbconf.String())
 	logger := log.New("miritos")
-	queue := make(chan activity.Message)
+	acts := make(chan activity.Message)
+	socks := make(chan activity.Message)
 
 	stub, _ := http.NewRequest(method, real, reader)
 
 	stub.Header.Add("Content-Type", contenttype)
 
-	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
+	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, acts, socks, nil}
 	route := net.Route{Method: method, Path: template}
 	params, _ := route.Match(method, real)
 	request, _ := server.Request(stub, &params)

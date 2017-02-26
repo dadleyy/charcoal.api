@@ -67,6 +67,7 @@ func TestFindClientAdminBadUser(t *testing.T) {
 
 	logger := log.New("miritos")
 	queue := make(chan activity.Message)
+	socks := make(chan activity.Message)
 
 	buffer := make([]byte, 0)
 	reader := bytes.NewReader(buffer)
@@ -77,7 +78,7 @@ func TestFindClientAdminBadUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
+	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, socks, nil}
 	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
@@ -114,6 +115,7 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 
 	logger := log.New("miritos")
 	queue := make(chan activity.Message)
+	socks := make(chan activity.Message)
 
 	buffer := make([]byte, 0)
 	reader := bytes.NewReader(buffer)
@@ -124,7 +126,7 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
+	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, socks, nil}
 	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)

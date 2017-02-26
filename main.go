@@ -140,9 +140,11 @@ func main() {
 		Config: activity.ProcessorConfig{dbconf},
 	}
 
-	websock := net.SocketRuntime{logger, sockets}
+	if os.Getenv("SOCKETS_ENABLED") == "true" {
+		websock := net.SocketRuntime{logger, sockets}
+		http.Handle("/socket/", &websock)
+	}
 
-	http.Handle("/socket/", &websock)
 	http.Handle("/", &runtime)
 
 	go processor.Begin()

@@ -37,6 +37,9 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 		page = i
 	}
 
+	scope := print.NewScope(out)
+	table := scope.TableName()
+
 	for key := range print.values {
 		filterable := strings.HasPrefix(key, BlueprintFilterStart) && strings.HasSuffix(key, BlueprintFilterEnd)
 		value := strings.SplitN(print.values.Get(key), "(", 2)
@@ -50,26 +53,27 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 
 		if bits := strings.Split(column, "."); len(bits) == 2 {
 			print.Debugf("found an association query: %s - %s(%s)", column, operation, target)
-			scope := print.NewScope(out)
 			other, fk := inflector.Pluralize(bits[0]), fmt.Sprintf("%s_id", inflector.Singularize(bits[0]))
-			join := fmt.Sprintf("JOIN %s ON %s.id = %s.%s", other, other, scope.TableName(), fk)
+			join := fmt.Sprintf("JOIN %s ON %s.id = %s.%s", other, other, table, fk)
 			column = fmt.Sprintf("%s.%s", other, bits[1])
 			cursor = cursor.Joins(join)
 		}
 
+		full := fmt.Sprintf("%s.%s", table, column)
+
 		switch operation {
 		case "in":
 			values := strings.Split(target, ",")
-			cursor = cursor.Where(fmt.Sprintf("%s in (?)", column), values)
+			cursor = cursor.Where(fmt.Sprintf("%s in (?)", full), values)
 		case "lk":
-			query, search := fmt.Sprintf("%s LIKE ?", column), fmt.Sprintf("%%%s%%", target)
+			query, search := fmt.Sprintf("%s LIKE ?", full), fmt.Sprintf("%%%s%%", target)
 			cursor = cursor.Where(query, search)
 		case "eq":
-			cursor = cursor.Where(fmt.Sprintf("%s = ?", column), target)
+			cursor = cursor.Where(fmt.Sprintf("%s = ?", full), target)
 		case "lt":
-			cursor = cursor.Where(fmt.Sprintf("%s < ?", column), target)
+			cursor = cursor.Where(fmt.Sprintf("%s < ?", full), target)
 		case "gt":
-			cursor = cursor.Where(fmt.Sprintf("%s > ?", column), target)
+			cursor = cursor.Where(fmt.Sprintf("%s > ?", full), target)
 		}
 	}
 
