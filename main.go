@@ -2,6 +2,7 @@ package main
 
 import "os"
 import "fmt"
+import "net/http"
 
 import "github.com/joho/godotenv"
 import "github.com/labstack/gommon/log"
@@ -48,6 +49,7 @@ func main() {
 
 	// create the channel that will be used by the server runtime and activity processor
 	stream := make(chan activity.Message, 100)
+	sockets := make(chan activity.Message, 100)
 
 	// create our multiplexer and add our routes
 	mux := net.Multiplexer{}
@@ -125,10 +127,11 @@ func main() {
 
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{
-		Logger: logger,
-		Config: net.RuntimeConfig{dbconf},
-		Queue:  stream,
-		Mux:    &mux,
+		Logger:  logger,
+		Config:  net.RuntimeConfig{dbconf},
+		Queue:   stream,
+		Mux:     &mux,
+		Sockets: sockets,
 	}
 
 	processor := activity.Processor{
@@ -137,13 +140,13 @@ func main() {
 		Config: activity.ProcessorConfig{dbconf},
 	}
 
-	server := net.Server{nil, logger, &runtime}
+	websock := net.SocketRuntime{logger, sockets}
 
-	// start the server & processor
-	logger.Debugf(fmt.Sprintf("starting"))
+	http.Handle("/socket/", &websock)
+	http.Handle("/", &runtime)
+
 	go processor.Begin()
 
-	if err := server.Run(fmt.Sprintf(":%s", port)); err != nil {
-		logger.Errorf("failed startup: %s", err.Error())
-	}
+	logger.Debugf(fmt.Sprintf("starting on port: %s", port))
+	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }

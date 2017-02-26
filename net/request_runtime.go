@@ -1,5 +1,6 @@
 package net
 
+import "strings"
 import "net/http"
 
 import "github.com/jinzhu/gorm"
@@ -21,8 +22,9 @@ type RequestRuntime struct {
 	Client models.Client
 	User   models.User
 
-	queue  chan activity.Message
-	bucket ResponseBucket
+	actvities chan activity.Message
+	sockets   chan activity.Message
+	bucket    ResponseBucket
 }
 
 func (runtime *RequestRuntime) Form() (*forms.Data, error) {
@@ -61,7 +63,21 @@ func (runtime *RequestRuntime) SetTotal(total int) {
 }
 
 func (runtime *RequestRuntime) Publish(msg activity.Message) {
-	runtime.queue <- msg
+	identifiers := strings.Split(msg.Verb, ":")
+
+	if len(identifiers) != 2 {
+		runtime.Debugf("invalid message identifier: %s", msg.Verb)
+		return
+	}
+
+	switch identifiers[0] {
+	case "sockets":
+		runtime.sockets <- msg
+	case "activity":
+		runtime.actvities <- msg
+	default:
+		runtime.Debugf("invalid message identifier: %s", msg.Verb)
+	}
 }
 
 func (runtime *RequestRuntime) Photos() services.PhotoSaver {

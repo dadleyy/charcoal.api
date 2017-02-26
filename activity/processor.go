@@ -1,6 +1,7 @@
 package activity
 
 import "sync"
+import "strings"
 import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
@@ -133,6 +134,13 @@ func (engine *Processor) Begin() {
 	go listen()
 
 	for message := range engine.Queue {
+		identifiers := strings.Split(message.Verb, ":")
+
+		if len(identifiers) != 2 || identifiers[0] != "activity" {
+			engine.Debugf("skipping published message, not activity: %s", message.Verb)
+			continue
+		}
+
 		deferred.Add(1)
 		engine.Debugf(spawnLog, message.Verb, message.Object.Identifier(), message.Actor.Identifier())
 

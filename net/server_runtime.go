@@ -16,10 +16,12 @@ type RuntimeConfig struct {
 }
 
 type ServerRuntime struct {
-	Logger *log.Logger
-	Config RuntimeConfig
-	Queue  chan activity.Message
-	Mux    *Multiplexer
+	*log.Logger
+
+	Config  RuntimeConfig
+	Queue   chan activity.Message
+	Sockets chan activity.Message
+	Mux     *Multiplexer
 }
 
 // request
@@ -52,8 +54,9 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 		Logger:    server.Logger,
 		DB:        database,
 
-		queue:  server.Queue,
-		bucket: bucket,
+		actvities: server.Queue,
+		sockets:   server.Sockets,
+		bucket:    bucket,
 	}
 
 	return runtime, nil
@@ -64,6 +67,11 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 // Used by the http.Server instance to handle requests. always renders json
 func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *http.Request) {
 	handler, params, found := server.Mux.Find(request.Method, request.URL.Path)
+
+	if response.Header().Get("status") != "" {
+		server.Debugf("has status: %v", response.Header().Get("status"))
+		return
+	}
 
 	// not found
 	if found == false {

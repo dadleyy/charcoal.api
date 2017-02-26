@@ -28,7 +28,7 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 		clientmgr := services.UserClientManager{runtime.DB}
 
 		if err := clientmgr.Validate(bearer, &client); err != nil {
-			runtime.Debugf("unable to validate bearer \"%s\" for client \"%d", bearer, client.ID)
+			runtime.Debugf("bad bearer - client \"%d", client.ID)
 			return handler(runtime)
 		}
 

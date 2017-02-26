@@ -3,9 +3,11 @@ package routes
 import "fmt"
 import "strconv"
 import "github.com/albrow/forms"
+
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/errors"
+import "github.com/dadleyy/charcoal.api/activity"
 
 const emailDomainRestriction = "restricted_email_domains"
 
@@ -128,6 +130,10 @@ func UpdateSystem(runtime *net.RequestRuntime) error {
 
 func PrintSystem(runtime *net.RequestRuntime) error {
 	var settings models.SystemSettings
+
+	if c := runtime.Client; c.ID >= 1 {
+		runtime.Publish(activity.Message{&c, &c, "sockets:check"})
+	}
 
 	if admin := runtime.IsAdmin(); admin != true {
 		runtime.Debugf("non-admin access of system route: %d", runtime.User.ID)

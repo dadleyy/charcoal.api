@@ -1,5 +1,5 @@
 hash: 37aa553f28d299e7190e10d72003ea6b02b2f13006402c5a22fb5308e5066317
-updated: 2017-02-23T17:06:05.536267086-05:00
+updated: 2017-02-25T20:54:55.401844397-05:00
 imports:
 - name: cloud.google.com/go
   version: 61a09b43cee7329f083691f0b048d7707f538191
@@ -46,6 +46,8 @@ imports:
   version: 98fa357170587e470c5f27d3c3ea0947b71eb455
   subpackages:
   - proto
+- name: github.com/gorilla/websocket
+  version: 3f3e394da2b801fbe732a935ef40724762a67a07
 - name: github.com/jinzhu/gorm
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
   subpackages:
