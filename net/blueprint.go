@@ -77,8 +77,20 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 		}
 	}
 
+	direction := "DESC"
+
+	if o := print.values.Get("sort_order"); o == "asc" || o == "ASC" {
+		direction = "ASC"
+	}
+
+	sort := fmt.Sprintf("id %s", direction)
+
+	if on := print.values.Get("sort_on"); len(on) >= 1 {
+		sort = fmt.Sprintf("%s %s", on, direction)
+	}
+
 	// now that we've chained all our filters, execute the db query and return the error, if any
-	if e := cursor.Limit(limit).Offset(page * limit).Find(out).Error; e != nil {
+	if e := cursor.Limit(limit).Offset(page * limit).Order(sort).Find(out).Error; e != nil {
 		return -1, e
 	}
 
