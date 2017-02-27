@@ -8,6 +8,7 @@ import "encoding/json"
 import "golang.org/x/oauth2"
 import "github.com/jinzhu/gorm"
 import "golang.org/x/oauth2/google"
+import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/models"
 
@@ -22,6 +23,7 @@ type GoogleUserInfo struct {
 
 type GoogleAuthentication struct {
 	*gorm.DB
+	*log.Logger
 }
 
 type GoogleAuthenticationResult struct {
@@ -138,6 +140,8 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 		Email:       info.Email,
 		Name:        info.Name,
 	}
+
+	manager.Debugf("authenticated google user: name[%s], id[%s]", info.Name, info.ID)
 
 	if err := manager.FirstOrCreate(&result.GoogleAccount, models.GoogleAccount{GoogleID: info.ID}).Error; err != nil {
 		return GoogleAuthenticationResult{}, err
