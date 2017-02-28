@@ -44,12 +44,18 @@ func (m *GameManager) UpdateRound(round *models.GameRound, rankings url.Values) 
 
 		m.Debugf("will be performing update on %d: %s -> [%v]", round.ID, rank, value[0])
 
-		if err == nil {
-			updates[rank] = &id
+		if err != nil {
+			updates[rank] = nil
 			continue
 		}
 
-		updates[rank] = nil
+		u := models.User{Common: models.Common{ID: uint(id)}}
+
+		if valid := m.IsMember(u); valid != true {
+			return fmt.Errorf("user %d not a member of game %d", u.ID, m.Game.ID)
+		}
+
+		updates[rank] = &id
 	}
 
 	if e := m.Model(round).Update(updates).Error; e != nil {
