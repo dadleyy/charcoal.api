@@ -43,7 +43,7 @@ func before(database *gorm.DB) {
 	database.Create(&models.ClientAdmin{User: u.ID, Client: c.ID})
 }
 
-func TestFindClientAdminBadUser(t *testing.T) {
+func Test_FindClientAdmins_BadUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -84,14 +84,13 @@ func TestFindClientAdminBadUser(t *testing.T) {
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
 
 	if err := FindClientAdmins(&request); err != nil {
-		t.Log("successfully errored out w/o valid client")
 		return
 	}
 
 	t.Fatalf("should not have passed w/o error")
 }
 
-func TestFindClientAdminsValidUser(t *testing.T) {
+func Test_FindClientAdmins_ValidUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -136,6 +135,4 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-
-	t.Log("successfully passed w/ valid user")
 }

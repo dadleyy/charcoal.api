@@ -35,11 +35,10 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 	}
 
 	if god := runtime.IsAdmin(); god != true {
-		admin := 0
-		cursor := runtime.Model(&models.ClientAdmin{}).Where("client = ? AND user = ?", id, runtime.User.ID)
+		admin := models.ClientAdmin{}
 
-		if _ = cursor.Count(&admin); admin == 0 {
-			return runtime.AddError(fmt.Errorf("UNAUTHORIZED: user[%d] client[%d]", runtime.User.ID, id))
+		if e := runtime.Where("client = ? AND user = ?", id, runtime.User.ID).First(&admin).Error; e != nil {
+			return runtime.AddError(fmt.Errorf("UNAUTHORIZED: user[%d] client[%d] (%s)", runtime.User.ID, id, e.Error()))
 		}
 	}
 
