@@ -84,6 +84,11 @@ func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 	return services.PhotoSaver{runtime.DB, runtime.FileSaver}
 }
 
+func (runtime *RequestRuntime) Games() services.GameManager {
+	g := models.Game{}
+	return services.GameManager{runtime.DB, runtime.Logger, runtime.sockets, g}
+}
+
 func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
 	cursor := runtime.DB
 

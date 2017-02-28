@@ -5,7 +5,6 @@ import "strconv"
 
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/services"
 
 func DestroyGameMembership(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")
@@ -42,9 +41,10 @@ func CreateGameMembership(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
 	}
 
-	game, user := models.Game{}, models.User{}
+	user := models.User{}
+	manager := runtime.Games()
 
-	if id, err := strconv.Atoi(body.Get("game_id")); err != nil || runtime.First(&game, id).Error != nil {
+	if id, err := strconv.Atoi(body.Get("game_id")); err != nil || runtime.First(&manager.Game, id).Error != nil {
 		runtime.Debugf("invalid game id: %v", body.Get("game_id"))
 		return runtime.AddError(fmt.Errorf("INVALID_GAME"))
 	}
@@ -53,8 +53,6 @@ func CreateGameMembership(runtime *net.RequestRuntime) error {
 		runtime.Debugf("invalid user id: %v", body.Get("user_id"))
 		return runtime.AddError(fmt.Errorf("INVALID_USER"))
 	}
-
-	manager := services.GameManager{runtime.DB, game}
 
 	if err := manager.AddUser(user); err != nil {
 		runtime.Debugf("failed adding user: %s", err.Error())
