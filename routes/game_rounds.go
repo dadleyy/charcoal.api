@@ -91,6 +91,35 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 	return nil
 }
 
+func DestroyGameRound(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
+	}
+
+	var round models.GameRound
+
+	if e := runtime.First(&round, id).Error; e != nil {
+		runtime.Infof("round not found: %d (%s)", id, e.Error())
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	manager := runtime.Games(round.GameID)
+
+	if manager.IsMember(runtime.User) == false {
+		runtime.Infof("user %d not member of game %d", runtime.User.ID, round.GameID)
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if e := runtime.Delete(&round).Error; e != nil {
+		runtime.Infof("failed deletion of round %d: %s", round.ID, e.Error())
+		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+	}
+
+	return nil
+}
+
 func FindGameRounds(runtime *net.RequestRuntime) error {
 	cursor, results := runtime.Model(&models.GameRound{}), make([]models.GameRound, 0)
 

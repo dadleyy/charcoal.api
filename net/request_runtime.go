@@ -84,8 +84,13 @@ func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 	return services.PhotoSaver{runtime.DB, runtime.FileSaver}
 }
 
-func (runtime *RequestRuntime) Games() services.GameManager {
+func (runtime *RequestRuntime) Games(ids ...uint) services.GameManager {
 	g := models.Game{}
+
+	if len(ids) == 1 {
+		runtime.First(&g, ids[0])
+	}
+
 	return services.GameManager{runtime.DB, runtime.Logger, runtime.sockets, g}
 }
 
