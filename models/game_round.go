@@ -12,5 +12,5 @@ type GameRound struct {
 }
 
 func (r *GameRound) Public() interface{} {
-	return r
+	return *r
 }
