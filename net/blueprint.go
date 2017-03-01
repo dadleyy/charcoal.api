@@ -13,6 +13,7 @@ import "github.com/dadleyy/charcoal.api/util"
 
 const BlueprintDefaultLimit = 100
 const BlueprintMaxLimit = 500
+const BlueprintMinLimit = 1
 const BlueprintFilterStart = "filter["
 const BlueprintFilterEnd = "]"
 
@@ -21,6 +22,14 @@ type Blueprint struct {
 	*log.Logger
 
 	values url.Values
+}
+
+func (print *Blueprint) Limit() int {
+	if i, err := strconv.Atoi(print.values.Get("limit")); err == nil {
+		return util.MaxInt(util.MinInt(BlueprintMaxLimit, i), BlueprintMinLimit)
+	}
+
+	return BlueprintDefaultLimit
 }
 
 func (print *Blueprint) Apply(out interface{}) (int, error) {

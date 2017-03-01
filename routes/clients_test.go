@@ -5,21 +5,22 @@ import "bytes"
 import "testing"
 import "github.com/jinzhu/gorm"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/routes/testutils"
+import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
 func clean(db *gorm.DB) {
-	db.Exec("DELETE FROM user_role_mappings where id > 1")
-	db.Exec("DELETE FROM client_admins where id > 1")
-	db.Exec("DELETE FROM clients where id > 1")
-	db.Exec("DELETE FROM users where id > 1")
-	db.Exec("DELETE FROM client_tokens where id > 1")
+	db.Exec("DELETE FROM user_role_mappings where id > 0")
+	db.Exec("DELETE FROM client_admins where id > 0")
+	db.Exec("DELETE FROM client_tokens where id > 0")
+
+	db.Exec("DELETE FROM clients where id > 0")
+	db.Exec("DELETE FROM users where id > 0")
 }
 
-func Test_UpdateClient_GodUser(t *testing.T) {
+func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 
-	client, user := models.Common{ID: 1002}, models.Common{ID: 2002}
-	context := testutils.New("PATCH", "clients/:id", fmt.Sprintf("/clients/%d", client.ID), "application/json", reader)
+	client, user := models.Common{ID: 1102}, models.Common{ID: 2002}
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
 	defer context.Database.Close()
 	defer clean(context.Database)
@@ -55,12 +56,12 @@ func Test_UpdateClient_GodUser(t *testing.T) {
 	}
 }
 
-func Test_UpdateClient_AuthorizedUser(t *testing.T) {
+func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 
-	client, user := models.Common{ID: 1002}, models.Common{ID: 2002}
+	client, user := models.Common{ID: 1002}, models.Common{ID: 4002}
 
-	context := testutils.New("PATCH", "clients/:id", fmt.Sprintf("/clients/%d", client.ID), "application/json", reader)
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
 	defer context.Database.Close()
 	defer clean(context.Database)
@@ -99,10 +100,10 @@ func Test_UpdateClient_AuthorizedUser(t *testing.T) {
 	}
 }
 
-func Test_UpdateClient_RandomClientAuthorizedUser(t *testing.T) {
+func Test_Routes_Clients_UpdateClient_RandomClientAuthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
-	client, user, target := models.Common{ID: 1002}, models.Common{ID: 2002}, models.Common{ID: 3002}
-	context := testutils.New("PATCH", "clients/:id", fmt.Sprintf("/clients/%d", target.ID), "application/json", reader)
+	client, user, target := models.Common{ID: 1102}, models.Common{ID: 6002}, models.Common{ID: 3002}
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", target.ID), reader)
 
 	defer context.Database.Close()
 	defer clean(context.Database)
@@ -145,10 +146,10 @@ func Test_UpdateClient_RandomClientAuthorizedUser(t *testing.T) {
 	}
 }
 
-func Test_UpdateClient_UnauthorizedUser(t *testing.T) {
+func Test_Routes_Clients_UpdateClient_UnauthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 	client, user := models.Common{ID: 1005}, models.Common{ID: 2005}
-	context := testutils.New("PATCH", "clients/:id", fmt.Sprintf("/clients/%d", client.ID), "application/json", reader)
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
 	defer context.Database.Close()
 	defer clean(context.Database)

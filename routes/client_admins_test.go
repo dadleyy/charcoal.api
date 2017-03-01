@@ -16,11 +16,12 @@ import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
 func after(db *gorm.DB) {
-	db.Exec("DELETE FROM user_role_mappings where id > 1")
-	db.Exec("DELETE FROM client_admins where id > 1")
-	db.Exec("DELETE FROM client_tokens where id > 1")
-	db.Exec("DELETE FROM clients where id > 1")
-	db.Exec("DELETE FROM users where id > 1")
+	db.Exec("DELETE FROM user_role_mappings where id > 0")
+	db.Exec("DELETE FROM client_admins where id > 0")
+	db.Exec("DELETE FROM client_tokens where id > 0")
+
+	db.Exec("DELETE FROM clients where id > 0")
+	db.Exec("DELETE FROM users where id > 0")
 }
 
 func before(database *gorm.DB) {
@@ -43,7 +44,7 @@ func before(database *gorm.DB) {
 	database.Create(&models.ClientAdmin{User: u.ID, Client: c.ID})
 }
 
-func Test_FindClientAdmins_BadUser(t *testing.T) {
+func Test_Routes_ClientAdmins_FindClientAdmins_BadUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -90,7 +91,7 @@ func Test_FindClientAdmins_BadUser(t *testing.T) {
 	t.Fatalf("should not have passed w/o error")
 }
 
-func Test_FindClientAdmins_ValidUser(t *testing.T) {
+func Test_Routes_ClientAdmins_FindClientAdmins_ValidUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{

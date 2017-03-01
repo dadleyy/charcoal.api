@@ -55,11 +55,14 @@ func (runtime *RequestRuntime) AddError(list ...error) error {
 		return nil
 	}
 
+	msgs := make([]string, 0, len(list))
+
 	for _, e := range list {
 		runtime.bucket.errors = append(runtime.bucket.errors, e)
+		msgs = append(msgs, e.Error())
 	}
 
-	return fmt.Errorf("many errors")
+	return fmt.Errorf(strings.Join(msgs, " | "))
 }
 
 func (runtime *RequestRuntime) appendErrors(identifier string, values ...string) error {

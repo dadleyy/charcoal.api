@@ -2,5 +2,5 @@ package net
 
 import "testing"
 
-func TestBlueprintGeneration(t *testing.T) {
+func Test_Net_RequestRuntime_BlueprintGeneration(t *testing.T) {
 }
