@@ -83,14 +83,16 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	}
 
 	clientmgr := services.UserClientManager{runtime.DB}
+	token, err := clientmgr.Associate(&user, &runtime.Client)
 
-	if _, err := clientmgr.Associate(&user, &runtime.Client); err != nil {
+	if err != nil {
 		runtime.Debugf("unable to associate: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("FAILED"))
 	}
 
 	runtime.Debugf("associated user[%d] with client[%d]", user.ID, runtime.Client.ID)
 	runtime.AddResult(cleanseUser(user))
+	runtime.SetMeta("token", token.Token)
 
 	return nil
 }
