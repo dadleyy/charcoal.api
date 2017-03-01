@@ -5,7 +5,6 @@ import "strconv"
 import "github.com/albrow/forms"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/services"
 
 func CreateGameRound(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
@@ -65,87 +64,58 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
 	}
 
-	round, game := models.GameRound{}, models.Game{}
+	manager := runtime.Games()
+	round := models.GameRound{}
 
 	if err := runtime.First(&round, id).Error; err != nil {
 		runtime.Debugf("unable to find round[%d]: %s", id, err.Error())
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	if err := runtime.First(&game, round.GameID).Error; err != nil {
+	if err := runtime.First(&manager.Game, round.GameID).Error; err != nil {
 		runtime.Debugf("unable to find game[%d]: %s", round.GameID, err.Error())
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	manager := services.GameManager{runtime.DB, game}
-
 	if manager.IsMember(runtime.User) == false && runtime.IsAdmin() == false {
-		runtime.Debugf("user %d is not in game %d, cannot update", runtime.User.ID, game.ID)
+		runtime.Debugf("user %d is not in game %d, cannot update", runtime.User.ID, manager.Game.ID)
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	if body.KeyExists("vice_president_id") {
-		vp, err := strconv.Atoi(body.Get("vice_president_id"))
-
-		if err != nil {
-			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidVicePresident))
-		}
-
-		runtime.Debugf("up. vp of game[%d], round[%d] to user[%d]", game.ID, round.ID, vp)
-
-		if err := manager.UpdateVicePresident(vp, round); err != nil {
-			runtime.Debugf("failed vp update: %s", err.Error())
-			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidVicePresident))
-		}
-
-		if e := runtime.First(&round).Error; e != nil {
-			return runtime.AddError(e)
-		}
-	}
-
-	if body.KeyExists("asshole_id") {
-		ass, err := strconv.Atoi(body.Get("asshole_id"))
-
-		if err != nil {
-			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
-		}
-
-		runtime.Debugf("up. ass of game[%d], round[%d] to user[%d]", game.ID, round.ID, ass)
-
-		if err := manager.UpdateAsshole(ass, round); err != nil {
-			runtime.Debugf("failed ass update: %s", err.Error())
-			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
-		}
-
-		if e := runtime.First(&round).Error; e != nil {
-			return runtime.AddError(e)
-		}
-	}
-
-	if body.KeyExists("president_id") {
-		president, err := strconv.Atoi(body.Get("president_id"))
-
-		if err != nil {
-			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
-		}
-
-		runtime.Debugf("up. pressy of game[%d], round[%d] to user[%d]", game.ID, round.ID, president)
-
-		if err := manager.UpdatePresident(president, round); err != nil {
-			runtime.Debugf("failed pressy update: %s", err.Error())
-			return runtime.AddError(fmt.Errorf(services.GameManagerInvalidPresident))
-		}
-
-		if e := runtime.First(&round).Error; e != nil {
-			return runtime.AddError(e)
-		}
-	}
-
-	if e := runtime.First(&round).Error; e != nil {
-		runtime.AddError(e)
+	if e := manager.UpdateRound(&round, body.Values); e != nil {
+		return runtime.AddError(e)
 	}
 
 	runtime.AddResult(round.Public())
+
+	return nil
+}
+
+func DestroyGameRound(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+
+	if ok != true {
+		return runtime.AddError(fmt.Errorf("BAD_ID"))
+	}
+
+	var round models.GameRound
+
+	if e := runtime.First(&round, id).Error; e != nil {
+		runtime.Infof("round not found: %d (%s)", id, e.Error())
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	manager := runtime.Games(round.GameID)
+
+	if manager.IsMember(runtime.User) == false {
+		runtime.Infof("user %d not member of game %d", runtime.User.ID, round.GameID)
+		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+	}
+
+	if e := runtime.Delete(&round).Error; e != nil {
+		runtime.Infof("failed deletion of round %d: %s", round.ID, e.Error())
+		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+	}
 
 	return nil
 }

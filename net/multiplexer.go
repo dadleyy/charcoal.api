@@ -1,5 +1,8 @@
 package net
 
+type HandlerFunc func(*RequestRuntime) error
+type MiddlewareFunc func(HandlerFunc) HandlerFunc
+
 type Multiplexer struct {
 	routes     []Route
 	middleware []MiddlewareFunc

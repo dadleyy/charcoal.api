@@ -51,6 +51,7 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 	queries.Set("client_id", clientid)
 	queries.Set("scope", "https://www.googleapis.com/auth/plus.login email")
 	queries.Set("access_type", "offline")
+	queries.Set("prompt", "consent")
 
 	// set the state that gets sent to google (which will get sent back to us) to the client id
 	// proved to us that represents the client opening this dialog.
@@ -93,7 +94,7 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	authman := services.GoogleAuthentication{runtime.DB}
+	authman := services.GoogleAuthentication{runtime.DB, runtime.Logger}
 
 	result, err := authman.Process(&client, code)
 

@@ -81,8 +81,12 @@ func (engine *UserClientManager) Associate(user *models.User, client *models.Cli
 	var result models.ClientToken
 	var rsapriv *rsa.PrivateKey
 
+	if client == nil || user == nil {
+		return models.ClientToken{}, fmt.Errorf("INVALID_RECORDS")
+	}
+
 	if client.ID == 0 {
-		return result, errors.New("BAD_CLIENT_ID")
+		return models.ClientToken{}, fmt.Errorf("BAD_CLIENT_ID")
 	}
 
 	result = models.ClientToken{

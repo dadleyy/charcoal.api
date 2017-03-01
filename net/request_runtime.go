@@ -1,5 +1,7 @@
 package net
 
+import "fmt"
+import "strings"
 import "net/http"
 
 import "github.com/jinzhu/gorm"
@@ -21,8 +23,9 @@ type RequestRuntime struct {
 	Client models.Client
 	User   models.User
 
-	queue  chan activity.Message
-	bucket ResponseBucket
+	actvities chan activity.Message
+	sockets   chan activity.Message
+	bucket    ResponseBucket
 }
 
 func (runtime *RequestRuntime) Form() (*forms.Data, error) {
@@ -47,9 +50,41 @@ func (runtime *RequestRuntime) Proxy(url string) {
 	runtime.bucket.proxy = url
 }
 
-func (runtime *RequestRuntime) AddError(e error) error {
-	runtime.bucket.errors = append(runtime.bucket.errors, e)
-	return e
+func (runtime *RequestRuntime) AddError(list ...error) error {
+	if len(list) == 0 {
+		return nil
+	}
+
+	msgs := make([]string, 0, len(list))
+
+	for _, e := range list {
+		runtime.bucket.errors = append(runtime.bucket.errors, e)
+		msgs = append(msgs, e.Error())
+	}
+
+	return fmt.Errorf(strings.Join(msgs, " | "))
+}
+
+func (runtime *RequestRuntime) appendErrors(identifier string, values ...string) error {
+	result := make([]error, 0, len(values))
+
+	for _, f := range values {
+		result = append(result, fmt.Errorf("%s:%s", identifier, f))
+	}
+
+	return runtime.AddError(result...)
+}
+
+func (runtime *RequestRuntime) LogicError(reasons ...string) error {
+	return runtime.appendErrors("reason", reasons...)
+}
+
+func (runtime *RequestRuntime) FieldError(fields ...string) error {
+	return runtime.appendErrors("field", fields...)
+}
+
+func (runtime *RequestRuntime) ServerError() error {
+	return runtime.AddError(fmt.Errorf("reason:server-error"))
 }
 
 func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
@@ -61,11 +96,35 @@ func (runtime *RequestRuntime) SetTotal(total int) {
 }
 
 func (runtime *RequestRuntime) Publish(msg activity.Message) {
-	runtime.queue <- msg
+	identifiers := strings.Split(msg.Verb, ":")
+
+	if len(identifiers) != 2 {
+		runtime.Debugf("invalid message identifier: %s", msg.Verb)
+		return
+	}
+
+	switch identifiers[0] {
+	case "sockets":
+		runtime.sockets <- msg
+	case "activity":
+		runtime.actvities <- msg
+	default:
+		runtime.Debugf("invalid message identifier: %s", msg.Verb)
+	}
 }
 
 func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 	return services.PhotoSaver{runtime.DB, runtime.FileSaver}
+}
+
+func (runtime *RequestRuntime) Games(ids ...uint) services.GameManager {
+	g := models.Game{}
+
+	if len(ids) == 1 {
+		runtime.First(&g, ids[0])
+	}
+
+	return services.GameManager{runtime.DB, runtime.Logger, runtime.sockets, g}
 }
 
 func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {

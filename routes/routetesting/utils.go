@@ -1,4 +1,4 @@
-package testutils
+package routetesting
 
 import "os"
 import "io"
@@ -19,7 +19,15 @@ type TestRouteUtil struct {
 	Request  net.RequestRuntime
 }
 
-func New(method, template, real, contenttype string, reader io.Reader) *TestRouteUtil {
+func NewPost(template string, reader io.Reader) *TestRouteUtil {
+	return NewRequest("POST", template, template, reader)
+}
+
+func NewPatch(template string, real string, reader io.Reader) *TestRouteUtil {
+	return NewRequest("PATCH", template, real, reader)
+}
+
+func NewRequest(method string, template string, real string, reader io.Reader) *TestRouteUtil {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -33,13 +41,14 @@ func New(method, template, real, contenttype string, reader io.Reader) *TestRout
 
 	database, _ := gorm.Open("mysql", dbconf.String())
 	logger := log.New("miritos")
-	queue := make(chan activity.Message)
+	acts := make(chan activity.Message)
+	socks := make(chan activity.Message)
 
 	stub, _ := http.NewRequest(method, real, reader)
 
-	stub.Header.Add("Content-Type", contenttype)
+	stub.Header.Add("Content-Type", "application/json")
 
-	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
+	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, acts, socks, nil}
 	route := net.Route{Method: method, Path: template}
 	params, _ := route.Match(method, real)
 	request, _ := server.Request(stub, &params)

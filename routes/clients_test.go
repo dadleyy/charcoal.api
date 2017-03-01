@@ -1,26 +1,29 @@
 package routes
 
+import "fmt"
 import "bytes"
 import "testing"
 import "github.com/jinzhu/gorm"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/routes/testutils"
+import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
 func clean(db *gorm.DB) {
-	db.Exec("DELETE FROM user_role_mappings where id > 1")
-	db.Exec("DELETE FROM client_admins where id > 1")
-	db.Exec("DELETE FROM clients where id > 1")
-	db.Exec("DELETE FROM users where id > 1")
-	db.Exec("DELETE FROM client_tokens where id > 1")
+	db.Exec("DELETE FROM user_role_mappings where id > 0")
+	db.Exec("DELETE FROM client_admins where id > 0")
+	db.Exec("DELETE FROM client_tokens where id > 0")
+
+	db.Exec("DELETE FROM clients where id > 0")
+	db.Exec("DELETE FROM users where id > 0")
 }
 
-func TestUpdateClientRouteGodUser(t *testing.T) {
-	body := []byte("{\"name\": \"updated-name\"}")
-	reader := bytes.NewReader(body)
-	context := testutils.New("PATCH", "clients/:id", "/clients/1337", "application/json", reader)
-	defer context.Database.Close()
+func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
+	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 
-	db := context.Database
+	client, user := models.Common{ID: 1102}, models.Common{ID: 2002}
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
+
+	defer context.Database.Close()
+	defer clean(context.Database)
 
 	info := struct {
 		name  string
@@ -28,7 +31,7 @@ func TestUpdateClientRouteGodUser(t *testing.T) {
 	}{"test1", "test@test.com"}
 
 	context.Request.Client = models.Client{
-		Common:       models.Common{ID: 1337},
+		Common:       client,
 		Name:         "clients-test1",
 		ClientID:     "123123123",
 		ClientSecret: "client-admin-routes-secret",
@@ -36,17 +39,14 @@ func TestUpdateClientRouteGodUser(t *testing.T) {
 	}
 
 	context.Request.User = models.User{
-		Common: models.Common{ID: 9999},
+		Common: user,
 		Name:   &info.name,
 		Email:  &info.email,
 	}
 
-	db.Create(&context.Request.Client)
-	db.Create(&context.Request.User)
-	mapping := models.UserRoleMapping{User: context.Request.User.ID, Role: 1}
-	db.Create(&mapping)
-
-	defer clean(db)
+	context.Database.Create(&context.Request.Client)
+	context.Database.Create(&context.Request.User)
+	context.Database.Create(&models.UserRoleMapping{User: context.Request.User.ID, Role: 1})
 
 	err := UpdateClient(&context.Request)
 
@@ -54,17 +54,17 @@ func TestUpdateClientRouteGodUser(t *testing.T) {
 		t.Fatalf("User w/ God privileges was unable to update client")
 		return
 	}
-
-	t.Log("successfully updated client w/ God privs")
 }
 
-func TestUpdateClientRouteAuthorizedUser(t *testing.T) {
-	body := []byte("{\"name\": \"updated-name\"}")
-	reader := bytes.NewReader(body)
-	context := testutils.New("PATCH", "clients/:id", "/clients/1337", "application/json", reader)
-	defer context.Database.Close()
+func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
+	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 
-	db := context.Database
+	client, user := models.Common{ID: 1002}, models.Common{ID: 4002}
+
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
+
+	defer context.Database.Close()
+	defer clean(context.Database)
 
 	info := struct {
 		name  string
@@ -72,25 +72,25 @@ func TestUpdateClientRouteAuthorizedUser(t *testing.T) {
 	}{"test1", "test@test.com"}
 
 	context.Request.Client = models.Client{
-		Common:       models.Common{ID: 1337},
+		Common:       client,
 		Name:         "clients-test1",
 		ClientID:     "test1-id",
 		ClientSecret: "test1-secret",
 	}
 
 	context.Request.User = models.User{
-		Common: models.Common{ID: 9999},
+		Common: user,
 		Name:   &info.name,
 		Email:  &info.email,
 	}
 
-	db.Create(&context.Request.Client)
-	db.Create(&context.Request.User)
+	context.Database.Create(&context.Request.Client)
+	context.Database.Create(&context.Request.User)
 
-	mapping := models.ClientAdmin{Client: 1337, User: 9999}
-	db.Create(&mapping)
-
-	defer clean(db)
+	if e := context.Database.Create(&models.ClientAdmin{Client: client.ID, User: user.ID}).Error; e != nil {
+		t.Fatalf(fmt.Sprintf("couldn't create client admin fixture: %s", e.Error()))
+		return
+	}
 
 	err := UpdateClient(&context.Request)
 
@@ -98,51 +98,45 @@ func TestUpdateClientRouteAuthorizedUser(t *testing.T) {
 		t.Fatalf("authorized user unable to update client: %s", err.Error())
 		return
 	}
-
-	t.Logf("client was updated: %s", context.Request.Client.Name)
 }
 
-func TestUpdateClientRouteRandomClientAuthorizedUser(t *testing.T) {
-	body := []byte("{\"name\": \"updated-name\"}")
-	reader := bytes.NewReader(body)
-	context := testutils.New("PATCH", "clients/:id", "/clients/789", "application/json", reader)
-	defer context.Database.Close()
+func Test_Routes_Clients_UpdateClient_RandomClientAuthorizedUser(t *testing.T) {
+	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
+	client, user, target := models.Common{ID: 1102}, models.Common{ID: 6002}, models.Common{ID: 3002}
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", target.ID), reader)
 
-	db := context.Database
+	defer context.Database.Close()
+	defer clean(context.Database)
 
 	info := struct {
 		name  string
 		email string
 	}{"test1", "test@test.com"}
 
-	context.Request.Client = models.Client{
-		Common:       models.Common{ID: 456},
+	context.Database.Create(&models.Client{
+		Common:       client,
 		Name:         "clients-test1",
 		ClientID:     "test1-id",
 		ClientSecret: "test1-secret",
-	}
+	})
 
-	target := models.Client{
-		Common:       models.Common{ID: 789},
+	context.Database.Create(&models.Client{
+		Common:       target,
 		Name:         "clients",
 		ClientID:     "test2-id",
 		ClientSecret: "test2-secret",
-	}
+	})
 
-	context.Request.User = models.User{
-		Common: models.Common{ID: 123},
+	context.Database.Create(&models.User{
+		Common: user,
 		Name:   &info.name,
 		Email:  &info.email,
-	}
+	})
 
-	db.Create(&target)
-	db.Create(&context.Request.Client)
-	db.Create(&context.Request.User)
+	context.Request.User = models.User{Common: user}
+	context.Request.Client = models.Client{Common: client}
 
-	mapping := models.ClientAdmin{Client: 789, User: 123}
-	db.Create(&mapping)
-
-	defer clean(db)
+	context.Database.Create(&models.ClientAdmin{Client: target.ID, User: user.ID})
 
 	err := UpdateClient(&context.Request)
 
@@ -150,17 +144,15 @@ func TestUpdateClientRouteRandomClientAuthorizedUser(t *testing.T) {
 		t.Fatalf("authorized user unable to update client: %s", err.Error())
 		return
 	}
-
-	t.Logf("client was updated: %s", context.Request.Client.Name)
 }
 
-func TestUpdateClientRouteUnauthorizedUser(t *testing.T) {
-	body := []byte("{\"name\": \"updated-name\"}")
-	reader := bytes.NewReader(body)
-	context := testutils.New("PATCH", "clients/:id", "/clients/1337", "application/json", reader)
-	defer context.Database.Close()
+func Test_Routes_Clients_UpdateClient_UnauthorizedUser(t *testing.T) {
+	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
+	client, user := models.Common{ID: 1005}, models.Common{ID: 2005}
+	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
-	db := context.Database
+	defer context.Database.Close()
+	defer clean(context.Database)
 
 	info := struct {
 		name  string
@@ -168,29 +160,20 @@ func TestUpdateClientRouteUnauthorizedUser(t *testing.T) {
 	}{"test1", "test@test.com"}
 
 	context.Request.Client = models.Client{
-		Common:       models.Common{ID: 1337},
+		Common:       client,
 		Name:         "clients-test1",
 		ClientID:     "test1-id",
 		ClientSecret: "test1-secret",
 	}
 
 	context.Request.User = models.User{
-		Common: models.Common{ID: 9999},
+		Common: user,
 		Name:   &info.name,
 		Email:  &info.email,
 	}
 
-	db.Create(&context.Request.Client)
-	db.Create(&context.Request.User)
-
-	clean := func() {
-		db.Exec("DELETE FROM client_admins where id > 1")
-		db.Exec("DELETE FROM clients where id > 1")
-		db.Exec("DELETE FROM users where id > 1")
-		db.Exec("DELETE FROM client_tokens where id > 1")
-	}
-
-	defer clean()
+	context.Database.Create(&context.Request.Client)
+	context.Database.Create(&context.Request.User)
 
 	err := UpdateClient(&context.Request)
 
@@ -198,6 +181,4 @@ func TestUpdateClientRouteUnauthorizedUser(t *testing.T) {
 		t.Fatalf("User w/o God privileges was able to update client w/o access")
 		return
 	}
-
-	t.Logf("successfully blocked attempt to update client w/o access")
 }

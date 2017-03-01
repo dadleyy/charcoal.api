@@ -2,6 +2,7 @@ package main
 
 import "os"
 import "fmt"
+import "net/http"
 
 import "github.com/joho/godotenv"
 import "github.com/labstack/gommon/log"
@@ -48,6 +49,7 @@ func main() {
 
 	// create the channel that will be used by the server runtime and activity processor
 	stream := make(chan activity.Message, 100)
+	sockets := make(chan activity.Message, 100)
 
 	// create our multiplexer and add our routes
 	mux := net.Multiplexer{}
@@ -113,6 +115,7 @@ func main() {
 	mux.POST("/game-rounds", routes.CreateGameRound, middleware.RequireUser)
 	mux.GET("/game-rounds", routes.FindGameRounds, middleware.RequireUser)
 	mux.PATCH("/game-rounds/:id", routes.UpdateGameRound, middleware.RequireUser)
+	mux.DELETE("/game-rounds/:id", routes.DestroyGameRound, middleware.RequireUser)
 
 	mux.POST("/game-memberships", routes.CreateGameMembership, middleware.RequireUser)
 	mux.GET("/game-memberships", routes.FindGameMemberships, middleware.RequireUser)
@@ -125,10 +128,11 @@ func main() {
 
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{
-		Logger: logger,
-		Config: net.RuntimeConfig{dbconf},
-		Queue:  stream,
-		Mux:    &mux,
+		Logger:  logger,
+		Config:  net.RuntimeConfig{dbconf},
+		Queue:   stream,
+		Mux:     &mux,
+		Sockets: sockets,
 	}
 
 	processor := activity.Processor{
@@ -137,13 +141,15 @@ func main() {
 		Config: activity.ProcessorConfig{dbconf},
 	}
 
-	server := net.Server{nil, logger, &runtime}
+	if os.Getenv("SOCKETS_ENABLED") == "true" {
+		websock := net.SocketRuntime{logger, sockets}
+		http.Handle("/socket/", &websock)
+	}
 
-	// start the server & processor
-	logger.Debugf(fmt.Sprintf("starting"))
+	http.Handle("/", &runtime)
+
 	go processor.Begin()
 
-	if err := server.Run(fmt.Sprintf(":%s", port)); err != nil {
-		logger.Errorf("failed startup: %s", err.Error())
-	}
+	logger.Debugf(fmt.Sprintf("starting on port: %s", port))
+	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }

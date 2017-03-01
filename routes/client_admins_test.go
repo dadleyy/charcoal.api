@@ -16,11 +16,12 @@ import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
 func after(db *gorm.DB) {
-	db.Exec("DELETE FROM user_role_mappings where id > 1")
-	db.Exec("DELETE FROM client_admins where id > 1")
-	db.Exec("DELETE FROM client_tokens where id > 1")
-	db.Exec("DELETE FROM clients where id > 1")
-	db.Exec("DELETE FROM users where id > 1")
+	db.Exec("DELETE FROM user_role_mappings where id > 0")
+	db.Exec("DELETE FROM client_admins where id > 0")
+	db.Exec("DELETE FROM client_tokens where id > 0")
+
+	db.Exec("DELETE FROM clients where id > 0")
+	db.Exec("DELETE FROM users where id > 0")
 }
 
 func before(database *gorm.DB) {
@@ -43,7 +44,7 @@ func before(database *gorm.DB) {
 	database.Create(&models.ClientAdmin{User: u.ID, Client: c.ID})
 }
 
-func TestFindClientAdminBadUser(t *testing.T) {
+func Test_Routes_ClientAdmins_FindClientAdmins_BadUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -67,6 +68,7 @@ func TestFindClientAdminBadUser(t *testing.T) {
 
 	logger := log.New("miritos")
 	queue := make(chan activity.Message)
+	socks := make(chan activity.Message)
 
 	buffer := make([]byte, 0)
 	reader := bytes.NewReader(buffer)
@@ -77,20 +79,19 @@ func TestFindClientAdminBadUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
+	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, socks, nil}
 	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
 
 	if err := FindClientAdmins(&request); err != nil {
-		t.Log("successfully errored out w/o valid client")
 		return
 	}
 
 	t.Fatalf("should not have passed w/o error")
 }
 
-func TestFindClientAdminsValidUser(t *testing.T) {
+func Test_Routes_ClientAdmins_FindClientAdmins_ValidUser(t *testing.T) {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -114,6 +115,7 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 
 	logger := log.New("miritos")
 	queue := make(chan activity.Message)
+	socks := make(chan activity.Message)
 
 	buffer := make([]byte, 0)
 	reader := bytes.NewReader(buffer)
@@ -124,7 +126,7 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		panic(err)
 	}
 
-	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, nil}
+	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, socks, nil}
 	request, _ := runtime.Request(stub, &net.UrlParams{})
 
 	database.Where("client_id = ?", "test1-id").Find(&request.Client)
@@ -134,6 +136,4 @@ func TestFindClientAdminsValidUser(t *testing.T) {
 		t.Fatal(err)
 		return
 	}
-
-	t.Log("successfully passed w/ valid user")
 }

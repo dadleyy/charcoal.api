@@ -13,6 +13,7 @@ import "github.com/dadleyy/charcoal.api/util"
 
 const BlueprintDefaultLimit = 100
 const BlueprintMaxLimit = 500
+const BlueprintMinLimit = 1
 const BlueprintFilterStart = "filter["
 const BlueprintFilterEnd = "]"
 
@@ -21,6 +22,14 @@ type Blueprint struct {
 	*log.Logger
 
 	values url.Values
+}
+
+func (print *Blueprint) Limit() int {
+	if i, err := strconv.Atoi(print.values.Get("limit")); err == nil {
+		return util.MaxInt(util.MinInt(BlueprintMaxLimit, i), BlueprintMinLimit)
+	}
+
+	return BlueprintDefaultLimit
 }
 
 func (print *Blueprint) Apply(out interface{}) (int, error) {
@@ -37,6 +46,9 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 		page = i
 	}
 
+	scope := print.NewScope(out)
+	table := scope.TableName()
+
 	for key := range print.values {
 		filterable := strings.HasPrefix(key, BlueprintFilterStart) && strings.HasSuffix(key, BlueprintFilterEnd)
 		value := strings.SplitN(print.values.Get(key), "(", 2)
@@ -50,31 +62,44 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 
 		if bits := strings.Split(column, "."); len(bits) == 2 {
 			print.Debugf("found an association query: %s - %s(%s)", column, operation, target)
-			scope := print.NewScope(out)
 			other, fk := inflector.Pluralize(bits[0]), fmt.Sprintf("%s_id", inflector.Singularize(bits[0]))
-			join := fmt.Sprintf("JOIN %s ON %s.id = %s.%s", other, other, scope.TableName(), fk)
+			join := fmt.Sprintf("JOIN %s ON %s.id = %s.%s", other, other, table, fk)
 			column = fmt.Sprintf("%s.%s", other, bits[1])
 			cursor = cursor.Joins(join)
 		}
 
+		full := fmt.Sprintf("%s.%s", table, column)
+
 		switch operation {
 		case "in":
 			values := strings.Split(target, ",")
-			cursor = cursor.Where(fmt.Sprintf("%s in (?)", column), values)
+			cursor = cursor.Where(fmt.Sprintf("%s in (?)", full), values)
 		case "lk":
-			query, search := fmt.Sprintf("%s LIKE ?", column), fmt.Sprintf("%%%s%%", target)
+			query, search := fmt.Sprintf("%s LIKE ?", full), fmt.Sprintf("%%%s%%", target)
 			cursor = cursor.Where(query, search)
 		case "eq":
-			cursor = cursor.Where(fmt.Sprintf("%s = ?", column), target)
+			cursor = cursor.Where(fmt.Sprintf("%s = ?", full), target)
 		case "lt":
-			cursor = cursor.Where(fmt.Sprintf("%s < ?", column), target)
+			cursor = cursor.Where(fmt.Sprintf("%s < ?", full), target)
 		case "gt":
-			cursor = cursor.Where(fmt.Sprintf("%s > ?", column), target)
+			cursor = cursor.Where(fmt.Sprintf("%s > ?", full), target)
 		}
 	}
 
+	direction := "ASC"
+
+	if o := print.values.Get("sort_order"); o == "desc" || o == "desc" {
+		direction = "DESC"
+	}
+
+	sort := fmt.Sprintf("id %s", direction)
+
+	if on := print.values.Get("sort_on"); len(on) >= 1 {
+		sort = fmt.Sprintf("%s %s", on, direction)
+	}
+
 	// now that we've chained all our filters, execute the db query and return the error, if any
-	if e := cursor.Limit(limit).Offset(page * limit).Find(out).Error; e != nil {
+	if e := cursor.Limit(limit).Offset(page * limit).Order(sort).Find(out).Error; e != nil {
 		return -1, e
 	}
 
