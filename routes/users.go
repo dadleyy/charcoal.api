@@ -47,17 +47,20 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
 	if validator.HasErrors() == true {
-		for _, m := range validator.Messages() {
-			runtime.AddError(fmt.Errorf(m))
+		errors := make([]error, 0, len(validator.Fields()))
+
+		for key := range validator.ErrorMap() {
+			errors = append(errors, fmt.Errorf("field:%s", key))
 		}
 
-		return nil
+		return runtime.AddError(errors...)
 	}
 
 	password, err := hash(body.Get("password"))
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_USER"))
+		runtime.Infof("received error hashing password: %s", err.Error())
+		return runtime.FieldError("password")
 	}
 
 	email := body.Get("email")
@@ -69,17 +72,17 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	if usrmgr.ValidDomain(email) != true {
 		runtime.Debugf("attempt to sign up w/ invalid domain: %s", email)
-		return runtime.AddError(fmt.Errorf(services.ErrUnauthorizedDomain))
+		return runtime.LogicError(services.ErrUnauthorizedDomain)
 	}
 
 	if dupe, err := usrmgr.IsDuplicate(&user); dupe || err != nil {
-		runtime.Debugf("duplicate user")
-		return runtime.AddError(fmt.Errorf("BAD_USER"))
+		runtime.Debugf("duplicate user: %s", *user.Email)
+		return runtime.LogicError("duplicate-user")
 	}
 
 	if err := runtime.Create(&user).Error; err != nil {
 		runtime.Debugf("unable to save: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED"))
+		return runtime.ServerError()
 	}
 
 	clientmgr := services.UserClientManager{runtime.DB}
@@ -87,7 +90,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Debugf("unable to associate: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED"))
+		return runtime.ServerError()
 	}
 
 	runtime.Debugf("associated user[%d] with client[%d]", user.ID, runtime.Client.ID)

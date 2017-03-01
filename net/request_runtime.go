@@ -1,5 +1,6 @@
 package net
 
+import "fmt"
 import "strings"
 import "net/http"
 
@@ -49,9 +50,38 @@ func (runtime *RequestRuntime) Proxy(url string) {
 	runtime.bucket.proxy = url
 }
 
-func (runtime *RequestRuntime) AddError(e error) error {
-	runtime.bucket.errors = append(runtime.bucket.errors, e)
-	return e
+func (runtime *RequestRuntime) AddError(list ...error) error {
+	if len(list) == 0 {
+		return nil
+	}
+
+	for _, e := range list {
+		runtime.bucket.errors = append(runtime.bucket.errors, e)
+	}
+
+	return fmt.Errorf("many errors")
+}
+
+func (runtime *RequestRuntime) appendErrors(identifier string, values ...string) error {
+	result := make([]error, 0, len(values))
+
+	for _, f := range values {
+		result = append(result, fmt.Errorf("%s:%s", identifier, f))
+	}
+
+	return runtime.AddError(result...)
+}
+
+func (runtime *RequestRuntime) LogicError(reasons ...string) error {
+	return runtime.appendErrors("reason", reasons...)
+}
+
+func (runtime *RequestRuntime) FieldError(fields ...string) error {
+	return runtime.appendErrors("field", fields...)
+}
+
+func (runtime *RequestRuntime) ServerError() error {
+	return runtime.AddError(fmt.Errorf("reason:server-error"))
 }
 
 func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
