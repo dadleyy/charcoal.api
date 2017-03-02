@@ -4,6 +4,7 @@ import "fmt"
 import "github.com/albrow/forms"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/activity"
 
 func CreateGame(runtime *net.RequestRuntime) error {
 	_, err := forms.Parse(runtime.Request)
@@ -23,8 +24,10 @@ func CreateGame(runtime *net.RequestRuntime) error {
 
 	if err := runtime.Create(&membership).Error; err != nil {
 		runtime.Errorf("unable to create initial membership: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_GAME_CREATE"))
+		return runtime.ServerError()
 	}
+
+	runtime.Publish(activity.Message{&runtime.User, &game, "games:joined"})
 
 	runtime.AddResult(game)
 
@@ -35,24 +38,24 @@ func DestroyGame(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_ID"))
+		return runtime.LogicError("invalid-game")
 	}
 
-	var game models.Game
+	manager, err := runtime.Game(uint(id))
 
-	if err := runtime.First(&game, id).Error; err != nil {
+	if err != nil {
 		runtime.Debugf("error looking for game: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
-	if runtime.IsAdmin() == false && game.OwnerID != runtime.User.ID {
+	if runtime.IsAdmin() == false && manager.OwnerID() != runtime.User.ID {
 		runtime.Debugf("cannot delete game - user[%d] isn't owner", runtime.User.ID)
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
-	if err := runtime.Model(&game).Update("status", "ENDED").Error; err != nil {
+	if err := manager.EndGame(); err != nil {
 		runtime.Debugf("problem deleting game: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+		return runtime.ServerError()
 	}
 
 	return nil

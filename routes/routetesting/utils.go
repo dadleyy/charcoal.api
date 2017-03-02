@@ -47,14 +47,22 @@ func NewRequest(method string, template string, real string, reader io.Reader) *
 
 	database, _ := gorm.Open("mysql", dbconf.String())
 	logger := log.New("miritos")
-	acts := make(chan activity.Message)
-	socks := make(chan activity.Message)
+
+	streams := map[string](chan activity.Message){
+		"activity": make(chan activity.Message),
+		"games":    make(chan activity.Message),
+		"sockets":  make(chan activity.Message),
+	}
+
+	close(streams["activity"])
+	close(streams["games"])
+	close(streams["sockets"])
 
 	stub, _ := http.NewRequest(method, real, reader)
 
 	stub.Header.Add("Content-Type", "application/json")
 
-	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, acts, socks, nil}
+	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, streams, nil}
 	route := net.Route{Method: method, Path: template}
 	params, _ := route.Match(method, real)
 	request, _ := server.Request(stub, &params)

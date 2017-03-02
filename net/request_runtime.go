@@ -23,9 +23,8 @@ type RequestRuntime struct {
 	Client models.Client
 	User   models.User
 
-	actvities chan activity.Message
-	sockets   chan activity.Message
-	bucket    ResponseBucket
+	streams map[string](chan activity.Message)
+	bucket  ResponseBucket
 }
 
 func (runtime *RequestRuntime) Form() (*forms.Data, error) {
@@ -103,28 +102,35 @@ func (runtime *RequestRuntime) Publish(msg activity.Message) {
 		return
 	}
 
-	switch identifiers[0] {
-	case "sockets":
-		runtime.sockets <- msg
-	case "activity":
-		runtime.actvities <- msg
-	default:
-		runtime.Debugf("invalid message identifier: %s", msg.Verb)
+	stream, ok := runtime.streams[identifiers[0]]
+
+	if ok != true || stream == nil {
+		runtime.Warnf("invalid message identifier: %s", msg.Verb)
+		return
 	}
+
+	stream <- msg
 }
 
 func (runtime *RequestRuntime) Photos() services.PhotoSaver {
 	return services.PhotoSaver{runtime.DB, runtime.FileSaver}
 }
 
-func (runtime *RequestRuntime) Games(ids ...uint) services.GameManager {
+func (runtime *RequestRuntime) Game(id uint) (*services.GameManager, error) {
 	g := models.Game{}
 
-	if len(ids) == 1 {
-		runtime.First(&g, ids[0])
+	if e := runtime.First(&g, id).Error; e != nil {
+		return nil, e
 	}
 
-	return services.GameManager{runtime.DB, runtime.Logger, runtime.sockets, g}
+	streams := map[string](chan<- activity.Message){
+		"sockets": runtime.streams["sockets"],
+		"games":   runtime.streams["games"],
+	}
+
+	manager := services.GameManager{runtime.DB, runtime.Logger, streams, g}
+
+	return &manager, nil
 }
 
 func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {

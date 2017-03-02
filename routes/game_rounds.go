@@ -54,32 +54,33 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_ID"))
+		return runtime.LogicError("bad-round")
 	}
 
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
 		runtime.Debugf("error parsing round-update body: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
+		return runtime.LogicError("bad-body")
 	}
 
-	manager := runtime.Games()
 	round := models.GameRound{}
 
 	if err := runtime.First(&round, id).Error; err != nil {
 		runtime.Debugf("unable to find round[%d]: %s", id, err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
-	if err := runtime.First(&manager.Game, round.GameID).Error; err != nil {
+	manager, err := runtime.Game(round.GameID)
+
+	if err != nil {
 		runtime.Debugf("unable to find game[%d]: %s", round.GameID, err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
 	if manager.IsMember(runtime.User) == false && runtime.IsAdmin() == false {
 		runtime.Debugf("user %d is not in game %d, cannot update", runtime.User.ID, manager.Game.ID)
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
 	if e := manager.UpdateRound(&round, body.Values); e != nil {
@@ -105,7 +106,12 @@ func DestroyGameRound(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	manager := runtime.Games(round.GameID)
+	manager, err := runtime.Game(round.GameID)
+
+	if err != nil {
+		runtime.Warnf("unable to load game manager: %s", err.Error())
+		return runtime.LogicError("invalid-game")
+	}
 
 	if manager.IsMember(runtime.User) == false {
 		runtime.Infof("user %d not member of game %d", runtime.User.ID, round.GameID)

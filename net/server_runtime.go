@@ -19,8 +19,7 @@ type ServerRuntime struct {
 	*log.Logger
 
 	Config  RuntimeConfig
-	Queue   chan activity.Message
-	Sockets chan activity.Message
+	Streams map[string](chan activity.Message)
 	Mux     *Multiplexer
 }
 
@@ -54,9 +53,8 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 		Logger:    server.Logger,
 		DB:        database,
 
-		actvities: server.Queue,
-		sockets:   server.Sockets,
-		bucket:    bucket,
+		streams: server.Streams,
+		bucket:  bucket,
 	}
 
 	return runtime, nil

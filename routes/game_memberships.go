@@ -10,24 +10,24 @@ func DestroyGameMembership(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_ID"))
+		return runtime.LogicError("invalid-id")
 	}
 
 	var membership models.GameMembership
 
 	if err := runtime.First(&membership, id).Error; err != nil {
 		runtime.Debugf("error looking for membership: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
 	if runtime.IsAdmin() == false && membership.UserID != runtime.User.ID {
 		runtime.Debugf("cannot delete membership - user[%d] isn't owner", runtime.User.ID)
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("bad-user")
 	}
 
 	if err := runtime.Delete(&membership).Error; err != nil {
 		runtime.Debugf("problem deleting membership: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+		return runtime.ServerError()
 	}
 
 	return nil
@@ -37,21 +37,34 @@ func CreateGameMembership(runtime *net.RequestRuntime) error {
 	body, err := runtime.Form()
 
 	if err != nil {
-		runtime.Debugf("error parsing round-update body: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
+		runtime.Debugf("error parsing game memebership body: %s", err.Error())
+		return runtime.ServerError()
+	}
+
+	id, err := strconv.Atoi(body.Get("game_id"))
+
+	if err != nil {
+		runtime.Debugf("invalid game id: %v", body.Get("game_id"))
+		return runtime.LogicError("bad-game")
+	}
+
+	manager, err := runtime.Game(uint(id))
+
+	if err != nil {
+		runtime.Debugf("invalid game id: %v", err.Error())
+		return runtime.LogicError("bad-game")
 	}
 
 	user := models.User{}
-	manager := runtime.Games()
-
-	if id, err := strconv.Atoi(body.Get("game_id")); err != nil || runtime.First(&manager.Game, id).Error != nil {
-		runtime.Debugf("invalid game id: %v", body.Get("game_id"))
-		return runtime.AddError(fmt.Errorf("INVALID_GAME"))
-	}
 
 	if id, err := strconv.Atoi(body.Get("user_id")); err != nil || runtime.First(&user, id).Error != nil {
 		runtime.Debugf("invalid user id: %v", body.Get("user_id"))
-		return runtime.AddError(fmt.Errorf("INVALID_USER"))
+		return runtime.LogicError("bad-user")
+	}
+
+	if manager.IsMember(runtime.User) == false && runtime.IsAdmin() == false {
+		runtime.Debugf("invalid user id: %v", body.Get("user_id"))
+		return runtime.LogicError("not-found")
 	}
 
 	if err := manager.AddUser(user); err != nil {
