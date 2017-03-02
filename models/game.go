@@ -9,6 +9,7 @@ type Game struct {
 	OwnerID    uint   `json:"owner_id" gorm:"column:owner_id"`
 	Status     string `json:"status"`
 	Population int    `json:"population"`
+	Name       string `json:"name"`
 
 	GameMemberships []GameMembership `json:"-"`
 	Owner           User             `json:"-"`

@@ -2,18 +2,26 @@ package routes
 
 import "fmt"
 import "github.com/albrow/forms"
+import "github.com/docker/docker/pkg/namesgenerator"
+
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
 func CreateGame(runtime *net.RequestRuntime) error {
-	_, err := forms.Parse(runtime.Request)
+	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
 		return runtime.AddError(err)
 	}
 
-	game := models.Game{Owner: runtime.User, Status: models.GameDefaultStatus}
+	name := namesgenerator.GetRandomName(0)
+
+	if n := body.Get("name"); len(n) > 4 && len(n) < 20 {
+		name = n
+	}
+
+	game := models.Game{Name: name, Owner: runtime.User, Status: models.GameDefaultStatus}
 
 	if err := runtime.Create(&game).Error; err != nil {
 		runtime.Errorf("failed saving new game: %s", err.Error())
@@ -27,7 +35,8 @@ func CreateGame(runtime *net.RequestRuntime) error {
 		return runtime.ServerError()
 	}
 
-	runtime.Publish(activity.Message{&runtime.User, &game, "games:joined"})
+	verb := activity.GameProcessorVerbPrefix + activity.GameProcessorUserJoined
+	runtime.Publish(activity.Message{&runtime.User, &game, verb})
 
 	runtime.AddResult(game)
 
