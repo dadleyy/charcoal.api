@@ -35,7 +35,7 @@ func (runtime *RequestRuntime) Form() (*forms.Data, error) {
 
 func (runtime *RequestRuntime) IsAdmin() bool {
 	uman := services.UserManager{runtime.DB}
-	return uman.IsAdmin(&runtime.User) && runtime.Client.System == true
+	return uman.IsAdmin(&runtime.User)
 }
 
 func (runtime *RequestRuntime) AddResult(r Result) {

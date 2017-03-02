@@ -47,7 +47,7 @@ func PrintClientTokens(runtime *net.RequestRuntime) error {
 	cursor := runtime.Where("client = ?", runtime.Client.ID)
 	blueprint := runtime.Blueprint(cursor)
 
-	if _, err := blueprint.Apply(&tokens); err == nil {
+	if _, err := blueprint.Apply(&tokens); err != nil {
 		runtime.Warnf("unable to lookup tokens for client %d: %s", runtime.Client.ID, "")
 		return runtime.ServerError()
 	}

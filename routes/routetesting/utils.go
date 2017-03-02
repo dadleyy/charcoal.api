@@ -2,6 +2,7 @@ package routetesting
 
 import "os"
 import "io"
+import "bytes"
 import "net/http"
 import "github.com/joho/godotenv"
 
@@ -17,6 +18,11 @@ type TestRouteUtil struct {
 	Database *gorm.DB
 	Server   net.ServerRuntime
 	Request  net.RequestRuntime
+}
+
+func NewFind(template string) *TestRouteUtil {
+	reader := bytes.NewBuffer([]byte{})
+	return NewRequest("GET", template, template, reader)
 }
 
 func NewPost(template string, reader io.Reader) *TestRouteUtil {
