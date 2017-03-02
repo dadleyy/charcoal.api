@@ -24,6 +24,24 @@ type Blueprint struct {
 	values url.Values
 }
 
+type BlueprintForeignReference struct {
+	reference string
+	source    string
+}
+
+func (r *BlueprintForeignReference) JoinString() string {
+	bits := strings.Split(r.reference, ".")
+	table := inflector.Pluralize(bits[0])
+	fk := fmt.Sprintf("%s_id", inflector.Singularize(table))
+	return fmt.Sprintf("JOIN %s on %s.id = %s.%s", table, table, r.source, fk)
+}
+
+func (r *BlueprintForeignReference) WhereField() string {
+	bits := strings.Split(r.reference, ".")
+	table := inflector.Pluralize(bits[0])
+	return fmt.Sprintf("%s.%s", table, bits[1])
+}
+
 func (print *Blueprint) Limit() int {
 	if i, err := strconv.Atoi(print.values.Get("limit")); err == nil {
 		return util.MaxInt(util.MinInt(BlueprintMaxLimit, i), BlueprintMinLimit)
@@ -59,16 +77,16 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 
 		column := strings.TrimSuffix(strings.TrimPrefix(key, BlueprintFilterStart), BlueprintFilterEnd)
 		operation, target := value[0], strings.TrimSuffix(value[1], ")")
+		full := fmt.Sprintf("%s.%s", table, column)
 
 		if bits := strings.Split(column, "."); len(bits) == 2 {
 			print.Debugf("found an association query: %s - %s(%s)", column, operation, target)
-			other, fk := inflector.Pluralize(bits[0]), fmt.Sprintf("%s_id", inflector.Singularize(bits[0]))
-			join := fmt.Sprintf("JOIN %s ON %s.id = %s.%s", other, other, table, fk)
-			column = fmt.Sprintf("%s.%s", other, bits[1])
-			cursor = cursor.Joins(join)
-		}
+			reference := BlueprintForeignReference{column, table}
 
-		full := fmt.Sprintf("%s.%s", table, column)
+			// move the cursor into a join + change the where clause to be our referenced where
+			cursor = cursor.Joins(reference.JoinString())
+			full = reference.WhereField()
+		}
 
 		switch operation {
 		case "in":

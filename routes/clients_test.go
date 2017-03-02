@@ -3,55 +3,40 @@ package routes
 import "fmt"
 import "bytes"
 import "testing"
-import "github.com/jinzhu/gorm"
+
 import "github.com/dadleyy/charcoal.api/models"
+import "github.com/dadleyy/charcoal.api/testutils"
 import "github.com/dadleyy/charcoal.api/routes/routetesting"
-
-func clean(db *gorm.DB) {
-	db.Exec("DELETE FROM user_role_mappings where id > 0")
-	db.Exec("DELETE FROM client_admins where id > 0")
-	db.Exec("DELETE FROM client_tokens where id > 0")
-
-	db.Exec("DELETE FROM clients where id > 0")
-	db.Exec("DELETE FROM users where id > 0")
-}
 
 func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 
-	client, user := models.Common{ID: 1102}, models.Common{ID: 2002}
-	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
+	email := "clients-test-1@charcoal.sizethree.cc"
 
-	defer context.Database.Close()
-	defer clean(context.Database)
+	db := testutils.NewDB()
+	defer db.Close()
 
-	info := struct {
-		name  string
-		email string
-	}{"test1", "test@test.com"}
+	client, user := models.Client{}, models.User{Email: &email}
 
-	context.Request.Client = models.Client{
-		Common:       client,
-		Name:         "clients-test1",
-		ClientID:     "123123123",
-		ClientSecret: "client-admin-routes-secret",
-		System:       true,
-	}
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
 
-	context.Request.User = models.User{
-		Common: user,
-		Name:   &info.name,
-		Email:  &info.email,
-	}
+	mapping := models.UserRoleMapping{User: user.ID, Role: 1}
+	db.Create(&mapping)
+	defer db.Unscoped().Delete(&mapping)
 
-	context.Database.Create(&context.Request.Client)
-	context.Database.Create(&context.Request.User)
-	context.Database.Create(&models.UserRoleMapping{User: context.Request.User.ID, Role: 1})
+	testutils.CreateClient(&client, "clients-test-1", true)
+	defer db.Unscoped().Delete(&client)
 
-	err := UpdateClient(&context.Request)
+	ctx := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
+
+	ctx.Request.Client = client
+	ctx.Request.User = user
+
+	err := UpdateClient(&ctx.Request)
 
 	if err != nil {
-		t.Fatalf("User w/ God privileges was unable to update client")
+		t.Fatalf("god user was unable to update client: %s", err.Error())
 		return
 	}
 }
@@ -59,126 +44,93 @@ func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 
-	client, user := models.Common{ID: 1002}, models.Common{ID: 4002}
+	email := "clients-test-2@charcoal.sizethree.cc"
+	db := testutils.NewDB()
+	client, user := models.Client{}, models.User{Email: &email}
 
-	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
+	db.Create(&user)
+	defer db.Close()
 
-	defer context.Database.Close()
-	defer clean(context.Database)
+	defer db.Unscoped().Delete(&user)
 
-	info := struct {
-		name  string
-		email string
-	}{"test1", "test@test.com"}
+	testutils.CreateClient(&client, "clients-test-2", true)
+	defer db.Unscoped().Delete(&client)
 
-	context.Request.Client = models.Client{
-		Common:       client,
-		Name:         "clients-test1",
-		ClientID:     "test1-id",
-		ClientSecret: "test1-secret",
-	}
+	mapping := models.ClientAdmin{User: user.ID, Client: client.ID}
+	db.Create(&mapping)
+	defer db.Unscoped().Delete(&mapping)
 
-	context.Request.User = models.User{
-		Common: user,
-		Name:   &info.name,
-		Email:  &info.email,
-	}
+	ctx := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
-	context.Database.Create(&context.Request.Client)
-	context.Database.Create(&context.Request.User)
+	ctx.Request.Client = client
+	ctx.Request.User = user
 
-	if e := context.Database.Create(&models.ClientAdmin{Client: client.ID, User: user.ID}).Error; e != nil {
-		t.Fatalf(fmt.Sprintf("couldn't create client admin fixture: %s", e.Error()))
-		return
-	}
-
-	err := UpdateClient(&context.Request)
+	err := UpdateClient(&ctx.Request)
 
 	if err != nil {
-		t.Fatalf("authorized user unable to update client: %s", err.Error())
+		t.Fatalf("client admin was unable to update client: %s", err.Error())
 		return
 	}
 }
 
-func Test_Routes_Clients_UpdateClient_RandomClientAuthorizedUser(t *testing.T) {
+func Test_Routes_Clients_UpdateClient_OtherClientAuthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
-	client, user, target := models.Common{ID: 1102}, models.Common{ID: 6002}, models.Common{ID: 3002}
-	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", target.ID), reader)
+	email := "clients-test-3@charcoal.sizethree.cc"
+	db := testutils.NewDB()
+	client, target, user := models.Client{}, models.Client{}, models.User{Email: &email}
 
-	defer context.Database.Close()
-	defer clean(context.Database)
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
 
-	info := struct {
-		name  string
-		email string
-	}{"test1", "test@test.com"}
+	testutils.CreateClient(&target, "clients-test-3.1", true)
+	defer db.Unscoped().Delete(&target)
 
-	context.Database.Create(&models.Client{
-		Common:       client,
-		Name:         "clients-test1",
-		ClientID:     "test1-id",
-		ClientSecret: "test1-secret",
-	})
+	testutils.CreateClient(&client, "clients-test-3.2", true)
+	defer db.Unscoped().Delete(&client)
 
-	context.Database.Create(&models.Client{
-		Common:       target,
-		Name:         "clients",
-		ClientID:     "test2-id",
-		ClientSecret: "test2-secret",
-	})
+	// associate the user w/ our target client
+	mapping := models.ClientAdmin{User: user.ID, Client: target.ID}
+	db.Create(&mapping)
+	defer db.Unscoped().Delete(&mapping)
 
-	context.Database.Create(&models.User{
-		Common: user,
-		Name:   &info.name,
-		Email:  &info.email,
-	})
+	// use the target client's id in the route param
+	ctx := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", target.ID), reader)
 
-	context.Request.User = models.User{Common: user}
-	context.Request.Client = models.Client{Common: client}
+	// use the other client as the request runtime
+	ctx.Request.Client = client
+	ctx.Request.User = user
 
-	context.Database.Create(&models.ClientAdmin{Client: target.ID, User: user.ID})
-
-	err := UpdateClient(&context.Request)
+	err := UpdateClient(&ctx.Request)
 
 	if err != nil {
-		t.Fatalf("authorized user unable to update client: %s", err.Error())
+		t.Fatalf("client admin was unable to update their client from another: %s", err.Error())
 		return
 	}
 }
 
 func Test_Routes_Clients_UpdateClient_UnauthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
-	client, user := models.Common{ID: 1005}, models.Common{ID: 2005}
-	context := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
-	defer context.Database.Close()
-	defer clean(context.Database)
+	email := "clients-test-4@charcoal.sizethree.cc"
+	db := testutils.NewDB()
+	defer db.Close()
+	client, user := models.Client{}, models.User{Email: &email}
 
-	info := struct {
-		name  string
-		email string
-	}{"test1", "test@test.com"}
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
 
-	context.Request.Client = models.Client{
-		Common:       client,
-		Name:         "clients-test1",
-		ClientID:     "test1-id",
-		ClientSecret: "test1-secret",
-	}
+	testutils.CreateClient(&client, "clients-test-4", true)
+	defer db.Unscoped().Delete(&client)
 
-	context.Request.User = models.User{
-		Common: user,
-		Name:   &info.name,
-		Email:  &info.email,
-	}
+	ctx := routetesting.NewPatch("clients/:id", fmt.Sprintf("/clients/%d", client.ID), reader)
 
-	context.Database.Create(&context.Request.Client)
-	context.Database.Create(&context.Request.User)
+	ctx.Request.Client = client
+	ctx.Request.User = user
 
-	err := UpdateClient(&context.Request)
+	err := UpdateClient(&ctx.Request)
 
 	if err == nil {
-		t.Fatalf("User w/o God privileges was able to update client w/o access")
+		t.Fatalf("invalid user able to update client")
 		return
 	}
 }

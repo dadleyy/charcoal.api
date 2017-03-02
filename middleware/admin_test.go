@@ -2,5 +2,5 @@ package middleware
 
 import "testing"
 
-func TestRequireAdmin(t *testing.T) {
+func Test_Middleware_Admin_RequireAdmin(t *testing.T) {
 }

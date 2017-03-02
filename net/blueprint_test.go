@@ -4,6 +4,7 @@ import "testing"
 import "net/url"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/testutils"
 
 func makebp(values url.Values) Blueprint {
@@ -14,7 +15,10 @@ func makebp(values url.Values) Blueprint {
 
 func Test_Net_Blueprint_LimitUnset(t *testing.T) {
 	values := make(url.Values)
+
 	bp := makebp(values)
+	defer bp.DB.Close()
+
 	l := bp.Limit()
 
 	if l == BlueprintDefaultLimit {
@@ -27,7 +31,10 @@ func Test_Net_Blueprint_LimitUnset(t *testing.T) {
 func Test_Net_Blueprint_LimitTooLarge(t *testing.T) {
 	values := make(url.Values)
 	values.Set("limit", "100000")
+
 	bp := makebp(values)
+	defer bp.DB.Close()
+
 	l := bp.Limit()
 
 	if l == BlueprintMaxLimit {
@@ -40,7 +47,10 @@ func Test_Net_Blueprint_LimitTooLarge(t *testing.T) {
 func Test_Net_Blueprint_LimitBadParse(t *testing.T) {
 	values := make(url.Values)
 	values.Set("limit", "abcd")
+
 	bp := makebp(values)
+	defer bp.DB.Close()
+
 	l := bp.Limit()
 
 	if l == BlueprintDefaultLimit {
@@ -53,7 +63,10 @@ func Test_Net_Blueprint_LimitBadParse(t *testing.T) {
 func Test_Net_Blueprint_LimitNegative(t *testing.T) {
 	values := make(url.Values)
 	values.Set("limit", "-100")
+
 	bp := makebp(values)
+	defer bp.DB.Close()
+
 	l := bp.Limit()
 
 	if l == BlueprintMinLimit {
@@ -61,4 +74,70 @@ func Test_Net_Blueprint_LimitNegative(t *testing.T) {
 	}
 
 	t.Fatalf("expected default limit but received %d", l)
+}
+
+func Test_Net_Blueprint_Apply_WithReferencedTable_Matching(t *testing.T) {
+	values := url.Values{"filter[game.status]": []string{"eq(ACTIVE)"}}
+
+	bp := makebp(values)
+	defer bp.DB.Close()
+
+	game1, game2 := models.Game{Status: "ACTIVE"}, models.Game{Status: "ENDE"}
+
+	bp.Create(&game1)
+	defer bp.Unscoped().Delete(&game1)
+
+	bp.Create(&game2)
+	defer bp.Unscoped().Delete(&game2)
+
+	round := models.GameRound{GameID: game1.ID}
+	bp.Create(&round)
+	defer bp.Unscoped().Delete(&round)
+
+	var results []models.GameRound
+
+	count, err := bp.Apply(&results)
+
+	if err != nil {
+		t.Fatalf("failed: %s", err.Error())
+		return
+	}
+
+	if count != 1 {
+		t.Fatalf("failed: %s", err.Error())
+		return
+	}
+}
+
+func Test_Net_Blueprint_Apply_WithReferencedTable_NoMatch(t *testing.T) {
+	values := url.Values{"filter[game.status]": []string{"eq(ENDED)"}}
+
+	bp := makebp(values)
+	defer bp.DB.Close()
+
+	game1, game2 := models.Game{Status: "ACTIVE"}, models.Game{Status: "ENDED"}
+
+	bp.Create(&game1)
+	defer bp.Unscoped().Delete(&game1)
+
+	bp.Create(&game2)
+	defer bp.Unscoped().Delete(&game2)
+
+	round := models.GameRound{GameID: game1.ID}
+	bp.Create(&round)
+	defer bp.Unscoped().Delete(&round)
+
+	var results []models.GameRound
+
+	count, err := bp.Apply(&results)
+
+	if err != nil {
+		t.Fatalf("failed: %s", err.Error())
+		return
+	}
+
+	if count != 0 {
+		t.Fatalf("expected 0 results but received %d", count)
+		return
+	}
 }

@@ -7,7 +7,7 @@ import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 import "github.com/dadleyy/charcoal.api/db"
 
-func NewDB() *gorm.DB {
+func DBConfig() db.Config {
 	_ = godotenv.Load("../.env")
 
 	dbconf := db.Config{
@@ -19,7 +19,12 @@ func NewDB() *gorm.DB {
 		os.Getenv("DB_DEBUG") == "true",
 	}
 
-	database, err := gorm.Open("mysql", dbconf.String())
+	return dbconf
+}
+
+func NewDB() *gorm.DB {
+	c := DBConfig()
+	database, err := gorm.Open("mysql", c.String())
 
 	if err != nil {
 		panic(err)

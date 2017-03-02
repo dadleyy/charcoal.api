@@ -1,6 +1,5 @@
 package middleware
 
-import "fmt"
 import "strings"
 import "encoding/base64"
 
@@ -23,7 +22,6 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 
 		if err != nil {
 			runtime.Debugf("bad client auth header: %s", auth)
-
 			return handler(runtime)
 		}
 
@@ -54,8 +52,7 @@ func RequireClient(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.AddError(fmt.Errorf(ERR_BAD_CLIENT_ID))
-		return nil
+		return runtime.LogicError("invalid-client")
 	}
 
 	return require

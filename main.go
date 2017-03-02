@@ -47,9 +47,11 @@ func main() {
 	logger.SetLevel(0)
 	logger.SetHeader("[${time_rfc3339} ${level} ${short_file}]")
 
-	// create the channel that will be used by the server runtime and activity processor
-	stream := make(chan activity.Message, 100)
-	sockets := make(chan activity.Message, 100)
+	streams := map[string](chan activity.Message){
+		"activity": make(chan activity.Message, 100),
+		"sockets":  make(chan activity.Message, 100),
+		"games":    make(chan activity.Message, 100),
+	}
 
 	// create our multiplexer and add our routes
 	mux := net.Multiplexer{}
@@ -70,7 +72,6 @@ func main() {
 
 	mux.GET("/activity", routes.FindActivity)
 
-	// special route - returns all active activities based on their display schedules.
 	mux.GET("/activity/live", routes.FindLiveActivity, middleware.RequireClient)
 
 	mux.POST("/callbacks/mailgun", routes.MailgunUploadHook)
@@ -80,10 +81,6 @@ func main() {
 
 	mux.GET("/user-roles", routes.FindRoles, middleware.RequireClient)
 
-	// client management
-	//
-	// These routes are more protected than others; often times it is necessary to check both
-	// the client AND the user to make sure that the action being performed is allowed.
 	mux.GET("/clients", routes.FindClients, middleware.RequireClient)
 	mux.POST("/clients", routes.CreateClient, middleware.RequireUser)
 	mux.PATCH("/clients/:id", routes.UpdateClient, middleware.RequireUser)
@@ -130,25 +127,25 @@ func main() {
 	runtime := net.ServerRuntime{
 		Logger:  logger,
 		Config:  net.RuntimeConfig{dbconf},
-		Queue:   stream,
 		Mux:     &mux,
-		Sockets: sockets,
+		Streams: streams,
 	}
 
-	processor := activity.Processor{
-		Logger: logger,
-		Queue:  stream,
-		Config: activity.ProcessorConfig{dbconf},
+	processors := []activity.BackgroundProcessor{
+		&activity.ActivityProcessor{Logger: logger, Stream: streams["activity"]},
+		&activity.GameProcessor{Logger: logger, Stream: streams["games"], Exhaust: nil},
 	}
 
 	if os.Getenv("SOCKETS_ENABLED") == "true" {
-		websock := net.SocketRuntime{logger, sockets}
+		websock := net.SocketRuntime{logger, streams["sockets"]}
 		http.Handle("/socket/", &websock)
 	}
 
 	http.Handle("/", &runtime)
 
-	go processor.Begin()
+	for _, processor := range processors {
+		go processor.Begin(activity.ProcessorConfig{dbconf})
+	}
 
 	logger.Debugf(fmt.Sprintf("starting on port: %s", port))
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)

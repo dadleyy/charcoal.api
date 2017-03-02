@@ -1,139 +1,88 @@
 package routes
 
-import "os"
-import "bytes"
 import "testing"
-import "net/http"
-
-import "github.com/jinzhu/gorm"
-import "github.com/joho/godotenv"
-import "github.com/labstack/gommon/log"
-import _ "github.com/jinzhu/gorm/dialects/mysql"
-
-import "github.com/dadleyy/charcoal.api/db"
-import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/activity"
+import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
-func after(db *gorm.DB) {
-	db.Exec("DELETE FROM user_role_mappings where id > 0")
-	db.Exec("DELETE FROM client_admins where id > 0")
-	db.Exec("DELETE FROM client_tokens where id > 0")
+func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_And_NoClient(t *testing.T) {
+	ctx := routetesting.NewFind("client-admins")
 
-	db.Exec("DELETE FROM clients where id > 0")
-	db.Exec("DELETE FROM users where id > 0")
-}
-
-func before(database *gorm.DB) {
-	after(database)
-
-	database.Create(&models.Client{Name: "client-admin-test1", ClientID: "test1-id", ClientSecret: "test1-secret"})
-	database.Create(&models.Client{Name: "client-admin-test2", ClientID: "test2-id", ClientSecret: "test2-secret"})
-	database.Create(&models.Client{Name: "client-admin-test3", ClientID: "test3-id", ClientSecret: "test3-secret"})
-
-	for _, email := range []string{"test-1@client-admin-test.com", "test-2@client-admin-test.com"} {
-		database.Create(&models.User{Email: &email})
-	}
-
-	var u models.User
-	var c models.Client
-
-	database.Where("client_id = ?", "test1-id").Find(&c)
-	database.Where("email = ?", "test-1@client-admin-test.com").Find(&u)
-
-	database.Create(&models.ClientAdmin{User: u.ID, Client: c.ID})
-}
-
-func Test_Routes_ClientAdmins_FindClientAdmins_BadUser(t *testing.T) {
-	_ = godotenv.Load("../.env")
-
-	dbconf := db.Config{
-		os.Getenv("DB_USERNAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOSTNAME"),
-		os.Getenv("DB_DATABASE"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_DEBUG") == "true",
-	}
-
-	database, err := gorm.Open("mysql", dbconf.String())
-	defer database.Close()
-
-	if err != nil {
-		panic(err)
-	}
-
-	before(database)
-	defer after(database)
-
-	logger := log.New("miritos")
-	queue := make(chan activity.Message)
-	socks := make(chan activity.Message)
-
-	buffer := make([]byte, 0)
-	reader := bytes.NewReader(buffer)
-
-	stub, err := http.NewRequest("GET", "/client-admins", reader)
-
-	if err != nil {
-		panic(err)
-	}
-
-	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, socks, nil}
-	request, _ := runtime.Request(stub, &net.UrlParams{})
-
-	database.Where("client_id = ?", "test1-id").Find(&request.Client)
-
-	if err := FindClientAdmins(&request); err != nil {
+	if err := FindClientAdmins(&ctx.Request); err != nil {
 		return
 	}
 
 	t.Fatalf("should not have passed w/o error")
 }
 
-func Test_Routes_ClientAdmins_FindClientAdmins_ValidUser(t *testing.T) {
-	_ = godotenv.Load("../.env")
+func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_With_Client(t *testing.T) {
+	db := testutils.NewDB()
+	defer db.Close()
 
-	dbconf := db.Config{
-		os.Getenv("DB_USERNAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOSTNAME"),
-		os.Getenv("DB_DATABASE"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_DEBUG") == "true",
+	client := models.Client{}
+	testutils.CreateClient(&client, "client-admins-find-1", false)
+	defer db.Unscoped().Delete(&client)
+
+	ctx := routetesting.NewFind("client-admins")
+	ctx.Request.Client = client
+
+	if err := FindClientAdmins(&ctx.Request); err != nil {
+		return
 	}
 
-	database, err := gorm.Open("mysql", dbconf.String())
-	defer database.Close()
+	t.Fatalf("should not have passed w/o error")
+}
 
-	if err != nil {
-		panic(err)
+func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
+	db := testutils.NewDB()
+	defer db.Close()
+
+	email := "client-admins-find-2@charcoal.sizethree.cc"
+	client, user := models.Client{}, models.User{Email: &email}
+
+	testutils.CreateClient(&client, "client-admins-find-2", false)
+	defer db.Unscoped().Delete(&client)
+
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
+
+	mapping := models.ClientAdmin{Client: client.ID, User: user.ID}
+	db.Create(&mapping)
+	defer db.Unscoped().Delete(&mapping)
+
+	ctx := routetesting.NewFind("client-admins")
+	ctx.Request.Client = client
+	ctx.Request.User = user
+
+	if err := FindClientAdmins(&ctx.Request); err != nil {
+		t.Fatalf("error even though user is admin: %s", err.Error())
+		return
 	}
+}
 
-	before(database)
-	defer after(database)
+func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
+	db := testutils.NewDB()
+	defer db.Close()
 
-	logger := log.New("miritos")
-	queue := make(chan activity.Message)
-	socks := make(chan activity.Message)
+	email := "client-admins-find-3@charcoal.sizethree.cc"
+	client, user := models.Client{}, models.User{Email: &email}
 
-	buffer := make([]byte, 0)
-	reader := bytes.NewReader(buffer)
+	testutils.CreateClient(&client, "client-admins-find-2", false)
+	defer db.Unscoped().Delete(&client)
 
-	stub, err := http.NewRequest("GET", "/client-admins", reader)
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
 
-	if err != nil {
-		panic(err)
-	}
+	mapping := models.UserRoleMapping{User: user.ID, Role: 1}
+	db.Create(&mapping)
+	defer db.Unscoped().Delete(&mapping)
 
-	runtime := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, queue, socks, nil}
-	request, _ := runtime.Request(stub, &net.UrlParams{})
+	ctx := routetesting.NewFind("client-admins")
+	ctx.Request.Client = client
+	ctx.Request.User = user
 
-	database.Where("client_id = ?", "test1-id").Find(&request.Client)
-	database.Where("email = ?", "test-1@client-admin-test.com").Find(&request.User)
-
-	if err := FindClientAdmins(&request); err != nil {
-		t.Fatal(err)
+	if err := FindClientAdmins(&ctx.Request); err != nil {
+		t.Fatalf("error even though user is admin: %s", err.Error())
 		return
 	}
 }

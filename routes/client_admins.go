@@ -143,6 +143,7 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 	var results []models.ClientAdmin
 	blueprint := runtime.Blueprint()
 
+	// if the runtime is not operating under admin privileges
 	if runtime.IsAdmin() != true {
 		runtime.Debugf("user is not admin, limiting query to client[%d]", runtime.Client.ID)
 		blueprint = runtime.Blueprint(runtime.Where("client = ?", runtime.Client.ID))
@@ -152,12 +153,12 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 
 		if err := query.Find(&results).Error; err != nil {
 			runtime.Debugf("failed getting client admins for current situation problem: %s", err.Error())
-			return runtime.AddError(fmt.Errorf("PROBLEM"))
+			return runtime.ServerError()
 		}
 
 		if len(results) != 1 {
 			runtime.Debugf("current user[%d] has no access to client[%d]", runtime.User.ID, runtime.Client.ID)
-			return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+			return runtime.ServerError()
 		}
 	}
 
@@ -165,7 +166,7 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Debugf("BAD_LOOKUP: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
+		return runtime.ServerError()
 	}
 
 	for _, item := range results {

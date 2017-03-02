@@ -8,9 +8,13 @@ import "github.com/dadleyy/charcoal.api/testutils"
 func Test_Services_UserClients_Associate(t *testing.T) {
 	db := testutils.NewDB()
 	defer db.Close()
-	defer db.Exec("DELETE FROM users where id > 1")
-	defer db.Exec("DELETE FROM clients where id > 1")
-	defer db.Exec("DELETE FROM client_tokens where id > 1")
+
+	defer db.Exec("DELETE FROM users where id > 0")
+	defer db.Exec("DELETE FROM clients where id > 0")
+
+	defer db.Exec("DELETE FROM user_role_mappings where id > 0")
+	defer db.Exec("DELETE FROM client_tokens where id > 0")
+
 	mgr := UserClientManager{db}
 
 	client := models.Client{

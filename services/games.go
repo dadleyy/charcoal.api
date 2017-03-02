@@ -16,9 +16,46 @@ const GameManagerInvalidAsshole = "INVALID_ASSHOLE"
 type GameManager struct {
 	*gorm.DB
 	*log.Logger
-
-	Sockets <-chan activity.Message
+	Streams map[string](chan<- activity.Message)
 	Game    models.Game
+}
+
+func (m *GameManager) OwnerID() uint {
+	return m.Game.OwnerID
+}
+
+func (m *GameManager) IsEnded() bool {
+	return m.Game.Status == "ENDED" || m.Game.DeletedAt != nil
+}
+
+func (m *GameManager) EndGame() error {
+	if m.IsEnded() {
+		m.Infof("game already ended, skipping.")
+		return nil
+	}
+
+	e := m.Model(&m.Game).Update("status", "ENDED").Error
+
+	if e != nil {
+		return e
+	}
+
+	stream, exists := m.Streams["games"]
+
+	if exists != true {
+		return nil
+	}
+
+	owner := models.User{}
+
+	if e := m.First(&owner, m.Game.OwnerID).Error; e != nil {
+		m.Warnf("unable to publish ended event due to owner lookup: %s", e.Error())
+		return nil
+	}
+
+	stream <- activity.Message{&owner, &m.Game, "games:ended"}
+
+	return nil
 }
 
 func (m *GameManager) UpdateRound(round *models.GameRound, rankings url.Values) error {
@@ -80,6 +117,10 @@ func (m *GameManager) AddUser(user models.User) error {
 
 	if m.IsMember(user) {
 		return fmt.Errorf("already a member of the game")
+	}
+
+	if stream, ok := m.Streams["games"]; ok {
+		stream <- activity.Message{&user, &m.Game, "joined"}
 	}
 
 	return m.Create(&member).Error

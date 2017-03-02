@@ -7,10 +7,12 @@ import "github.com/dadleyy/charcoal.api/testutils"
 func Test_Services_Users_IsDuplicateTrue(t *testing.T) {
 	db := testutils.NewDB()
 	defer db.Close()
-	defer db.Exec("DELETE FROM users where id > 1")
 
 	dupe := "testing@charcoal.sizethree.cc"
-	db.Create(&models.User{Email: &dupe})
+	user := models.User{Email: &dupe}
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
+
 	mgr := UserManager{db}
 
 	if t, _ := mgr.IsDuplicate(&models.User{Email: &dupe}); t == true {
@@ -23,11 +25,14 @@ func Test_Services_Users_IsDuplicateTrue(t *testing.T) {
 func Test_Services_Users_IsDuplicateFalse(t *testing.T) {
 	db := testutils.NewDB()
 	defer db.Close()
-	defer db.Exec("DELETE FROM users where id > 1")
 
 	dupe := "testing@charcoal.sizethree.cc"
 	nodupe := "testing-2@charcoal.sizethree.cc"
-	db.Create(&models.User{Email: &dupe})
+	user := models.User{Email: &dupe}
+	db.Create(&user)
+
+	defer db.Unscoped().Delete(&user)
+
 	mgr := UserManager{db}
 
 	if t, _ := mgr.IsDuplicate(&models.User{Email: &nodupe}); t == false {
@@ -40,13 +45,17 @@ func Test_Services_Users_IsDuplicateFalse(t *testing.T) {
 func Test_Services_Users_IsAdminTrue(t *testing.T) {
 	db := testutils.NewDB()
 	defer db.Close()
-	defer db.Exec("DELETE FROM users where id > 1")
-	defer db.Exec("DELETE FROM user_role_mappings where id > 1")
 
 	dupe := "testing@charcoal.sizethree.cc"
+
 	user := models.User{Email: &dupe}
 	db.Create(&user)
-	db.Create(&models.UserRoleMapping{Role: 1, User: user.ID})
+
+	mapping := models.UserRoleMapping{Role: 1, User: user.ID}
+	db.Create(&mapping)
+
+	defer db.Unscoped().Delete(&user)
+	defer db.Unscoped().Delete(&mapping)
 
 	mgr := UserManager{db}
 
@@ -60,12 +69,11 @@ func Test_Services_Users_IsAdminTrue(t *testing.T) {
 func Test_Services_Users_IsAdminFalse(t *testing.T) {
 	db := testutils.NewDB()
 	defer db.Close()
-	defer db.Exec("DELETE FROM users where id > 1")
-	defer db.Exec("DELETE FROM user_role_mappings where id > 1")
 
 	dupe := "testing@charcoal.sizethree.cc"
 	user := models.User{Email: &dupe}
 	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
 
 	mgr := UserManager{db}
 

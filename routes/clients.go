@@ -15,7 +15,7 @@ func FindClients(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Debugf("unable to query clients: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
+		return runtime.ServerError()
 	}
 
 	for _, client := range clients {
@@ -38,20 +38,21 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 		admin := models.ClientAdmin{}
 
 		if e := runtime.Where("client = ? AND user = ?", id, runtime.User.ID).First(&admin).Error; e != nil {
-			return runtime.AddError(fmt.Errorf("UNAUTHORIZED: user[%d] client[%d] (%s)", runtime.User.ID, id, e.Error()))
+			return runtime.LogicError("invalid-user")
 		}
 	}
 
 	var client models.Client
 
 	if err := runtime.First(&client, id).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
+		runtime.Warnf("invalid body: %s", err.Error())
+		return runtime.LogicError("invalid-body")
 	}
 
 	updates := make(map[string]interface{})
@@ -74,8 +75,8 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 	}
 
 	if err := runtime.Model(&client).Updates(updates).Error; err != nil {
-		runtime.Debugf("failed updating client: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		runtime.Warnf("failed updating client: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	runtime.AddResult(client)
