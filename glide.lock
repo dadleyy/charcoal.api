@@ -1,5 +1,5 @@
 hash: 37aa553f28d299e7190e10d72003ea6b02b2f13006402c5a22fb5308e5066317
-updated: 2017-02-25T20:54:55.401844397-05:00
+updated: 2017-03-02T18:30:13.982892477-05:00
 imports:
 - name: cloud.google.com/go
   version: 61a09b43cee7329f083691f0b048d7707f538191
@@ -36,6 +36,11 @@ imports:
   - private/waiter
   - service/s3
   - service/sts
+- name: github.com/docker/docker
+  version: 0b9fddb7899cc66543bc357e92111c308d8eb441
+  subpackages:
+  - pkg/namesgenerator
+  - pkg/random
 - name: github.com/gedex/inflector
   version: 046f2c31204676e3623730ee70fd0964e05822e7
 - name: github.com/go-ini/ini
@@ -47,7 +52,7 @@ imports:
   subpackages:
   - proto
 - name: github.com/gorilla/websocket
-  version: 3f3e394da2b801fbe732a935ef40724762a67a07
+  version: b258b4fadb573ac412f187b9f31974ea99d32f50
 - name: github.com/jinzhu/gorm
   version: 5174cc5c242a728b435ea2be8a2f7f998e15429b
   subpackages:
