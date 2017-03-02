@@ -2,5 +2,5 @@ package db
 
 import "testing"
 
-func TestToString(t *testing.T) {
+func Test_DB_Config_ToString(t *testing.T) {
 }

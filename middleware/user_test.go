@@ -2,5 +2,5 @@ package middleware
 
 import "testing"
 
-func TestInjectUser(t *testing.T) {
+func Test_Middleware_User_InjectUser(t *testing.T) {
 }

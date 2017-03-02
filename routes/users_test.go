@@ -22,9 +22,10 @@ func Test_Routes_Users_CreateUser_Save(t *testing.T) {
 
 	context := routetesting.NewPost("users", body)
 	defer context.Database.Close()
-	defer context.Database.Exec("DELETE FROM clients where id > 1")
-	defer context.Database.Exec("DELETE FROM users where id > 1")
-	defer context.Database.Exec("DELETE FROM client_tokens where id > 1")
+	defer context.Database.Exec("DELETE FROM user_role_mappings where id > 0")
+	defer context.Database.Exec("DELETE FROM clients where id > 0")
+	defer context.Database.Exec("DELETE FROM users where id > 0")
+	defer context.Database.Exec("DELETE FROM client_tokens where id > 0")
 
 	testutils.CreateClient(&context.Request.Client, "users_create_client")
 

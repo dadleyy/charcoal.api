@@ -1,6 +1,5 @@
 package routes
 
-import "fmt"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 
@@ -15,8 +14,8 @@ func PrintUserRoles(runtime *net.RequestRuntime) error {
 	var maps []models.UserRoleMapping
 
 	if err := runtime.Where("user = ?", runtime.User.ID).Find(&maps).Error; err != nil {
-		runtime.Debugf("failed mapping lookup: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_LOOKUP"))
+		runtime.Warnf("failed mapping lookup: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	if len(maps) == 0 {
@@ -31,8 +30,8 @@ func PrintUserRoles(runtime *net.RequestRuntime) error {
 	}
 
 	if err := runtime.Where(ids).Find(&roles).Error; err != nil {
-		runtime.Debugf("unable to associate to roles: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_ASSOCIATION"))
+		runtime.Warnf("unable to associate to roles: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	for _, role := range roles {
@@ -48,8 +47,9 @@ func PrintClientTokens(runtime *net.RequestRuntime) error {
 	cursor := runtime.Where("client = ?", runtime.Client.ID)
 	blueprint := runtime.Blueprint(cursor)
 
-	if _, err := blueprint.Apply(&tokens); err != nil {
-		return runtime.AddError(err)
+	if _, err := blueprint.Apply(&tokens); err == nil {
+		runtime.Warnf("unable to lookup tokens for client %d: %s", runtime.Client.ID, "")
+		return runtime.ServerError()
 	}
 
 	for _, t := range tokens {

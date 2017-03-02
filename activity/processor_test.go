@@ -2,5 +2,5 @@ package activity
 
 import "testing"
 
-func TestProcessing(t *testing.T) {
+func Test_Activity_Processor_Processing(t *testing.T) {
 }

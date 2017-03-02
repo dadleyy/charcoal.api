@@ -1,7 +1,5 @@
 package middleware
 
-import "fmt"
-
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
@@ -55,7 +53,7 @@ func InjectUser(handler net.HandlerFunc) net.HandlerFunc {
 func RequireUser(handler net.HandlerFunc) net.HandlerFunc {
 	require := func(runtime *net.RequestRuntime) error {
 		if valid := runtime.User.ID >= 1; valid != true {
-			return runtime.AddError(fmt.Errorf(ErrBadBearerToken))
+			return runtime.LogicError("invalid-user")
 		}
 
 		return handler(runtime)
