@@ -16,7 +16,7 @@ func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 	db := testutils.NewDB()
 	defer db.Close()
 
-	client, user := models.Client{}, models.User{Email: &email}
+	client, user := models.Client{}, models.User{Email: email}
 
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)
@@ -46,7 +46,7 @@ func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
 
 	email := "clients-test-2@charcoal.sizethree.cc"
 	db := testutils.NewDB()
-	client, user := models.Client{}, models.User{Email: &email}
+	client, user := models.Client{}, models.User{Email: email}
 
 	db.Create(&user)
 	defer db.Close()
@@ -77,7 +77,7 @@ func Test_Routes_Clients_UpdateClient_OtherClientAuthorizedUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
 	email := "clients-test-3@charcoal.sizethree.cc"
 	db := testutils.NewDB()
-	client, target, user := models.Client{}, models.Client{}, models.User{Email: &email}
+	client, target, user := models.Client{}, models.Client{}, models.User{Email: email}
 
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)
@@ -114,7 +114,7 @@ func Test_Routes_Clients_UpdateClient_UnauthorizedUser(t *testing.T) {
 	email := "clients-test-4@charcoal.sizethree.cc"
 	db := testutils.NewDB()
 	defer db.Close()
-	client, user := models.Client{}, models.User{Email: &email}
+	client, user := models.Client{}, models.User{Email: email}
 
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)

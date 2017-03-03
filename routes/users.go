@@ -18,14 +18,6 @@ func hash(password string) (string, error) {
 	return string(result), nil
 }
 
-func cleanseUser(user models.User) interface{} {
-	return struct {
-		models.Common
-		Name  string `json:"name"`
-		Email string `json:"email"`
-	}{user.Common, *user.Name, *user.Email}
-}
-
 func CreateUser(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 
@@ -43,6 +35,9 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	validator.Require("name")
 	validator.LengthRange("password", 2, 100)
+
+	validator.Require("username")
+	validator.LengthRange("username", 2, 100)
 
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
@@ -66,18 +61,13 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	email := body.Get("email")
 	name := body.Get("name")
 
-	user := models.User{Email: &email, Password: &password, Name: &name}
+	user := models.User{Email: email, Password: password, Name: name, Username: body.Get("username")}
 
 	usrmgr := services.UserManager{runtime.DB}
 
-	if usrmgr.ValidDomain(email) != true {
+	if ok, errors := usrmgr.ValidUser(&user); ok != true {
 		runtime.Debugf("attempt to sign up w/ invalid domain: %s", email)
-		return runtime.LogicError(services.ErrUnauthorizedDomain)
-	}
-
-	if dupe, err := usrmgr.IsDuplicate(&user); dupe || err != nil {
-		runtime.Debugf("duplicate user: %s", *user.Email)
-		return runtime.LogicError("duplicate-user")
+		return runtime.AddError(errors...)
 	}
 
 	if err := runtime.Create(&user).Error; err != nil {
@@ -94,7 +84,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	}
 
 	runtime.Debugf("associated user[%d] with client[%d]", user.ID, runtime.Client.ID)
-	runtime.AddResult(cleanseUser(user))
+	runtime.AddResult(user.Public())
 	runtime.SetMeta("token", token.Token)
 
 	return nil
@@ -104,20 +94,18 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		runtime.AddError(fmt.Errorf("BAD_ID"))
-		return nil
+		return runtime.LogicError("bad-user-id")
 	}
 
 	if runtime.User.ID != uint(id) {
-		runtime.AddError(fmt.Errorf("BAD_ID"))
-		return nil
+		return runtime.LogicError("not-authorized")
 	}
 
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		runtime.AddError(err)
-		return nil
+		runtime.Warnf("error parsing body: %s", err.Error())
+		return runtime.LogicError("bad-body")
 	}
 
 	validate := body.Validator()
@@ -129,14 +117,27 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		validate.MatchEmail("email")
 
 		email := body.Get("email")
-		current := *(runtime.User.Email)
+		current := runtime.User.Email
 
 		updates["email"] = email
 
 		manager := services.UserManager{runtime.DB}
 
-		if dupe, err := manager.IsDuplicate(&models.User{Email: &email}); (email != current) && (err != nil || dupe) {
-			return runtime.AddError(fmt.Errorf("BAD_EMAIL"))
+		if dupe, err := manager.IsDuplicate(&models.User{Email: email}); (email != current) && (err != nil || dupe) {
+			return runtime.LogicError("duplicate-email")
+		}
+	}
+
+	if body.KeyExists("username") {
+		validate.Require("username")
+		manager := services.UserManager{runtime.DB}
+		username := body.Get("username")
+		current := runtime.User.Username
+		updates["username"] = username
+
+		canary := models.User{Username: username}
+		if dupe, err := manager.IsDuplicate(&canary); (username != current) && (err != nil || dupe) {
+			return runtime.LogicError("duplicate-email")
 		}
 	}
 
@@ -149,8 +150,8 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		hashed, err := hash(password)
 
 		if err != nil {
-			runtime.AddError(fmt.Errorf("BAD_PASSWORD"))
-			return nil
+			runtime.Warnf("error hashing password: %s", err.Error())
+			return runtime.ServerError()
 		}
 
 		updates["password"] = hashed
@@ -166,11 +167,13 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
 	if validate.HasErrors() == true {
-		for _, m := range validate.Messages() {
-			runtime.AddError(fmt.Errorf(m))
+		errors := make([]error, 0, len(validate.Fields()))
+
+		for key := range validate.ErrorMap() {
+			errors = append(errors, fmt.Errorf("field:%s", key))
 		}
 
-		return nil
+		return runtime.AddError(errors...)
 	}
 
 	if err := runtime.Model(&runtime.User).Updates(updates).Error; err != nil {
@@ -178,7 +181,7 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		return nil
 	}
 
-	runtime.AddResult(cleanseUser(runtime.User))
+	runtime.AddResult(runtime.User.Public())
 	runtime.Debugf("updating user[%d]", id)
 	return nil
 }
@@ -191,13 +194,13 @@ func FindUser(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Debugf("failed applying blueprint: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_BLUEPRINT"))
+		return runtime.ServerError()
 	}
 
 	runtime.SetTotal(count)
 
 	for _, u := range users {
-		runtime.AddResult(cleanseUser(u))
+		runtime.AddResult(u.Public())
 	}
 
 	return nil

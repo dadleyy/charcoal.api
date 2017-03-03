@@ -38,7 +38,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
 	defer db.Close()
 
 	email := "client-admins-find-2@charcoal.sizethree.cc"
-	client, user := models.Client{}, models.User{Email: &email}
+	client, user := models.Client{}, models.User{Email: email}
 
 	testutils.CreateClient(&client, "client-admins-find-2", false)
 	defer db.Unscoped().Delete(&client)
@@ -65,7 +65,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
 	defer db.Close()
 
 	email := "client-admins-find-3@charcoal.sizethree.cc"
-	client, user := models.Client{}, models.User{Email: &email}
+	client, user := models.Client{}, models.User{Email: email}
 
 	testutils.CreateClient(&client, "client-admins-find-2", false)
 	defer db.Unscoped().Delete(&client)
