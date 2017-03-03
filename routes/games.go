@@ -8,6 +8,44 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
+func UpdateGame(runtime *net.RequestRuntime) error {
+	id, ok := runtime.IntParam("id")
+	body, err := forms.Parse(runtime.Request)
+
+	if err != nil || ok != true {
+		runtime.Infof("invalid body received: %s", err.Error())
+		return runtime.LogicError("bad-request")
+	}
+
+	manager, err := runtime.Game(uint(id))
+
+	if err != nil {
+		runtime.Warnf("unable to get manager for game: %s", err.Error())
+		return runtime.LogicError("bad-request")
+	}
+
+	if manager.IsMember(runtime.User) == false && runtime.IsAdmin() == false {
+		runtime.Debugf("invalid user tried to update game %d: %d", manager.Game.ID, runtime.User.ID)
+		return runtime.LogicError("not-found")
+	}
+
+	updates := make(map[string]interface{})
+
+	if name := body.Get("name"); len(name) >= 2 {
+		runtime.Debugf("found name update: %s", body.Get("name"))
+		updates["name"] = name
+	}
+
+	if e := runtime.Model(&manager.Game).Update(updates).Error; e != nil {
+		runtime.Warnf("unable to save game updates: %s", e.Error())
+		return runtime.ServerError()
+	}
+
+	runtime.AddResult(manager.Game)
+
+	return nil
+}
+
 func CreateGame(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 
