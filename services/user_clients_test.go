@@ -24,7 +24,7 @@ func Test_Services_UserClients_Associate(t *testing.T) {
 	}
 
 	email := "test-associate@charcoal.sizethree.cc"
-	user := models.User{Email: &email}
+	user := models.User{Email: email}
 
 	db.Create(&client)
 	db.Create(&user)

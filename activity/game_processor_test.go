@@ -18,7 +18,7 @@ func Test_Activity_GameProcessor_JoinedMessage(t *testing.T) {
 	processor := GameProcessor{logger, stream, wait, db}
 
 	email := "game-processor-test-1@charcoal.sizethree.cc"
-	game, user := models.Game{}, models.User{Email: &email}
+	game, user := models.Game{}, models.User{Email: email}
 
 	db.Create(&user)
 	db.Create(&game)
@@ -52,7 +52,7 @@ func Test_Activity_GameProcessor_LeftMessage(t *testing.T) {
 	processor := GameProcessor{logger, stream, wait, db}
 
 	email := "game-processor-test-2.0@charcoal.sizethree.cc"
-	game, user := models.Game{Population: 10}, models.User{Email: &email}
+	game, user := models.Game{Population: 10}, models.User{Email: email}
 
 	db.Create(&user)
 	db.Create(&game)

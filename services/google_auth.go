@@ -113,12 +113,12 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 
 	// at this point we know that there is no google account already associated with the email, so we should
 	// attempt to create (or find) the user record and associate it with a fresh google account record.
-	result.User = models.User{Email: &info.Email, Name: &info.Name}
+	result.User = models.User{Email: info.Email, Name: info.Name}
 
 	usrmgr := UserManager{manager.DB}
 
 	if usrmgr.ValidDomain(info.Email) != true {
-		return GoogleAuthenticationResult{}, fmt.Errorf(ErrUnauthorizedDomain)
+		return GoogleAuthenticationResult{}, fmt.Errorf(UserManagerErrorUnauthorizedDomain)
 	}
 
 	if err := usrmgr.FindOrCreate(&result.User); err != nil {

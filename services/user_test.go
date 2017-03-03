@@ -9,13 +9,13 @@ func Test_Services_Users_IsDuplicateTrue(t *testing.T) {
 	defer db.Close()
 
 	dupe := "testing@charcoal.sizethree.cc"
-	user := models.User{Email: &dupe}
+	user := models.User{Email: dupe}
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)
 
 	mgr := UserManager{db}
 
-	if t, _ := mgr.IsDuplicate(&models.User{Email: &dupe}); t == true {
+	if t, _ := mgr.IsDuplicate(&models.User{Email: dupe}); t == true {
 		return
 	}
 
@@ -28,14 +28,14 @@ func Test_Services_Users_IsDuplicateFalse(t *testing.T) {
 
 	dupe := "testing@charcoal.sizethree.cc"
 	nodupe := "testing-2@charcoal.sizethree.cc"
-	user := models.User{Email: &dupe}
+	user := models.User{Email: dupe}
 	db.Create(&user)
 
 	defer db.Unscoped().Delete(&user)
 
 	mgr := UserManager{db}
 
-	if t, _ := mgr.IsDuplicate(&models.User{Email: &nodupe}); t == false {
+	if t, _ := mgr.IsDuplicate(&models.User{Email: nodupe}); t == false {
 		return
 	}
 
@@ -48,7 +48,7 @@ func Test_Services_Users_IsAdminTrue(t *testing.T) {
 
 	dupe := "testing@charcoal.sizethree.cc"
 
-	user := models.User{Email: &dupe}
+	user := models.User{Email: dupe}
 	db.Create(&user)
 
 	mapping := models.UserRoleMapping{Role: 1, User: user.ID}
@@ -71,7 +71,7 @@ func Test_Services_Users_IsAdminFalse(t *testing.T) {
 	defer db.Close()
 
 	dupe := "testing@charcoal.sizethree.cc"
-	user := models.User{Email: &dupe}
+	user := models.User{Email: dupe}
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)
 

@@ -5,10 +5,23 @@ import "strings"
 import "github.com/jinzhu/gorm"
 import "github.com/dadleyy/charcoal.api/models"
 
-const ErrUnauthorizedDomain = "UNAUTHORIZED_DOMAIN"
+const UserManagerErrorUnauthorizedDomain = "unauthorized-domain"
+const UserManagerErrorDuplicate = "duplicate-user"
 
 type UserManager struct {
 	*gorm.DB
+}
+
+func (manager *UserManager) ValidUser(user *models.User) (bool, []error) {
+	if manager.ValidDomain(user.Email) != true {
+		return false, []error{fmt.Errorf("reason:%s", UserManagerErrorUnauthorizedDomain)}
+	}
+
+	if dupe, err := manager.IsDuplicate(user); dupe || err != nil {
+		return false, []error{fmt.Errorf("reason:%s", UserManagerErrorDuplicate)}
+	}
+
+	return true, []error{}
 }
 
 func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {
@@ -20,7 +33,16 @@ func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {
 	}
 
 	err := manager.Model(existing).Where("email = ?", target.Email).Count(&count).Error
-	return count >= 1, err
+
+	if count >= 1 || err != nil {
+		return true, err
+	}
+
+	if err := manager.Model(existing).Where("username = ?", target.Username).Count(&count).Error; err != nil {
+		return true, err
+	}
+
+	return count >= 1, nil
 }
 
 func (manager *UserManager) FindOrCreate(target *models.User) error {
