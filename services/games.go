@@ -120,7 +120,7 @@ func (m *GameManager) AddUser(user models.User) error {
 	}
 
 	if stream, ok := m.Streams["games"]; ok {
-		stream <- activity.Message{&user, &m.Game, "joined"}
+		stream <- activity.Message{&user, &m.Game, activity.GameProcessorUserJoined}
 	}
 
 	return m.Create(&member).Error
