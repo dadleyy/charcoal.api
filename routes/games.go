@@ -29,14 +29,7 @@ func UpdateGame(runtime *net.RequestRuntime) error {
 		return runtime.LogicError("not-found")
 	}
 
-	updates := make(map[string]interface{})
-
-	if name := body.Get("name"); len(name) >= 2 {
-		runtime.Debugf("found name update: %s", body.Get("name"))
-		updates["name"] = name
-	}
-
-	if e := runtime.Model(&manager.Game).Update(updates).Error; e != nil {
+	if e := manager.ApplyUpdates(body.Values); e != nil {
 		runtime.Warnf("unable to save game updates: %s", e.Error())
 		return runtime.ServerError()
 	}
@@ -102,6 +95,11 @@ func DestroyGame(runtime *net.RequestRuntime) error {
 
 	if err := manager.EndGame(); err != nil {
 		runtime.Debugf("problem deleting game: %s", err.Error())
+		return runtime.ServerError()
+	}
+
+	if err := runtime.Delete(&manager.Game).Error; err != nil {
+		runtime.Warnf("unable to delete record: %s", err.Error())
 		return runtime.ServerError()
 	}
 
