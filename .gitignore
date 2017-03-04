@@ -5,7 +5,7 @@
 *.so
 .env
 .env-test
-.env-development
+.env-*
 /env
 .keys
 miritos.api

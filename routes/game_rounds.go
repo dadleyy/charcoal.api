@@ -10,20 +10,21 @@ func CreateGameRound(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
+		runtime.Warnf("failed body parse: %s", err.Error())
+		return runtime.LogicError("invalid-request")
 	}
 
 	id, err := strconv.Atoi(body.Get("game_id"))
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("MISSING_GAME_ID"))
+		return runtime.LogicError("invalid-game-id")
 	}
 
 	var game models.Game
 
 	if err := runtime.First(&game, id).Error; err != nil {
 		runtime.Debugf("unable to find game %d: %s", id, err.Error())
-		return runtime.AddError(fmt.Errorf("GAME_NOT_FOUND"))
+		return runtime.LogicError("game-not-found")
 	}
 
 	members, cursor := []models.GameMembership{}, runtime.Where("user_id = ? and game_id = ?", runtime.User.ID, id)
@@ -35,14 +36,14 @@ func CreateGameRound(runtime *net.RequestRuntime) error {
 			runtime.Debugf("error: ", err.Error())
 		}
 
-		return runtime.AddError(fmt.Errorf("GAME_NOT_FOUND"))
+		return runtime.LogicError("game-not-found")
 	}
 
 	round := models.GameRound{Game: game}
 
 	if err := runtime.Create(&round).Error; err != nil {
 		runtime.Debugf("failed saving new round: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED_CREATE"))
+		return runtime.ServerError()
 	}
 
 	runtime.AddResult(round.Public())

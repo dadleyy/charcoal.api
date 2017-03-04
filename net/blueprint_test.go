@@ -82,7 +82,7 @@ func Test_Net_Blueprint_Apply_WithReferencedTable_Matching(t *testing.T) {
 	bp := makebp(values)
 	defer bp.DB.Close()
 
-	game1, game2 := models.Game{Status: "ACTIVE"}, models.Game{Status: "ENDE"}
+	game1, game2 := models.Game{Status: "ACTIVE"}, models.Game{Status: "ENDED"}
 
 	bp.Create(&game1)
 	defer bp.Unscoped().Delete(&game1)
