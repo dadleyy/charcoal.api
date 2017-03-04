@@ -1,6 +1,5 @@
 package routes
 
-import "fmt"
 import "strconv"
 
 import "github.com/dadleyy/charcoal.api/net"
@@ -20,13 +19,23 @@ func DestroyGameMembership(runtime *net.RequestRuntime) error {
 		return runtime.LogicError("not-found")
 	}
 
-	if runtime.IsAdmin() == false && membership.UserID != runtime.User.ID {
+	manager, err := runtime.Game(membership.GameID)
+
+	if err != nil {
+		runtime.Warnf("unable to load game manager: %s", err.Error())
+		return runtime.LogicError("not-found")
+	}
+
+	// membership, current, owner
+	m, c, o := membership.UserID, runtime.User.ID, manager.Game.OwnerID
+
+	if runtime.IsAdmin() == false && m != c && c != o {
 		runtime.Debugf("cannot delete membership - user[%d] isn't owner", runtime.User.ID)
 		return runtime.LogicError("bad-user")
 	}
 
-	if err := runtime.Delete(&membership).Error; err != nil {
-		runtime.Debugf("problem deleting membership: %s", err.Error())
+	if e := manager.RemoveMember(membership); e != nil {
+		runtime.Debugf("problem deleting membership: %s", e.Error())
 		return runtime.ServerError()
 	}
 
@@ -67,11 +76,14 @@ func CreateGameMembership(runtime *net.RequestRuntime) error {
 		return runtime.LogicError("not-found")
 	}
 
-	if err := manager.AddUser(user); err != nil {
+	membership, err := manager.AddUser(user)
+
+	if err != nil {
 		runtime.Debugf("failed adding user: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED_ADD"))
+		return runtime.LogicError("invalid-membership")
 	}
 
+	runtime.AddResult(membership)
 	return nil
 }
 

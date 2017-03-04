@@ -112,16 +112,47 @@ func (m *GameManager) IsMember(user models.User) bool {
 	return true
 }
 
-func (m *GameManager) AddUser(user models.User) error {
+func (m *GameManager) RemoveMember(member models.GameMembership) error {
+	if m.Game.ID != member.GameID {
+		return fmt.Errorf("game/membership mismatch")
+	}
+
+	user := models.User{}
+
+	if e := m.First(&user, member.UserID).Error; e != nil {
+		return e
+	}
+
+	if e := m.Delete(&member).Error; e != nil {
+		m.Warnf("unable to remove member: %s", e.Error())
+		return e
+	}
+
+	m.Debugf("removed member: %d from game %d", member.UserID, m.Game.ID)
+
+	if stream, ok := m.Streams["games"]; ok {
+		verb := activity.GameProcessorVerbPrefix + activity.GameProcessorUserLeft
+		stream <- activity.Message{&user, &m.Game, verb}
+	}
+
+	return nil
+}
+
+func (m *GameManager) AddUser(user models.User) (models.GameMembership, error) {
 	member := models.GameMembership{UserID: user.ID, GameID: m.Game.ID}
 
 	if m.IsMember(user) {
-		return fmt.Errorf("already a member of the game")
+		return models.GameMembership{}, fmt.Errorf("already a member of the game")
+	}
+
+	if e := m.Create(&member).Error; e != nil {
+		return models.GameMembership{}, e
 	}
 
 	if stream, ok := m.Streams["games"]; ok {
-		stream <- activity.Message{&user, &m.Game, activity.GameProcessorUserJoined}
+		verb := activity.GameProcessorVerbPrefix + activity.GameProcessorUserJoined
+		stream <- activity.Message{&user, &m.Game, verb}
 	}
 
-	return m.Create(&member).Error
+	return member, nil
 }
