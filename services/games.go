@@ -161,6 +161,16 @@ func (m *GameManager) AddUser(user models.User) (models.GameMembership, error) {
 		return models.GameMembership{}, fmt.Errorf("already a member of the game")
 	}
 
+	rounds := []models.GameRound{}
+
+	if e := m.Where("game_id = ?", m.Game.ID).Select("id").Limit(1).Order("id DESC").Find(&rounds).Error; e != nil {
+		return models.GameMembership{}, e
+	}
+
+	if len(rounds) == 1 {
+		member.EntryRoundID = &rounds[0].ID
+	}
+
 	if e := m.Create(&member).Error; e != nil {
 		return models.GameMembership{}, e
 	}
