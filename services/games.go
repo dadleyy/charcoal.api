@@ -53,9 +53,25 @@ func (m *GameManager) EndGame() error {
 		return nil
 	}
 
-	stream <- activity.Message{&owner, &m.Game, "games:ended"}
+	verb := activity.GameProcessorVerbPrefix + activity.GameProcessorGameEnded
+	stream <- activity.Message{&owner, &m.Game, verb}
 
 	return nil
+}
+
+func (m *GameManager) ApplyUpdates(updates url.Values) error {
+	fields := make(map[string]interface{})
+
+	if status := updates.Get("status"); status == "ENDED" {
+		return m.EndGame()
+	}
+
+	if name := updates.Get("name"); len(name) >= 2 {
+		fields["name"] = name
+	}
+
+	m.Debugf("applying updates: %v", fields)
+	return m.Model(&m.Game).Update(fields).Error
 }
 
 func (m *GameManager) UpdateRound(round *models.GameRound, rankings url.Values) error {

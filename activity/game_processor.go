@@ -8,6 +8,7 @@ import "github.com/dadleyy/charcoal.api/models"
 const GameProcessorVerbPrefix = "games:"
 const GameProcessorUserJoined = "user-joined"
 const GameProcessorUserLeft = "user-left"
+const GameProcessorGameEnded = "game-ended"
 
 type GameProcessor struct {
 	*log.Logger
