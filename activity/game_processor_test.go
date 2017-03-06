@@ -17,12 +17,17 @@ func Test_Activity_GameProcessor_JoinedMessage(t *testing.T) {
 
 	processor := GameProcessor{logger, stream, wait, db}
 
-	email := "game-processor-test-1@charcoal.sizethree.cc"
-	game, user := models.Game{}, models.User{Email: email}
+	email := "game-processor-test-1.1@charcoal.sizethree.cc"
+	ownerEmail := "game-processor-test-1.2@charcoal.sizethree.cc"
+	game, user, owner := models.Game{Status: "ACTIVE"}, models.User{Email: email}, models.User{Email: ownerEmail}
 
+	db.Create(&owner)
 	db.Create(&user)
+
+	game.OwnerID = owner.ID
 	db.Create(&game)
 
+	defer db.Unscoped().Delete(&owner)
 	defer db.Unscoped().Delete(&user)
 	defer db.Unscoped().Delete(&game)
 
@@ -51,12 +56,17 @@ func Test_Activity_GameProcessor_LeftMessage(t *testing.T) {
 
 	processor := GameProcessor{logger, stream, wait, db}
 
-	email := "game-processor-test-2.0@charcoal.sizethree.cc"
-	game, user := models.Game{Population: 10}, models.User{Email: email}
+	email := "game-processor-test-2.1@charcoal.sizethree.cc"
+	ownerEmail := "game-processor-test-2.2@charcoal.sizethree.cc"
+	game, user, owner := models.Game{Status: "ACTIVE", Population: 10}, models.User{Email: email}, models.User{Email: ownerEmail}
 
+	db.Create(&owner)
 	db.Create(&user)
+
+	game.OwnerID = owner.ID
 	db.Create(&game)
 
+	defer db.Unscoped().Delete(&owner)
 	defer db.Unscoped().Delete(&user)
 	defer db.Unscoped().Delete(&game)
 

@@ -7,6 +7,7 @@ import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
 func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_And_NoClient(t *testing.T) {
 	ctx := routetesting.NewFind("client-admins")
+	defer ctx.Database.Close()
 
 	if err := FindClientAdmins(&ctx.Request); err != nil {
 		return
