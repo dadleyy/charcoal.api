@@ -39,7 +39,7 @@ func UpdateDisplaySchedule(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("BAD_ID"))
 	}
 
-	manager := services.UserManager{runtime.DB}
+	manager := services.UserManager{runtime.DB, runtime.Logger}
 
 	if admin := manager.IsAdmin(&runtime.User); admin != true {
 		return runtime.AddError(fmt.Errorf("NON_ADMIN"))

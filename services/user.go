@@ -1,27 +1,57 @@
 package services
 
 import "fmt"
+import "regexp"
+import "net/url"
 import "strings"
+import "unicode"
+import "net/mail"
 import "github.com/jinzhu/gorm"
+import "golang.org/x/crypto/bcrypt"
+import "github.com/labstack/gommon/log"
+
 import "github.com/dadleyy/charcoal.api/models"
 
 const UserManagerErrorUnauthorizedDomain = "unauthorized-domain"
 const UserManagerErrorDuplicate = "duplicate-user"
+const UserManagerUsernameRE = "^[a-zA-Z0-9\\-_]{6,20}$"
 
 type UserManager struct {
 	*gorm.DB
+	*log.Logger
+}
+
+func (manager *UserManager) ValidUsername(username string) bool {
+	re := regexp.MustCompile(UserManagerUsernameRE)
+	return re.MatchString(username)
+}
+
+func (manager *UserManager) ValidPassword(password string) bool {
+	if len(password) < 6 || len(password) > 20 {
+		return false
+	}
+
+	for _, c := range password {
+		if unicode.IsSpace(c) {
+			return false
+		}
+	}
+
+	return true
 }
 
 func (manager *UserManager) ValidUser(user *models.User) (bool, []error) {
+	errors := make([]error, 0)
+
 	if manager.ValidDomain(user.Email) != true {
-		return false, []error{fmt.Errorf("reason:%s", UserManagerErrorUnauthorizedDomain)}
+		errors = append(errors, fmt.Errorf("reason:%s", UserManagerErrorUnauthorizedDomain))
 	}
 
 	if dupe, err := manager.IsDuplicate(user); dupe || err != nil {
-		return false, []error{fmt.Errorf("reason:%s", UserManagerErrorDuplicate)}
+		errors = append(errors, fmt.Errorf("reason:%s", UserManagerErrorDuplicate))
 	}
 
-	return true, []error{}
+	return len(errors) == 0, errors
 }
 
 func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {
@@ -32,17 +62,8 @@ func (manager *UserManager) IsDuplicate(target *models.User) (bool, error) {
 		return true, fmt.Errorf("INVALID_USER")
 	}
 
-	err := manager.Model(existing).Where("email = ?", target.Email).Count(&count).Error
-
-	if count >= 1 || err != nil {
-		return true, err
-	}
-
-	if err := manager.Model(existing).Where("username = ?", target.Username).Count(&count).Error; err != nil {
-		return true, err
-	}
-
-	return count >= 1, nil
+	err := manager.Model(existing).Where("email = ? OR username = ?", target.Email, target.Username).Count(&count).Error
+	return count >= 1, err
 }
 
 func (manager *UserManager) FindOrCreate(target *models.User) error {
@@ -51,6 +72,69 @@ func (manager *UserManager) FindOrCreate(target *models.User) error {
 	}
 
 	return manager.Where(models.User{Email: target.Email}).FirstOrCreate(target).Error
+}
+
+func (manager *UserManager) ApplyUpdates(existing *models.User, updates url.Values) []error {
+	errors := make([]error, 0)
+	applied := make(map[string]interface{})
+
+	if _, ok := updates["password"]; ok == true {
+		password := updates.Get("password")
+		hashed, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+
+		if err != nil {
+			errors = append(errors, err)
+		} else if manager.ValidPassword(password) != true {
+			manager.Infof("password [%s] does not pass validation", password)
+			errors = append(errors, fmt.Errorf("field:password"))
+		} else {
+			manager.Infof("updating password on user[%d]", existing.ID)
+			applied["password"] = string(hashed)
+		}
+	}
+
+	if _, ok := updates["name"]; ok == true && updates.Get("name") != existing.Name {
+		applied["name"] = updates.Get("name")
+	}
+
+	if _, ok := updates["email"]; ok == true && updates.Get("email") != existing.Email {
+		desired := updates.Get("email")
+
+		if dupe, err := manager.IsDuplicate(&models.User{Email: desired}); err != nil || dupe {
+			manager.Infof("email[%s] considered duplicate", desired)
+			errors = append(errors, fmt.Errorf("reason:invalid-email"))
+		} else if _, err := mail.ParseAddress(desired); err != nil {
+			manager.Infof("email[%s] did not pass inspection: %s", desired, err.Error())
+			errors = append(errors, fmt.Errorf("reason:invalid-email"))
+		} else {
+			applied["email"] = updates.Get("email")
+		}
+	}
+
+	if _, ok := updates["username"]; ok == true && updates.Get("username") != existing.Username {
+		desired := updates.Get("username")
+
+		if dupe, err := manager.IsDuplicate(&models.User{Username: desired}); err != nil || dupe {
+			manager.Infof("username[%s] considered a duplicate", desired)
+			errors = append(errors, fmt.Errorf("reason:invalid-username"))
+		} else if manager.ValidUsername(desired) != true {
+			manager.Infof("username[%s] did not pass inspection", desired)
+			errors = append(errors, fmt.Errorf("reason:invalid-username"))
+		} else {
+			applied["username"] = updates.Get("username")
+		}
+	}
+
+	if len(errors) >= 1 {
+		return errors
+	}
+
+	if e := manager.Model(existing).Updates(applied).Error; e != nil {
+		manager.Warnf("failed update to user[%d]: %s", existing.ID, e.Error())
+		return []error{fmt.Errorf("reason:server-error")}
+	}
+
+	return errors
 }
 
 func (manager *UserManager) ValidDomain(email string) bool {

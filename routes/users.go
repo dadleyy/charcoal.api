@@ -63,11 +63,20 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	user := models.User{Email: email, Password: password, Name: name, Username: body.Get("username")}
 
-	usrmgr := services.UserManager{runtime.DB}
+	usrmgr := services.UserManager{runtime.DB, runtime.Logger}
+
+	if usrmgr.ValidPassword(body.Get("password")) != true {
+		runtime.Debugf("attempt to sign up w/ invalid password: %s", body.Get("password"))
+		return runtime.LogicError("invalid-password")
+	}
 
 	if ok, errors := usrmgr.ValidUser(&user); ok != true {
 		runtime.Debugf("attempt to sign up w/ invalid domain: %s", email)
 		return runtime.AddError(errors...)
+	}
+
+	if usrmgr.ValidUsername(body.Get("username")) != true {
+		return runtime.LogicError("invalid-username")
 	}
 
 	if err := runtime.Create(&user).Error; err != nil {
@@ -108,82 +117,14 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 		return runtime.LogicError("bad-body")
 	}
 
-	validate := body.Validator()
-	updates := make(map[string]interface{})
+	usrmgr := services.UserManager{runtime.DB, runtime.Logger}
 
-	// if an email is present, validate it
-	if body.KeyExists("email") {
-		validate.Require("email")
-		validate.MatchEmail("email")
-
-		email := body.Get("email")
-		current := runtime.User.Email
-
-		updates["email"] = email
-
-		manager := services.UserManager{runtime.DB}
-
-		if dupe, err := manager.IsDuplicate(&models.User{Email: email}); (email != current) && (err != nil || dupe) {
-			return runtime.LogicError("duplicate-email")
-		}
-	}
-
-	if body.KeyExists("username") {
-		validate.Require("username")
-		manager := services.UserManager{runtime.DB}
-		username := body.Get("username")
-		current := runtime.User.Username
-		updates["username"] = username
-
-		canary := models.User{Username: username}
-		if dupe, err := manager.IsDuplicate(&canary); (username != current) && (err != nil || dupe) {
-			return runtime.LogicError("duplicate-email")
-		}
-	}
-
-	// if a password is present, validate it
-	if body.KeyExists("password") {
-		validate.Require("password")
-		validate.LengthRange("password", 6, 20)
-		password := body.Get("password")
-
-		hashed, err := hash(password)
-
-		if err != nil {
-			runtime.Warnf("error hashing password: %s", err.Error())
-			return runtime.ServerError()
-		}
-
-		runtime.Debugf("updating password: %s", hashed)
-		updates["password"] = hashed
-	}
-
-	// if a password is present, validate it
-	if body.KeyExists("name") {
-		validate.Require("name")
-		validate.LengthRange("name", 2, 100)
-		updates["name"] = body.Get("name")
-	}
-
-	// if the validator picked up errors, add them to the request
-	// runtime and then return
-	if validate.HasErrors() == true {
-		errors := make([]error, 0, len(validate.Fields()))
-
-		for key := range validate.ErrorMap() {
-			errors = append(errors, fmt.Errorf("field:%s", key))
-		}
-
+	if errors := usrmgr.ApplyUpdates(&runtime.User, body.Values); len(errors) >= 1 {
+		runtime.Warnf("update to user[%d] failed - %v", id, errors)
 		return runtime.AddError(errors...)
 	}
 
-	if err := runtime.Model(&runtime.User).Updates(updates).Error; err != nil {
-		runtime.AddError(err)
-		return nil
-	}
-
 	runtime.AddResult(runtime.User.Public())
-	runtime.Debugf("updating user[%d]", id)
 	return nil
 }
 
