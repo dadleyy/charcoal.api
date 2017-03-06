@@ -82,7 +82,15 @@ func Test_Net_Blueprint_Apply_WithReferencedTable_Matching(t *testing.T) {
 	bp := makebp(values)
 	defer bp.DB.Close()
 
+	ownerEmail := "blueprint-reference-test-1@sizethree.cc"
+	owner := models.User{Email: ownerEmail}
 	game1, game2 := models.Game{Status: "ACTIVE"}, models.Game{Status: "ENDED"}
+
+	bp.Create(&owner)
+	defer bp.Unscoped().Delete(&owner)
+
+	game1.OwnerID = owner.ID
+	game2.OwnerID = owner.ID
 
 	bp.Create(&game1)
 	defer bp.Unscoped().Delete(&game1)
@@ -115,7 +123,15 @@ func Test_Net_Blueprint_Apply_WithReferencedTable_NoMatch(t *testing.T) {
 	bp := makebp(values)
 	defer bp.DB.Close()
 
+	ownerEmail := "blueprint-reference-test-1@sizethree.cc"
+	owner := models.User{Email: ownerEmail}
 	game1, game2 := models.Game{Status: "ACTIVE"}, models.Game{Status: "ENDED"}
+
+	bp.Create(&owner)
+	defer bp.Unscoped().Delete(&owner)
+
+	game1.OwnerID = owner.ID
+	game2.OwnerID = owner.ID
 
 	bp.Create(&game1)
 	defer bp.Unscoped().Delete(&game1)

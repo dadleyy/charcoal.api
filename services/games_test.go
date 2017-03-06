@@ -13,6 +13,12 @@ func Test_Services_Games_AddUser_EntryID(t *testing.T) {
 	name, email := "games-add-user-entry-id-1", "games-add-user-entry-id-1@sizethree.cc"
 	game, round, user := models.Game{Name: name, Status: "ACTIVE"}, models.GameRound{}, models.User{Email: email}
 
+	owner := models.User{Email: "game-add-user-owner-1@sizethree.cc"}
+	db.Create(&owner)
+	defer db.Unscoped().Delete(&owner)
+
+	game.OwnerID = owner.ID
+
 	db.Create(&game)
 	defer db.Unscoped().Delete(&game)
 
@@ -50,6 +56,12 @@ func Test_Services_Games_AddUser_NoEntryID(t *testing.T) {
 	name, email := "games-add-user-entry-id-2", "games-add-user-entry-id-2@sizethree.cc"
 	game, user := models.Game{Name: name, Status: "ACTIVE"}, models.User{Email: email}
 
+	owner := models.User{Email: "game-add-user-owner-4@sizethree.cc"}
+	db.Create(&owner)
+	defer db.Unscoped().Delete(&owner)
+
+	game.OwnerID = owner.ID
+
 	db.Create(&game)
 	defer db.Unscoped().Delete(&game)
 
@@ -82,6 +94,12 @@ func Test_Services_Games_IsMember_True(t *testing.T) {
 	name, email := "games-is-member-true", "games-is-member-true@sizethree.cc"
 	game, user, member := models.Game{Name: name, Status: "ACTIVE"}, models.User{Email: email}, models.GameMembership{}
 
+	owner := models.User{Email: "game-add-user-owner-2@sizethree.cc"}
+	db.Create(&owner)
+	defer db.Unscoped().Delete(&owner)
+
+	game.OwnerID = owner.ID
+
 	db.Create(&game)
 	defer db.Unscoped().Delete(&game)
 
@@ -108,6 +126,12 @@ func Test_Services_Games_IsMember_False(t *testing.T) {
 
 	name, email := "games-is-member-false", "games-is-member-false@sizethree.cc"
 	game, user := models.Game{Name: name, Status: "ACTIVE"}, models.User{Email: email}
+
+	owner := models.User{Email: "game-add-user-owner-3@sizethree.cc"}
+	db.Create(&owner)
+	defer db.Unscoped().Delete(&owner)
+
+	game.OwnerID = owner.ID
 
 	db.Create(&game)
 	defer db.Unscoped().Delete(&game)

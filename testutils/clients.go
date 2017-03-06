@@ -5,6 +5,7 @@ import "github.com/dadleyy/charcoal.api/models"
 
 func CreateClient(out *models.Client, name string, system bool) error {
 	db := NewDB()
+	defer db.Close()
 
 	c := models.Client{
 		ClientID:     util.RandStringBytesMaskImprSrc(20),
