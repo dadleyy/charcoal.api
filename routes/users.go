@@ -154,6 +154,7 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 			return runtime.ServerError()
 		}
 
+		runtime.Debugf("updating password: %s", hashed)
 		updates["password"] = hashed
 	}
 

@@ -1,11 +1,68 @@
 package routes
 
+import "fmt"
+import "github.com/albrow/forms"
+import "golang.org/x/crypto/bcrypt"
+
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 
 func PrintAuth(runtime *net.RequestRuntime) error {
 	runtime.AddResult(runtime.User.Public())
 	runtime.SetMeta("admin", runtime.IsAdmin())
+	return nil
+}
+
+func PasswordLogin(runtime *net.RequestRuntime) error {
+	if runtime.Client.System != true {
+		return runtime.LogicError("invalid-client")
+	}
+
+	body, err := forms.Parse(runtime.Request)
+
+	if err != nil {
+		runtime.Warnf("failed parsing body: %s", err.Error())
+		return runtime.LogicError("invalid-body")
+	}
+
+	validator := body.Validator()
+
+	validator.Require("email")
+	validator.MatchEmail("email")
+
+	validator.Require("password")
+	validator.LengthRange("password", 6, 20)
+
+	// if the validator picked up errors, add them to the request
+	// runtime and then return
+	if validator.HasErrors() == true {
+		errors := make([]error, 0, len(validator.Fields()))
+
+		for key := range validator.ErrorMap() {
+			errors = append(errors, fmt.Errorf("field:%s", key))
+		}
+
+		return runtime.AddError(errors...)
+	}
+
+	user, token := models.User{Email: body.Get("email")}, models.ClientToken{}
+
+	if e := runtime.Where("email = ?", user.Email).First(&user).Error; e != nil {
+		runtime.Warnf("invalid login attempt: %s", e.Error())
+		return runtime.LogicError("invalid-login")
+	}
+
+	if e := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Get("password"))); e != nil {
+		runtime.Warnf("invalid login attempt: %s", e.Error())
+		return runtime.LogicError("invalid-login")
+	}
+
+	if e := runtime.Where("user = ? AND client = ?", user.ID, runtime.Client.ID).First(&token).Error; e != nil {
+		runtime.Warnf("invalid login attempt: %s", e.Error())
+		return runtime.LogicError("invalid-login")
+	}
+
+	runtime.AddResult(token)
 	return nil
 }
 
