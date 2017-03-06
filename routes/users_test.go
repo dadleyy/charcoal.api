@@ -14,17 +14,19 @@ func createTestRequestBuffer(t interface{}) *bytes.Buffer {
 }
 
 func Test_Routes_Users_CreateUser_Save(t *testing.T) {
-	body := createTestRequestBuffer(struct {
+	body := struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`
 		Name     string `json:"name"`
-	}{"dope@charcoal.sizethree.cc", "password123", "thename"})
-	return
+		Username string `json:"username"`
+	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user-test-1"}
+	clientName := "users-create-1"
 
-	context := routetesting.NewPost("users", body)
+	context := routetesting.NewPost("users", createTestRequestBuffer(body))
 	defer context.Database.Close()
 
-	testutils.CreateClient(&context.Request.Client, "users_create_client", true)
+	testutils.CreateClient(&context.Request.Client, clientName, true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
 
 	err := CreateUser(&context.Request)
 
@@ -33,21 +35,117 @@ func Test_Routes_Users_CreateUser_Save(t *testing.T) {
 		return
 	}
 
-	client, user, token := models.Client{}, models.User{}, models.ClientToken{}
+	client, user, token := context.Request.Client, models.User{}, models.ClientToken{}
 
-	if e := context.Database.Where("email = ?", "dope@charcoal.sizethree.cc").First(&user).Error; e != nil {
+	if e := context.Database.Where("email = ?", body.Email).First(&user).Error; e != nil {
 		t.Fatalf("unable to find user with email %s", e.Error())
 		return
 	}
 
-	if e := context.Database.Where("name = ?", "users_create_client").First(&client).Error; e != nil {
-		t.Fatalf("unable to find client matching name: %s", e.Error())
+	defer context.Database.Unscoped().Delete(&user)
+
+	if e := context.Database.Where("user = ? AND client = ?", user.ID, client.ID).First(&token).Error; e != nil {
+		t.Fatalf("no token was generated matching user[%d] client[%d] - %s", user.ID, client.ID, e.Error())
 		return
 	}
 
-	if e := context.Database.Where("user = ? AND client = ?", user.ID, client.ID).First(&token).Error; e == nil {
+	defer context.Database.Unscoped().Delete(&token)
+}
+
+func Test_Routes_Users_CreateUser_BadPassword(t *testing.T) {
+	body := createTestRequestBuffer(struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+	}{"dope-2@charcoal.sizethree.cc", "password 123", "thename"})
+
+	context := routetesting.NewPost("users", body)
+	defer context.Database.Close()
+
+	testutils.CreateClient(&context.Request.Client, "bad-password", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	testutils.CreateClient(&context.Request.Client, "users_create_client", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := CreateUser(&context.Request)
+
+	if err == nil {
+		t.Fatalf("should have received error due to bad password")
 		return
 	}
+}
 
-	t.Fatalf("no token was generated matching user[%d] client[%d]", user.ID, client.ID)
+func Test_Routes_Users_CreateUser_DuplicateUsername(t *testing.T) {
+	body := struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+		Username string `json:"username"`
+	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user-test-1"}
+	one := models.User{Email: body.Email + ".diff", Username: body.Username}
+
+	context := routetesting.NewPost("users", createTestRequestBuffer(body))
+	defer context.Database.Close()
+
+	testutils.CreateClient(&context.Request.Client, "dupe-username", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	context.Database.Create(&one)
+	defer context.Database.Unscoped().Delete(&one)
+
+	err := CreateUser(&context.Request)
+
+	if err == nil {
+		t.Fatalf("should have received error due to duplicate")
+		return
+	}
+}
+
+func Test_Routes_Users_CreateUser_DuplicateEmail(t *testing.T) {
+	body := struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+		Username string `json:"username"`
+	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user-test-1"}
+	one := models.User{Email: body.Email, Username: body.Username + "-diff"}
+
+	context := routetesting.NewPost("users", createTestRequestBuffer(body))
+	defer context.Database.Close()
+
+	testutils.CreateClient(&context.Request.Client, "dupe-email", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	context.Database.Create(&one)
+	defer context.Database.Unscoped().Delete(&one)
+
+	err := CreateUser(&context.Request)
+
+	if err == nil {
+		t.Fatalf("should have received error due to duplicate")
+		return
+	}
+}
+
+func Test_Routes_Users_CreateUser_BadUsername(t *testing.T) {
+	body := struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+		Name     string `json:"name"`
+		Username string `json:"username"`
+	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user @ test-1"}
+
+	context := routetesting.NewPost("users", createTestRequestBuffer(body))
+	defer context.Database.Close()
+
+	testutils.CreateClient(&context.Request.Client, "bad-username", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := CreateUser(&context.Request)
+
+	if err == nil {
+		t.Fatalf("should have received error due to duplicate")
+		return
+	}
 }

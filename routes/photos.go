@@ -164,7 +164,7 @@ func DestroyPhoto(runtime *net.RequestRuntime) error {
 		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
 	}
 
-	uman := services.UserManager{runtime.DB}
+	uman := services.UserManager{runtime.DB, runtime.Logger}
 	admin := uman.IsAdmin(&runtime.User)
 
 	// if we arent an admin, and the photo has an author, make sure its the current user
