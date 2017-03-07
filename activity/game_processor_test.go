@@ -9,7 +9,6 @@ import "github.com/dadleyy/charcoal.api/testutils"
 
 func Test_Activity_GameProcessor_JoinedMessage(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 	logger := log.New("miritos")
 
 	stream := make(chan Message, 1)
@@ -48,7 +47,6 @@ func Test_Activity_GameProcessor_JoinedMessage(t *testing.T) {
 
 func Test_Activity_GameProcessor_LeftMessage(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 	logger := log.New("miritos")
 
 	stream := make(chan Message, 1)

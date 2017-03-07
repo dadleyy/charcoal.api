@@ -1,18 +1,16 @@
 package routetesting
 
-import "os"
 import "io"
 import "bytes"
 import "net/http"
-import "github.com/joho/godotenv"
 
 import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
-import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/activity"
+import "github.com/dadleyy/charcoal.api/testutils"
 
 type TestRouteUtil struct {
 	Database *gorm.DB
@@ -34,18 +32,8 @@ func NewPatch(template string, real string, reader io.Reader) *TestRouteUtil {
 }
 
 func NewRequest(method string, template string, real string, reader io.Reader) *TestRouteUtil {
-	_ = godotenv.Load("../.env")
+	database := testutils.NewDB()
 
-	dbconf := db.Config{
-		os.Getenv("DB_USERNAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOSTNAME"),
-		os.Getenv("DB_DATABASE"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_DEBUG") == "true",
-	}
-
-	database, _ := gorm.Open("mysql", dbconf.String())
 	logger := log.New("miritos")
 
 	streams := map[string](chan activity.Message){
@@ -62,7 +50,7 @@ func NewRequest(method string, template string, real string, reader io.Reader) *
 
 	stub.Header.Add("Content-Type", "application/json")
 
-	server := net.ServerRuntime{logger, net.RuntimeConfig{dbconf}, streams, nil}
+	server := net.ServerRuntime{logger, net.RuntimeConfig{testutils.DBConfig()}, streams, nil}
 	route := net.Route{Method: method, Path: template}
 	params, _ := route.Match(method, real)
 	request, _ := server.Request(stub, &params)

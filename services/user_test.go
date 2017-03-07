@@ -8,7 +8,6 @@ import "github.com/dadleyy/charcoal.api/testutils"
 
 func Test_Services_Users_IsDuplicateTrue(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	dupe := "testing@charcoal.sizethree.cc"
 	user := models.User{Email: dupe}
@@ -26,7 +25,6 @@ func Test_Services_Users_IsDuplicateTrue(t *testing.T) {
 
 func Test_Services_Users_IsDuplicateFalse(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	dupe := "testing@charcoal.sizethree.cc"
 	nodupe := "testing-2@charcoal.sizethree.cc"
@@ -46,7 +44,6 @@ func Test_Services_Users_IsDuplicateFalse(t *testing.T) {
 
 func Test_Services_Users_IsAdminTrue(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	dupe := "testing@charcoal.sizethree.cc"
 
@@ -70,7 +67,6 @@ func Test_Services_Users_IsAdminTrue(t *testing.T) {
 
 func Test_Services_Users_IsAdminFalse(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	dupe := "testing@charcoal.sizethree.cc"
 	user := models.User{Email: dupe}

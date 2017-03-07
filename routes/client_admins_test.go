@@ -7,7 +7,6 @@ import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
 func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_And_NoClient(t *testing.T) {
 	ctx := routetesting.NewFind("client-admins")
-	defer ctx.Database.Close()
 
 	if err := FindClientAdmins(&ctx.Request); err != nil {
 		return
@@ -18,7 +17,6 @@ func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_And_NoClient(t *testing.T
 
 func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_With_Client(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	client := models.Client{}
 	testutils.CreateClient(&client, "client-admins-find-1", false)
@@ -36,7 +34,6 @@ func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_With_Client(t *testing.T)
 
 func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	email := "client-admins-find-2@charcoal.sizethree.cc"
 	client, user := models.Client{}, models.User{Email: email}
@@ -63,7 +60,6 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
 
 func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	email := "client-admins-find-3@charcoal.sizethree.cc"
 	client, user := models.Client{}, models.User{Email: email}

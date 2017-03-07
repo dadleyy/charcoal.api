@@ -17,7 +17,6 @@ func Test_Net_Blueprint_LimitUnset(t *testing.T) {
 	values := make(url.Values)
 
 	bp := makebp(values)
-	defer bp.DB.Close()
 
 	l := bp.Limit()
 
@@ -33,7 +32,6 @@ func Test_Net_Blueprint_LimitTooLarge(t *testing.T) {
 	values.Set("limit", "100000")
 
 	bp := makebp(values)
-	defer bp.DB.Close()
 
 	l := bp.Limit()
 
@@ -49,7 +47,6 @@ func Test_Net_Blueprint_LimitBadParse(t *testing.T) {
 	values.Set("limit", "abcd")
 
 	bp := makebp(values)
-	defer bp.DB.Close()
 
 	l := bp.Limit()
 
@@ -65,7 +62,6 @@ func Test_Net_Blueprint_LimitNegative(t *testing.T) {
 	values.Set("limit", "-100")
 
 	bp := makebp(values)
-	defer bp.DB.Close()
 
 	l := bp.Limit()
 
@@ -80,7 +76,6 @@ func Test_Net_Blueprint_Apply_WithReferencedTable_Matching(t *testing.T) {
 	values := url.Values{"filter[game.status]": []string{"eq(ACTIVE)"}}
 
 	bp := makebp(values)
-	defer bp.DB.Close()
 
 	ownerEmail := "blueprint-reference-test-1@sizethree.cc"
 	owner := models.User{Email: ownerEmail}
@@ -121,7 +116,6 @@ func Test_Net_Blueprint_Apply_WithReferencedTable_NoMatch(t *testing.T) {
 	values := url.Values{"filter[game.status]": []string{"eq(ENDED)"}}
 
 	bp := makebp(values)
-	defer bp.DB.Close()
 
 	ownerEmail := "blueprint-reference-test-1@sizethree.cc"
 	owner := models.User{Email: ownerEmail}
