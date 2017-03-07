@@ -1,4 +1,4 @@
 commit:
   message:
     patterns:
-      - "^\[CHAPI\-[0-9]+\]"
+      - "^\\[CHAPI\\-[0-9]+\\]"
