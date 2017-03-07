@@ -7,6 +7,8 @@ import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 import "github.com/dadleyy/charcoal.api/db"
 
+var connection *gorm.DB
+
 func DBConfig() db.Config {
 	_ = godotenv.Load("../.env")
 
@@ -23,6 +25,10 @@ func DBConfig() db.Config {
 }
 
 func NewDB() *gorm.DB {
+	if connection != nil {
+		return connection
+	}
+
 	c := DBConfig()
 	database, err := gorm.Open("mysql", c.String())
 
@@ -30,5 +36,7 @@ func NewDB() *gorm.DB {
 		panic(err)
 	}
 
-	return database
+	connection = database
+
+	return connection
 }

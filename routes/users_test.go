@@ -24,7 +24,6 @@ func Test_Routes_Users_CreateUser_Save(t *testing.T) {
 	clientName := "users-create-1"
 
 	context := routetesting.NewPost("users", createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	testutils.CreateClient(&context.Request.Client, clientName, true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -61,7 +60,6 @@ func Test_Routes_Users_CreateUser_BadPassword(t *testing.T) {
 	}{"dope-2@charcoal.sizethree.cc", "password 123", "thename"})
 
 	context := routetesting.NewPost("users", body)
-	defer context.Database.Close()
 
 	testutils.CreateClient(&context.Request.Client, "bad-password", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -87,7 +85,6 @@ func Test_Routes_Users_CreateUser_DuplicateUsername(t *testing.T) {
 	one := models.User{Email: body.Email + ".diff", Username: body.Username}
 
 	context := routetesting.NewPost("users", createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	testutils.CreateClient(&context.Request.Client, "dupe-username", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -113,7 +110,6 @@ func Test_Routes_Users_CreateUser_DuplicateEmail(t *testing.T) {
 	one := models.User{Email: body.Email, Username: body.Username + "-diff"}
 
 	context := routetesting.NewPost("users", createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	testutils.CreateClient(&context.Request.Client, "dupe-email", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -138,7 +134,6 @@ func Test_Routes_Users_CreateUser_BadUsername(t *testing.T) {
 	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user @ test-1"}
 
 	context := routetesting.NewPost("users", createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	testutils.CreateClient(&context.Request.Client, "bad-username", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -153,7 +148,7 @@ func Test_Routes_Users_CreateUser_BadUsername(t *testing.T) {
 
 func Test_Routes_Users_UpdateUser_Unauthorized(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
+	db.DB().SetMaxOpenConns(1)
 
 	user := models.User{
 		Email:    "user-update-1@charcoal.sizethree.cc",
@@ -169,7 +164,6 @@ func Test_Routes_Users_UpdateUser_Unauthorized(t *testing.T) {
 	}{"user-update-1-1"}
 
 	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", user.ID), createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	testutils.CreateClient(&context.Request.Client, "update-username", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -184,7 +178,7 @@ func Test_Routes_Users_UpdateUser_Unauthorized(t *testing.T) {
 
 func Test_Routes_Users_UpdateUser_GoodUsername(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
+	db.DB().SetMaxOpenConns(1)
 
 	user := models.User{
 		Email:    "user-update-2@charcoal.sizethree.cc",
@@ -200,7 +194,6 @@ func Test_Routes_Users_UpdateUser_GoodUsername(t *testing.T) {
 	}{"user-update-2-2"}
 
 	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", user.ID), createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	context.Request.User = user
 
@@ -217,7 +210,7 @@ func Test_Routes_Users_UpdateUser_GoodUsername(t *testing.T) {
 
 func Test_Routes_Users_UpdateUser_BadUsername(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
+	db.DB().SetMaxOpenConns(1)
 
 	user := models.User{
 		Email:    "user-update-3@charcoal.sizethree.cc",
@@ -233,7 +226,6 @@ func Test_Routes_Users_UpdateUser_BadUsername(t *testing.T) {
 	}{"user-update-3 with spaces"}
 
 	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", user.ID), createTestRequestBuffer(body))
-	defer context.Database.Close()
 
 	context.Request.User = user
 
@@ -246,4 +238,84 @@ func Test_Routes_Users_UpdateUser_BadUsername(t *testing.T) {
 		t.Fatalf("should NOT have been able to update user w/ bad username")
 		return
 	}
+}
+
+func Test_Routes_Users_UpdateUser_DuplicateUsername(t *testing.T) {
+	db := testutils.NewDB()
+	db.DB().SetMaxOpenConns(1)
+
+	one, two := models.User{
+		Email:    "user-update-4-1@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-4-1",
+	}, models.User{
+		Email:    "user-update-4-2@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-4-2",
+	}
+
+	db.Create(&one)
+	defer db.Unscoped().Delete(&one)
+
+	db.Create(&two)
+	defer db.Unscoped().Delete(&two)
+
+	body := struct {
+		Username string `json:"username"`
+	}{"user-update-4-1"}
+
+	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", two.ID), createTestRequestBuffer(body))
+
+	context.Request.User = two
+
+	testutils.CreateClient(&context.Request.Client, "update-username-4", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := UpdateUser(&context.Request)
+
+	if err != nil {
+		return
+	}
+
+	t.Fatalf("should NOT have been able to update user w/ duplicate username")
+}
+
+func Test_Routes_Users_UpdateUser_DuplicateEmail(t *testing.T) {
+	db := testutils.NewDB()
+	db.DB().SetMaxOpenConns(1)
+
+	one, two := models.User{
+		Email:    "user-update-5-1@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-5-1",
+	}, models.User{
+		Email:    "user-update-5-2@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-5-2",
+	}
+
+	db.Create(&one)
+	defer db.Unscoped().Delete(&one)
+
+	db.Create(&two)
+	defer db.Unscoped().Delete(&two)
+
+	body := struct {
+		Email string `json:"email"`
+	}{one.Email}
+
+	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", two.ID), createTestRequestBuffer(body))
+
+	context.Request.User = two
+
+	testutils.CreateClient(&context.Request.Client, "update-username-5", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := UpdateUser(&context.Request)
+
+	if err != nil {
+		return
+	}
+
+	t.Fatalf("should NOT have been able to update user w/ duplicate email")
 }

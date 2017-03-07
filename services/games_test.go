@@ -8,7 +8,6 @@ import "github.com/dadleyy/charcoal.api/testutils"
 
 func Test_Services_Games_AddUser_EntryID(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	name, email := "games-add-user-entry-id-1", "games-add-user-entry-id-1@sizethree.cc"
 	game, round, user := models.Game{Name: name, Status: "ACTIVE"}, models.GameRound{}, models.User{Email: email}
@@ -51,7 +50,6 @@ func Test_Services_Games_AddUser_EntryID(t *testing.T) {
 
 func Test_Services_Games_AddUser_NoEntryID(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	name, email := "games-add-user-entry-id-2", "games-add-user-entry-id-2@sizethree.cc"
 	game, user := models.Game{Name: name, Status: "ACTIVE"}, models.User{Email: email}
@@ -89,7 +87,6 @@ func Test_Services_Games_AddUser_NoEntryID(t *testing.T) {
 
 func Test_Services_Games_IsMember_True(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	name, email := "games-is-member-true", "games-is-member-true@sizethree.cc"
 	game, user, member := models.Game{Name: name, Status: "ACTIVE"}, models.User{Email: email}, models.GameMembership{}
@@ -122,7 +119,6 @@ func Test_Services_Games_IsMember_True(t *testing.T) {
 
 func Test_Services_Games_IsMember_False(t *testing.T) {
 	db := testutils.NewDB()
-	defer db.Close()
 
 	name, email := "games-is-member-false", "games-is-member-false@sizethree.cc"
 	game, user := models.Game{Name: name, Status: "ACTIVE"}, models.User{Email: email}
