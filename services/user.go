@@ -85,10 +85,10 @@ func (manager *UserManager) ApplyUpdates(existing *models.User, updates url.Valu
 		if err != nil {
 			errors = append(errors, err)
 		} else if manager.ValidPassword(password) != true {
-			manager.Infof("password [%s] does not pass validation", password)
+			manager.Debugf("password [%s] does not pass validation", password)
 			errors = append(errors, fmt.Errorf("field:password"))
 		} else {
-			manager.Infof("updating password on user[%d]", existing.ID)
+			manager.Debugf("updating password on user[%d]", existing.ID)
 			applied["password"] = string(hashed)
 		}
 	}
@@ -101,10 +101,10 @@ func (manager *UserManager) ApplyUpdates(existing *models.User, updates url.Valu
 		desired := updates.Get("email")
 
 		if dupe, err := manager.IsDuplicate(&models.User{Email: desired}); err != nil || dupe {
-			manager.Infof("email[%s] considered duplicate", desired)
+			manager.Debugf("email[%s] considered duplicate", desired)
 			errors = append(errors, fmt.Errorf("reason:invalid-email"))
 		} else if _, err := mail.ParseAddress(desired); err != nil {
-			manager.Infof("email[%s] did not pass inspection: %s", desired, err.Error())
+			manager.Debugf("email[%s] did not pass inspection: %s", desired, err.Error())
 			errors = append(errors, fmt.Errorf("reason:invalid-email"))
 		} else {
 			applied["email"] = updates.Get("email")
@@ -115,10 +115,10 @@ func (manager *UserManager) ApplyUpdates(existing *models.User, updates url.Valu
 		desired := updates.Get("username")
 
 		if dupe, err := manager.IsDuplicate(&models.User{Username: desired}); err != nil || dupe {
-			manager.Infof("username[%s] considered a duplicate", desired)
+			manager.Debugf("username[%s] considered a duplicate", desired)
 			errors = append(errors, fmt.Errorf("reason:invalid-username"))
 		} else if manager.ValidUsername(desired) != true {
-			manager.Infof("username[%s] did not pass inspection", desired)
+			manager.Debugf("username[%s] did not pass inspection", desired)
 			errors = append(errors, fmt.Errorf("reason:invalid-username"))
 		} else {
 			applied["username"] = updates.Get("username")

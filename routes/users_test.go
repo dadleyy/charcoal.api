@@ -1,5 +1,6 @@
 package routes
 
+import "fmt"
 import "bytes"
 import "testing"
 import "encoding/json"
@@ -146,6 +147,103 @@ func Test_Routes_Users_CreateUser_BadUsername(t *testing.T) {
 
 	if err == nil {
 		t.Fatalf("should have received error due to duplicate")
+		return
+	}
+}
+
+func Test_Routes_Users_UpdateUser_Unauthorized(t *testing.T) {
+	db := testutils.NewDB()
+	defer db.Close()
+
+	user := models.User{
+		Email:    "user-update-1@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-1",
+	}
+
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
+
+	body := struct {
+		Username string `json:"username"`
+	}{"user-update-1-1"}
+
+	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", user.ID), createTestRequestBuffer(body))
+	defer context.Database.Close()
+
+	testutils.CreateClient(&context.Request.Client, "update-username", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := UpdateUser(&context.Request)
+
+	if err == nil {
+		t.Fatalf("should NOT have been able to update user - no user associated w/ request")
+		return
+	}
+}
+
+func Test_Routes_Users_UpdateUser_GoodUsername(t *testing.T) {
+	db := testutils.NewDB()
+	defer db.Close()
+
+	user := models.User{
+		Email:    "user-update-2@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-2",
+	}
+
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
+
+	body := struct {
+		Username string `json:"username"`
+	}{"user-update-2-2"}
+
+	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", user.ID), createTestRequestBuffer(body))
+	defer context.Database.Close()
+
+	context.Request.User = user
+
+	testutils.CreateClient(&context.Request.Client, "update-username", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := UpdateUser(&context.Request)
+
+	if err != nil {
+		t.Fatalf("should have been able to update user: %s", err.Error())
+		return
+	}
+}
+
+func Test_Routes_Users_UpdateUser_BadUsername(t *testing.T) {
+	db := testutils.NewDB()
+	defer db.Close()
+
+	user := models.User{
+		Email:    "user-update-3@charcoal.sizethree.cc",
+		Name:     "thename",
+		Username: "user-update-3",
+	}
+
+	db.Create(&user)
+	defer db.Unscoped().Delete(&user)
+
+	body := struct {
+		Username string `json:"username"`
+	}{"user-update-3 with spaces"}
+
+	context := routetesting.NewPatch("users/:id", fmt.Sprintf("users/%d", user.ID), createTestRequestBuffer(body))
+	defer context.Database.Close()
+
+	context.Request.User = user
+
+	testutils.CreateClient(&context.Request.Client, "update-username", true)
+	defer context.Database.Unscoped().Delete(&context.Request.Client)
+
+	err := UpdateUser(&context.Request)
+
+	if err == nil {
+		t.Fatalf("should NOT have been able to update user w/ bad username")
 		return
 	}
 }

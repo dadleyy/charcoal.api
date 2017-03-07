@@ -120,7 +120,7 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 	usrmgr := services.UserManager{runtime.DB, runtime.Logger}
 
 	if errors := usrmgr.ApplyUpdates(&runtime.User, body.Values); len(errors) >= 1 {
-		runtime.Warnf("update to user[%d] failed - %v", id, errors)
+		runtime.Debugf("update to user[%d] failed - %v", id, errors)
 		return runtime.AddError(errors...)
 	}
 
