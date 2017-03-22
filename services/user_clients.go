@@ -43,7 +43,7 @@ func (engine *UserClientManager) Validate(input string, client *models.Client) e
 		return errors.New("ERR_BAD_TOKEN")
 	}
 
-	if token.Client != client.ID {
+	if token.ClientID != client.ID {
 		return errors.New("ERR_BAD_TARGET_CLIENT")
 	}
 
@@ -90,8 +90,8 @@ func (engine *UserClientManager) Associate(user *models.User, client *models.Cli
 	}
 
 	result = models.ClientToken{
-		Client: client.ID,
-		User:   user.ID,
+		ClientID: client.ID,
+		UserID:   user.ID,
 	}
 
 	var tcount uint

@@ -2,6 +2,6 @@ package models
 
 type ClientAdmin struct {
 	Common
-	User   uint `json:"user"`
-	Client uint `json:"client"`
+	UserID   uint `json:"user_id"`
+	ClientID uint `json:"client_id"`
 }

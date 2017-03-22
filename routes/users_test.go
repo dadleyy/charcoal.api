@@ -44,7 +44,7 @@ func Test_Routes_Users_CreateUser_Save(t *testing.T) {
 
 	defer context.Database.Unscoped().Delete(&user)
 
-	if e := context.Database.Where("user = ? AND client = ?", user.ID, client.ID).First(&token).Error; e != nil {
+	if e := context.Database.Where("user_id = ? AND client_id = ?", user.ID, client.ID).First(&token).Error; e != nil {
 		t.Fatalf("no token was generated matching user[%d] client[%d] - %s", user.ID, client.ID, e.Error())
 		return
 	}
