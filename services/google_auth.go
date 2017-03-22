@@ -102,7 +102,7 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 			return GoogleAuthenticationResult{}, fmt.Errorf("FOUND_DUPLICATE_NO_USER: %s", err.Error())
 		}
 
-		cursor = manager.Where("user = ? AND client = ?", result.User.ID, result.Client.ID)
+		cursor = manager.Where("user_id = ? AND client_id = ?", result.User.ID, result.Client.ID)
 
 		if err := cursor.First(&result.ClientToken).Error; err != nil {
 			return GoogleAuthenticationResult{}, fmt.Errorf("FOUND_DUPLICATE_NO_CLIENT")
