@@ -2,7 +2,7 @@ package middleware
 
 import "fmt"
 import "github.com/dadleyy/charcoal.api/net"
-import "github.com/dadleyy/charcoal.api/errors"
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/services"
 
 func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
@@ -10,7 +10,7 @@ func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
 		uman := services.UserManager{runtime.DB, runtime.Logger}
 
 		if uman.IsAdmin(&runtime.User) != true || runtime.Client.System != true {
-			return runtime.AddError(fmt.Errorf(errors.ErrUnauthorizedAdmin))
+			return runtime.AddError(fmt.Errorf(defs.ErrUnauthorizedAdmin))
 		}
 
 		runtime.Debugf("user checks out as admin, continuing...")

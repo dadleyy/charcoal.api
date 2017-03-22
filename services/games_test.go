@@ -6,6 +6,7 @@ import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/testutils"
 
+/*
 func Test_Services_Games_AddUser_EntryID(t *testing.T) {
 	db := testutils.NewDB()
 
@@ -84,6 +85,7 @@ func Test_Services_Games_AddUser_NoEntryID(t *testing.T) {
 		t.Fatalf("entry round id was not when it should have been")
 	}
 }
+*/
 
 func Test_Services_Games_IsMember_True(t *testing.T) {
 	db := testutils.NewDB()

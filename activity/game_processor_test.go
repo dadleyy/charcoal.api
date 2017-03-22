@@ -4,6 +4,7 @@ import "fmt"
 import "testing"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/testutils"
 
@@ -30,7 +31,7 @@ func Test_Activity_GameProcessor_JoinedMessage(t *testing.T) {
 	defer db.Unscoped().Delete(&user)
 	defer db.Unscoped().Delete(&game)
 
-	stream <- Message{&user, &game, fmt.Sprintf("games:%s", GameProcessorUserJoined)}
+	stream <- Message{&user, &game, fmt.Sprintf("games:%s", defs.GameProcessorUserJoined)}
 	go processor.Begin(ProcessorConfig{DB: testutils.DBConfig()})
 	close(stream)
 	<-wait
@@ -56,7 +57,14 @@ func Test_Activity_GameProcessor_LeftMessage(t *testing.T) {
 
 	email := "game-processor-test-2.1@charcoal.sizethree.cc"
 	ownerEmail := "game-processor-test-2.2@charcoal.sizethree.cc"
-	game, user, owner := models.Game{Status: "ACTIVE", Population: 10}, models.User{Email: email}, models.User{Email: ownerEmail}
+	game, user, owner := models.Game{
+		Status:     "ACTIVE",
+		Population: 10,
+	}, models.User{
+		Email: email,
+	}, models.User{
+		Email: ownerEmail,
+	}
 
 	db.Create(&owner)
 	db.Create(&user)
@@ -68,7 +76,15 @@ func Test_Activity_GameProcessor_LeftMessage(t *testing.T) {
 	defer db.Unscoped().Delete(&user)
 	defer db.Unscoped().Delete(&game)
 
-	stream <- Message{&user, &game, fmt.Sprintf("games:%s", GameProcessorUserLeft)}
+	round := models.GameRound{GameID: game.ID}
+	db.Create(&round)
+	defer db.Unscoped().Delete(&round)
+
+	history := models.GameMembershipHistory{UserID: user.ID, GameID: game.ID}
+	db.Create(&history)
+	defer db.Unscoped().Delete(&history)
+
+	stream <- Message{&user, &game, fmt.Sprintf("games:%s", defs.GameProcessorUserLeft)}
 	go processor.Begin(ProcessorConfig{DB: testutils.DBConfig()})
 	close(stream)
 	<-wait
