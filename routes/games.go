@@ -5,6 +5,7 @@ import "github.com/albrow/forms"
 import "github.com/docker/docker/pkg/namesgenerator"
 
 import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
@@ -55,18 +56,18 @@ func CreateGame(runtime *net.RequestRuntime) error {
 	game := models.Game{Name: name, Owner: runtime.User, Status: models.GameDefaultStatus}
 
 	if err := runtime.Create(&game).Error; err != nil {
-		runtime.Errorf("failed saving new game: %s", err.Error())
+		runtime.Errorf("[create game] failed saving new game: %s", err.Error())
 		return runtime.AddError(err)
 	}
 
 	membership := models.GameMembership{User: runtime.User, Game: game}
 
 	if err := runtime.Create(&membership).Error; err != nil {
-		runtime.Errorf("unable to create initial membership: %s", err.Error())
+		runtime.Errorf("[create game] unable to create initial membership: %s", err.Error())
 		return runtime.ServerError()
 	}
 
-	verb := activity.GameProcessorVerbPrefix + activity.GameProcessorUserJoined
+	verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
 	runtime.Publish(activity.Message{&runtime.User, &game, verb})
 
 	runtime.AddResult(game)

@@ -8,6 +8,7 @@ import "github.com/jinzhu/gorm"
 import "github.com/albrow/forms"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/services"
@@ -98,14 +99,14 @@ func (runtime *RequestRuntime) Publish(msg activity.Message) {
 	identifiers := strings.Split(msg.Verb, ":")
 
 	if len(identifiers) != 2 {
-		runtime.Debugf("invalid message identifier: %s", msg.Verb)
+		runtime.Debugf("[runtime] invalid message identifier: %s", msg.Verb)
 		return
 	}
 
 	stream, ok := runtime.streams[identifiers[0]]
 
 	if ok != true || stream == nil {
-		runtime.Warnf("invalid message identifier: %s", msg.Verb)
+		runtime.Warnf("[runtime] invalid message identifier: %s", msg.Verb)
 		return
 	}
 
@@ -124,8 +125,8 @@ func (runtime *RequestRuntime) Game(id uint) (*services.GameManager, error) {
 	}
 
 	streams := map[string](chan<- activity.Message){
-		"sockets": runtime.streams["sockets"],
-		"games":   runtime.streams["games"],
+		defs.SocketsStreamIdentifier: runtime.streams[defs.SocketsStreamIdentifier],
+		defs.GamesStreamIdentifier:   runtime.streams[defs.GamesStreamIdentifier],
 	}
 
 	manager := services.GameManager{runtime.DB, runtime.Logger, streams, g}

@@ -1,4 +1,4 @@
-package errors
+package defs
 
 const (
 	ErrUnauthorizedAdmin = "UNAUTHORIZED"

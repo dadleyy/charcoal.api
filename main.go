@@ -2,6 +2,7 @@ package main
 
 import "os"
 import "fmt"
+import "flag"
 import "net/http"
 
 import "github.com/joho/godotenv"
@@ -11,6 +12,7 @@ import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/routes"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/middleware"
@@ -32,14 +34,20 @@ func main() {
 		os.Getenv("DB_DEBUG") == "true",
 	}
 
-	port := os.Getenv("PORT")
+	port, help := os.Getenv("PORT"), false
 
 	if len(port) < 1 {
 		port = "8080"
 	}
 
-	if err != nil {
-		panic(err)
+	flag.StringVar(&port, "port", port, "the port to listen on")
+	flag.BoolVar(&help, "help", help, "display help")
+
+	flag.Parse()
+
+	if help == true {
+		flag.PrintDefaults()
+		return
 	}
 
 	// create the logger that will be shared by the server and the activity processor
@@ -48,9 +56,9 @@ func main() {
 	logger.SetHeader("[${time_rfc3339} ${level} ${short_file}]")
 
 	streams := map[string](chan activity.Message){
-		"activity": make(chan activity.Message, 100),
-		"sockets":  make(chan activity.Message, 100),
-		"games":    make(chan activity.Message, 100),
+		defs.ActivityStreamIdentifier: make(chan activity.Message, 100),
+		defs.SocketsStreamIdentifier:  make(chan activity.Message, 100),
+		defs.GamesStreamIdentifier:    make(chan activity.Message, 100),
 	}
 
 	// create our multiplexer and add our routes
@@ -134,12 +142,12 @@ func main() {
 	}
 
 	processors := []activity.BackgroundProcessor{
-		&activity.ActivityProcessor{Logger: logger, Stream: streams["activity"]},
-		&activity.GameProcessor{Logger: logger, Stream: streams["games"], Exhaust: nil},
+		&activity.ActivityProcessor{Logger: logger, Stream: streams[defs.ActivityStreamIdentifier]},
+		&activity.GameProcessor{Logger: logger, Stream: streams[defs.GamesStreamIdentifier], Exhaust: nil},
 	}
 
 	if os.Getenv("SOCKETS_ENABLED") == "true" {
-		websock := net.SocketRuntime{logger, streams["sockets"]}
+		websock := net.SocketRuntime{logger, streams[defs.SocketsStreamIdentifier]}
 		http.Handle("/socket/", &websock)
 	}
 
@@ -149,6 +157,6 @@ func main() {
 		go processor.Begin(activity.ProcessorConfig{dbconf})
 	}
 
-	logger.Debugf(fmt.Sprintf("starting on port: %s", port))
+	logger.Infof("[charcoal api] starting on port %s", port)
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
 }

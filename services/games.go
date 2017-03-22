@@ -6,6 +6,7 @@ import "net/url"
 import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
@@ -53,7 +54,7 @@ func (m *GameManager) EndGame() error {
 		return nil
 	}
 
-	verb := activity.GameProcessorVerbPrefix + activity.GameProcessorGameEnded
+	verb := defs.GameProcessorVerbPrefix + defs.GameProcessorGameEnded
 	stream <- activity.Message{&owner, &m.Game, verb}
 
 	return nil
@@ -146,8 +147,8 @@ func (m *GameManager) RemoveMember(member models.GameMembership) error {
 
 	m.Debugf("removed member: %d from game %d", member.UserID, m.Game.ID)
 
-	if stream, ok := m.Streams["games"]; ok {
-		verb := activity.GameProcessorVerbPrefix + activity.GameProcessorUserLeft
+	if stream, ok := m.Streams[defs.GamesStreamIdentifier]; ok {
+		verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserLeft
 		stream <- activity.Message{&user, &m.Game, verb}
 	}
 
@@ -161,22 +162,12 @@ func (m *GameManager) AddUser(user models.User) (models.GameMembership, error) {
 		return models.GameMembership{}, fmt.Errorf("already a member of the game")
 	}
 
-	rounds := []models.GameRound{}
-
-	if e := m.Where("game_id = ?", m.Game.ID).Select("id").Limit(1).Order("id DESC").Find(&rounds).Error; e != nil {
-		return models.GameMembership{}, e
-	}
-
-	if len(rounds) == 1 {
-		member.EntryRoundID = &rounds[0].ID
-	}
-
 	if e := m.Create(&member).Error; e != nil {
 		return models.GameMembership{}, e
 	}
 
 	if stream, ok := m.Streams["games"]; ok {
-		verb := activity.GameProcessorVerbPrefix + activity.GameProcessorUserJoined
+		verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
 		stream <- activity.Message{&user, &m.Game, verb}
 	}
 
