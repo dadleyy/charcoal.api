@@ -44,7 +44,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)
 
-	mapping := models.ClientAdmin{Client: client.ID, User: user.ID}
+	mapping := models.ClientAdmin{ClientID: client.ID, UserID: user.ID}
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 

@@ -26,25 +26,25 @@ func DeleteClientAdmin(runtime *net.RequestRuntime) error {
 	// if the user is not a system admin, check to see if they are an admin of the client
 	if authorized != true {
 		count := 0
-		cursor := runtime.Model(&models.ClientAdmin{}).Where("client = ? AND user = ?", record.Client, runtime.User.ID)
+		cursor := runtime.Model(&models.ClientAdmin{}).Where("client = ? AND user = ?", record.ClientID, runtime.User.ID)
 
 		if err := cursor.Count(&count).Error; err != nil || count == 0 {
-			message := "unauthorized attempt to remove client admin user[%d] record[%d]: %v"
-			runtime.Debugf(message, runtime.User.ID, id, err)
+			message := "[del client admin] unauthorized attempt to remove client admin user[%d] record[%d]: %v"
+			runtime.Warnf(message, runtime.User.ID, id, err)
 			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
 		}
 	}
 
-	if record.User == runtime.User.ID {
+	if record.UserID == runtime.User.ID {
 		return runtime.AddError(fmt.Errorf("CANNOT_REMOVE_SELF"))
 	}
 
 	if err := runtime.Model(&models.ClientAdmin{}).Delete(&record).Error; err != nil {
-		runtime.Debugf("destroy client admin error: %s", err.Error())
+		runtime.Errorf("[del client admin] destroy client admin error: %s", err.Error())
 		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
 	}
 
-	runtime.Debugf("succesfully removed user[%d] as admin of [%d]", record.User, record.Client)
+	runtime.Debugf("[del client admin] succesfully removed user[%d] as admin of [%d]", record.UserID, record.ClientID)
 
 	return nil
 }
@@ -57,7 +57,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	}
 
 	validator := body.Validator()
-	validator.Require("user")
+	validator.Require("user_id")
 
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
@@ -70,7 +70,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	}
 
 	// attempt to parse out the user id from the body
-	user, err := strconv.Atoi(body.Get("user"))
+	user, err := strconv.Atoi(body.Get("user_id"))
 
 	if err != nil {
 		return runtime.AddError(fmt.Errorf("INVALID_USER"))
@@ -82,18 +82,18 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	god := runtime.IsAdmin()
 
 	// however, if the current user is a system admin, and a client has been provided, attempt to use it
-	if god && body.KeyExists("client") {
-		runtime.Debugf("admin attempting to make user %d admin of %v", user, body.Get("client"))
-		input, err := strconv.Atoi(body.Get("client"))
+	if god && body.KeyExists("client_id") {
+		runtime.Debugf("[create client admin] admin attempting to make user %d admin of %v", user, body.Get("client"))
+		input, err := strconv.Atoi(body.Get("client_id"))
 
 		if err != nil {
-			return runtime.AddError(fmt.Errorf("INVALID_CLIENT"))
+			return runtime.LogicError("invalid-client")
 		}
 
 		client = uint(input)
 
 		if err := runtime.First(&models.Client{}, client).Error; err != nil {
-			return runtime.AddError(fmt.Errorf("CLIENT_NOT_FOUND"))
+			return runtime.LogicError("missing-client")
 		}
 	}
 
@@ -101,26 +101,27 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	if god == false {
 		admin := 0
 		cursor := runtime.Model(&models.ClientAdmin{})
-		if _ = cursor.Where("user = ? AND client = ?", runtime.User.ID, client).Count(&admin); admin == 0 {
-			runtime.Debugf("unauthorized attempt to make user %d admin of %d", user, client)
-			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
+
+		if _ = cursor.Where("user_id = ? AND cient_id = ?", runtime.User.ID, client).Count(&admin); admin == 0 {
+			runtime.Warnf("[create client admin] unauthorized attempt to make user %d admin of %d", user, client)
+			return runtime.LogicError("not-found")
 		}
 	}
 
-	runtime.Debugf("attempting to add user %d as admin to client %d", user, client)
-	mapping := models.ClientAdmin{User: uint(user), Client: client}
+	runtime.Debugf("[create client admin] attempting to add user %d as admin to client %d", user, client)
+	mapping := models.ClientAdmin{UserID: uint(user), ClientID: client}
 
 	dupe := 0
 	cursor := runtime.Model(&models.ClientAdmin{})
 
-	if _ = cursor.Where("user = ? AND client = ?", user, client).Count(&dupe); dupe != 0 {
-		runtime.Debugf("duplicate entry: user %d with client %d", user, client)
-		return runtime.AddError(fmt.Errorf("DUPLICATE_ENTRY"))
+	if _ = cursor.Where("user_id = ? AND client_id = ?", user, client).Count(&dupe); dupe != 0 {
+		runtime.Warnf("[create client admin] duplicate entry: user %d with client %d", user, client)
+		return runtime.LogicError("duplicate-entry")
 	}
 
 	if err := runtime.Create(&mapping).Error; err != nil {
-		runtime.Debugf("unable to create: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED_SAVE"))
+		runtime.Errorf("[create client admin] unable to create: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	if client != runtime.Client.ID {
@@ -130,7 +131,7 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 		c := models.Client{Common: models.Common{ID: client}}
 
 		if _, err := manager.Associate(&u, &c); err != nil {
-			runtime.Debugf("cant auto create admin clienttoken user[%d]-client[%d]: %s", user, client, err.Error())
+			runtime.Debugf("[create client admin] failed auto token user[%d]-client[%d]: %s", user, client, err.Error())
 		}
 	}
 
@@ -145,19 +146,20 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 
 	// if the runtime is not operating under admin privileges
 	if runtime.IsAdmin() != true {
-		runtime.Debugf("user is not admin, limiting query to client[%d]", runtime.Client.ID)
-		blueprint = runtime.Blueprint(runtime.Where("client = ?", runtime.Client.ID))
+		runtime.Debugf("[find client admin] user is not admin, limiting query to client[%d]", runtime.Client.ID)
+
+		blueprint = runtime.Blueprint(runtime.Where("client_id = ?", runtime.Client.ID))
 
 		// make sure user is even able to see this client's admins by being a client admin themselces
-		query := runtime.Where("client = ? AND user = ?", runtime.Client.ID, runtime.User.ID)
+		query := runtime.Where("client_id = ? AND user_id = ?", runtime.Client.ID, runtime.User.ID)
 
 		if err := query.Find(&results).Error; err != nil {
-			runtime.Debugf("failed getting client admins for current situation problem: %s", err.Error())
+			runtime.Errorf("[find client admin] failed getting client admins for current situation problem: %s", err.Error())
 			return runtime.ServerError()
 		}
 
 		if len(results) != 1 {
-			runtime.Debugf("current user[%d] has no access to client[%d]", runtime.User.ID, runtime.Client.ID)
+			runtime.Debugf("[fiend client admin] bad user[%d]: no access client[%d]", runtime.User.ID, runtime.Client.ID)
 			return runtime.ServerError()
 		}
 	}

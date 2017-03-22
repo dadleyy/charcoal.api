@@ -24,8 +24,8 @@ func Test_Routes_Auth_PasswordLogin_NoClient(t *testing.T) {
 	testutils.CreateClient(&client, "login-test-1", true)
 	defer ctx.Database.Unscoped().Delete(&client)
 
-	token.Client = client.ID
-	token.User = user.ID
+	token.ClientID = client.ID
+	token.UserID = user.ID
 	ctx.Database.Create(&token)
 	defer ctx.Database.Unscoped().Delete(&token)
 
@@ -52,8 +52,8 @@ func Test_Routes_Auth_PasswordLogin_NonSystem(t *testing.T) {
 	testutils.CreateClient(&client, "login-test-2", false)
 	defer ctx.Database.Unscoped().Delete(&client)
 
-	token.Client = client.ID
-	token.User = user.ID
+	token.ClientID = client.ID
+	token.UserID = user.ID
 	ctx.Database.Create(&token)
 	defer ctx.Database.Unscoped().Delete(&token)
 
@@ -84,8 +84,8 @@ func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
 	testutils.CreateClient(&client, "login-test-2", true)
 	defer ctx.Database.Unscoped().Delete(&client)
 
-	token.Client = client.ID
-	token.User = user.ID
+	token.ClientID = client.ID
+	token.UserID = user.ID
 	ctx.Database.Create(&token)
 	defer ctx.Database.Unscoped().Delete(&token)
 
@@ -115,8 +115,8 @@ func Test_Routes_Auth_PasswordLogin_SystemBadPassword(t *testing.T) {
 	testutils.CreateClient(&client, "login-test-2", true)
 	defer ctx.Database.Unscoped().Delete(&client)
 
-	token.Client = client.ID
-	token.User = user.ID
+	token.ClientID = client.ID
+	token.UserID = user.ID
 	ctx.Database.Create(&token)
 	defer ctx.Database.Unscoped().Delete(&token)
 

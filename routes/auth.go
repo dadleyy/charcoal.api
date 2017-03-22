@@ -48,17 +48,17 @@ func PasswordLogin(runtime *net.RequestRuntime) error {
 	user, token := models.User{Email: body.Get("email")}, models.ClientToken{}
 
 	if e := runtime.Where("email = ?", user.Email).First(&user).Error; e != nil {
-		runtime.Warnf("invalid login attempt: %s", e.Error())
+		runtime.Errorf("[password login] invalid login attempt: %s", e.Error())
 		return runtime.LogicError("invalid-login")
 	}
 
 	if e := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(body.Get("password"))); e != nil {
-		runtime.Warnf("invalid login attempt: %s", e.Error())
+		runtime.Warnf("[password login] invalid login attempt: %s", e.Error())
 		return runtime.LogicError("invalid-login")
 	}
 
-	if e := runtime.Where("user = ? AND client = ?", user.ID, runtime.Client.ID).First(&token).Error; e != nil {
-		runtime.Warnf("invalid login attempt: %s", e.Error())
+	if e := runtime.Where("user_id = ? AND client_id = ?", user.ID, runtime.Client.ID).First(&token).Error; e != nil {
+		runtime.Warnf("[password login] invalid login attempt: %s", e.Error())
 		return runtime.LogicError("invalid-login")
 	}
 

@@ -30,7 +30,7 @@ func Test_Services_UserClients_Associate(t *testing.T) {
 
 	var c int
 
-	db.Model(&models.ClientToken{}).Where("user = ? AND client = ?", user.ID, client.ID).Count(&c)
+	db.Model(&models.ClientToken{}).Where("user_id = ? AND client_id = ?", user.ID, client.ID).Count(&c)
 
 	if c != 0 {
 		t.Fatalf("newly created client and user already associated?")
@@ -42,7 +42,8 @@ func Test_Services_UserClients_Associate(t *testing.T) {
 		return
 	}
 
-	if _ = db.Model(&models.ClientToken{}).Where("user = ? AND client = ?", user.ID, client.ID).Count(&c).Error; c == 1 {
+	cursor := db.Model(&models.ClientToken{}).Where("user_id = ? AND client_id = ?", user.ID, client.ID)
+	if _ = cursor.Count(&c).Error; c == 1 {
 		return
 	}
 

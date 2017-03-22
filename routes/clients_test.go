@@ -54,7 +54,7 @@ func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
 	testutils.CreateClient(&client, "clients-test-2", true)
 	defer db.Unscoped().Delete(&client)
 
-	mapping := models.ClientAdmin{User: user.ID, Client: client.ID}
+	mapping := models.ClientAdmin{UserID: user.ID, ClientID: client.ID}
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 
@@ -87,7 +87,7 @@ func Test_Routes_Clients_UpdateClient_OtherClientAuthorizedUser(t *testing.T) {
 	defer db.Unscoped().Delete(&client)
 
 	// associate the user w/ our target client
-	mapping := models.ClientAdmin{User: user.ID, Client: target.ID}
+	mapping := models.ClientAdmin{UserID: user.ID, ClientID: target.ID}
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 

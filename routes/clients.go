@@ -14,7 +14,7 @@ func FindClients(runtime *net.RequestRuntime) error {
 	total, err := blueprint.Apply(&clients)
 
 	if err != nil {
-		runtime.Debugf("unable to query clients: %s", err.Error())
+		runtime.Errorf("[find clients] unable to query clients: %s", err.Error())
 		return runtime.ServerError()
 	}
 
@@ -37,7 +37,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 	if god := runtime.IsAdmin(); god != true {
 		admin := models.ClientAdmin{}
 
-		if e := runtime.Where("client = ? AND user = ?", id, runtime.User.ID).First(&admin).Error; e != nil {
+		if e := runtime.Where("client_id = ? AND user_id = ?", id, runtime.User.ID).First(&admin).Error; e != nil {
 			return runtime.LogicError("invalid-user")
 		}
 	}
@@ -51,7 +51,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		runtime.Warnf("invalid body: %s", err.Error())
+		runtime.Warnf("[update client] invalid body: %s", err.Error())
 		return runtime.LogicError("invalid-body")
 	}
 
@@ -75,7 +75,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 	}
 
 	if err := runtime.Model(&client).Updates(updates).Error; err != nil {
-		runtime.Warnf("failed updating client: %s", err.Error())
+		runtime.Errorf("[update client] failed updating client: %s", err.Error())
 		return runtime.ServerError()
 	}
 
@@ -119,26 +119,26 @@ func CreateClient(runtime *net.RequestRuntime) error {
 	existing := 0
 
 	if err := cursor.Count(&existing).Error; err != nil || existing >= 1 {
-		runtime.Debugf("failed attempt to duplicate client: %v", err)
-		return runtime.AddError(fmt.Errorf("INVALID_CLIENT_NAME"))
+		runtime.Errorf("[create client] failed attempt to duplicate client: %v", err)
+		return runtime.ServerError()
 	}
 
 	if err := cursor.Create(&client).Error; err != nil {
-		runtime.Debugf("failed attempt to create client: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
+		runtime.Errorf("[create client] failed attempt to create client: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	admin := models.ClientAdmin{Client: client.ID, User: runtime.User.ID}
+	admin := models.ClientAdmin{ClientID: client.ID, UserID: runtime.User.ID}
 
 	if err := runtime.Create(&admin).Error; err != nil {
-		runtime.Debugf("failed automatically creating admin for client %d: %s", client.ID, err.Error())
+		runtime.Errorf("[create client] failed automatically creating admin for client %d: %s", client.ID, err.Error())
 		return runtime.AddError(err)
 	}
 
 	manager := services.UserClientManager{runtime.DB}
 
 	if _, err := manager.Associate(&runtime.User, &client); err != nil {
-		runtime.Debugf("failed auto token for user[%d]-client[%d]: %s", runtime.User.ID, client.ID, err.Error())
+		runtime.Errorf("[create client] err auto token user[%d]-client[%d]: %s", runtime.User.ID, client.ID, err.Error())
 		return runtime.AddError(err)
 	}
 
