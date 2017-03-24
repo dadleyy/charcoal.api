@@ -21,7 +21,7 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 		decoded, err := base64.StdEncoding.DecodeString(auth)
 
 		if err != nil {
-			runtime.Debugf("bad client auth header: %s", auth)
+			runtime.Debugf("[client middleware] bad client auth header: %s", auth)
 			return handler(runtime)
 		}
 
@@ -34,7 +34,7 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 		where := runtime.Where("client_id = ?", parts[0]).Where("client_secret = ?", parts[1])
 
 		if e := where.First(&runtime.Client).Error; e != nil {
-			runtime.Errorf("unable to find client: %s", e.Error())
+			runtime.Errorf("[client middleware] unable to find client: %s", e.Error())
 			return handler(runtime)
 		}
 

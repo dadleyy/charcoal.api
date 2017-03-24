@@ -64,7 +64,7 @@ func FindClientTokens(runtime *net.RequestRuntime) error {
 	total, err := blueprint.Apply(&tokens)
 
 	if err != nil {
-		runtime.Debugf("problem retreiving client tokens: %s", err.Error())
+		runtime.Debugf("[find tokens] problem retreiving client tokens: %s", err.Error())
 		return runtime.AddError(err)
 	}
 
