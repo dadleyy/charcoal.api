@@ -101,11 +101,11 @@ func PrintUserRoles(runtime *net.RequestRuntime) error {
 func PrintClientTokens(runtime *net.RequestRuntime) error {
 	var tokens []models.ClientToken
 
-	cursor := runtime.Where("client = ?", runtime.Client.ID)
+	cursor := runtime.Where("client_id = ?", runtime.Client.ID)
 	blueprint := runtime.Blueprint(cursor)
 
-	if _, err := blueprint.Apply(&tokens); err != nil {
-		runtime.Warnf("unable to lookup tokens for client %d: %s", runtime.Client.ID, "")
+	if _, e := blueprint.Apply(&tokens); e != nil {
+		runtime.Warnf("[auth client tokens] unable to lookup tokens for client %d: %s", runtime.Client.ID, e.Error())
 		return runtime.ServerError()
 	}
 
