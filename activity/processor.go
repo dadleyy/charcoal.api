@@ -1,13 +1,9 @@
 package activity
 
-import "github.com/dadleyy/charcoal.api/db"
+import "sync"
 
 type semaphore chan struct{}
 
-type ProcessorConfig struct {
-	DB db.Config
-}
-
 type BackgroundProcessor interface {
-	Begin(ProcessorConfig)
+	Begin(*sync.WaitGroup)
 }

@@ -60,7 +60,11 @@ func CreateGame(runtime *net.RequestRuntime) error {
 		return runtime.AddError(err)
 	}
 
-	membership := models.GameMembership{User: runtime.User, Game: game}
+	membership := models.GameMembership{
+		User:   runtime.User,
+		Game:   game,
+		Status: defs.GameMembershipActiveStatus,
+	}
 
 	if err := runtime.Create(&membership).Error; err != nil {
 		runtime.Errorf("[create game] unable to create initial membership: %s", err.Error())

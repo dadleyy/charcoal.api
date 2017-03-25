@@ -54,7 +54,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	password, err := hash(body.Get("password"))
 
 	if err != nil {
-		runtime.Infof("received error hashing password: %s", err.Error())
+		runtime.Infof("[create user] received error hashing password: %s", err.Error())
 		return runtime.FieldError("password")
 	}
 
@@ -66,12 +66,12 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	usrmgr := services.UserManager{runtime.DB, runtime.Logger}
 
 	if usrmgr.ValidPassword(body.Get("password")) != true {
-		runtime.Debugf("attempt to sign up w/ invalid password: %s", body.Get("password"))
+		runtime.Debugf("[create user] attempt to sign up w/ invalid password: %s", body.Get("password"))
 		return runtime.LogicError("invalid-password")
 	}
 
 	if ok, errors := usrmgr.ValidUser(&user); ok != true {
-		runtime.Debugf("attempt to sign up w/ invalid domain: %s", email)
+		runtime.Debugf("[create user] attempt to sign up w/ invalid domain: %s", email)
 		return runtime.AddError(errors...)
 	}
 
@@ -80,7 +80,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	}
 
 	if err := runtime.Create(&user).Error; err != nil {
-		runtime.Debugf("unable to save: %s", err.Error())
+		runtime.Errorf("[create user] unable to save: %s", err.Error())
 		return runtime.ServerError()
 	}
 
@@ -88,11 +88,11 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	token, err := clientmgr.Associate(&user, &runtime.Client)
 
 	if err != nil {
-		runtime.Debugf("unable to associate: %s", err.Error())
+		runtime.Errorf("[create user] unable to associate: %s", err.Error())
 		return runtime.ServerError()
 	}
 
-	runtime.Debugf("associated user[%d] with client[%d]", user.ID, runtime.Client.ID)
+	runtime.Debugf("[create user] associated user[%d] with client[%d]", user.ID, runtime.Client.ID)
 	runtime.AddResult(user.Public())
 	runtime.SetMeta("token", token.Token)
 

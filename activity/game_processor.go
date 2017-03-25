@@ -10,52 +10,38 @@ import "github.com/dadleyy/charcoal.api/models"
 
 type GameProcessor struct {
 	*log.Logger
-	Stream  chan Message
-	Exhaust chan struct{}
+	*gorm.DB
 
-	db *gorm.DB
+	Stream chan Message
 }
 
-func (engine *GameProcessor) Begin(config ProcessorConfig) {
-	database, err := gorm.Open("mysql", config.DB.String())
+func (engine *GameProcessor) Begin(wg *sync.WaitGroup) {
+	defer wg.Done()
 
 	if engine.Stream == nil {
 		engine.Warnf("no channel provided to the game processor")
 		return
 	}
 
-	if err != nil {
-		panic(err)
-	}
-
-	engine.db = database
-	defer engine.db.Close()
-
-	wg := sync.WaitGroup{}
+	internal := sync.WaitGroup{}
 
 	for message := range engine.Stream {
 		engine.Debugf("[game bg processor] received message: %s", message.Verb)
 		event := strings.TrimPrefix(message.Verb, defs.GameProcessorVerbPrefix)
 
-		wg.Add(1)
+		internal.Add(1)
 
 		switch event {
 		case defs.GameProcessorUserJoined:
-			engine.playerJoined(message, &wg)
+			engine.playerJoined(message, &internal)
 		case defs.GameProcessorUserLeft:
-			engine.playerLeft(message, &wg)
+			engine.playerLeft(message, &internal)
 		default:
-			wg.Done()
+			internal.Done()
 		}
-
-		if engine.Exhaust == nil {
-			continue
-		}
-
-		engine.Exhaust <- struct{}{}
 	}
 
-	wg.Wait()
+	internal.Wait()
 }
 
 func (engine *GameProcessor) userPayload(msg Message) (*models.User, *models.Game, bool) {
@@ -72,11 +58,11 @@ func (engine *GameProcessor) playerJoined(msg Message, wg *sync.WaitGroup) {
 		return
 	}
 
-	defer engine.updatePopulation(game, 1)
+	defer engine.updatePopulation(game)
 
 	rounds, history := []models.GameRound{}, models.GameMembershipHistory{GameID: game.ID, UserID: user.ID}
 
-	if e := engine.db.Where("game_id = ?", game.ID).Limit(1).Order("id DESC").Find(&rounds).Error; e != nil {
+	if e := engine.Where("game_id = ?", game.ID).Limit(1).Order("id DESC").Find(&rounds).Error; e != nil {
 		engine.Errorf("[game processor] unable to find rounds: %s", e.Error())
 		return
 	}
@@ -86,7 +72,7 @@ func (engine *GameProcessor) playerJoined(msg Message, wg *sync.WaitGroup) {
 		engine.Debugf("[game processor] late join: game[%s] user[%s] round[%d]", game.Uuid, user.Uuid, rounds[0].ID)
 	}
 
-	if e := engine.db.Create(&history).Error; e != nil {
+	if e := engine.Create(&history).Error; e != nil {
 		engine.Errorf("[game processor] unable to create join history: %s", e.Error())
 		return
 	}
@@ -102,10 +88,10 @@ func (engine *GameProcessor) playerLeft(msg Message, wg *sync.WaitGroup) {
 		return
 	}
 
-	defer engine.updatePopulation(game, -1)
+	defer engine.updatePopulation(game)
 
 	rounds, history := []models.GameRound{}, []models.GameMembershipHistory{}
-	cursor := engine.db.Where("game_id = ? AND user_id = ?", game.ID, user.ID)
+	cursor := engine.Where("game_id = ? AND user_id = ?", game.ID, user.ID)
 
 	if e := cursor.Limit(1).Order("id DESC").Find(&history).Error; e != nil {
 		engine.Errorf("[game processor] unable to lookup history records for game, err: %s", e.Error())
@@ -117,18 +103,18 @@ func (engine *GameProcessor) playerLeft(msg Message, wg *sync.WaitGroup) {
 		return
 	}
 
-	if e := engine.db.Where("game_id = ?", game.ID).Limit(1).Order("id DESC").Find(&rounds).Error; e != nil {
+	if e := engine.Where("game_id = ?", game.ID).Limit(1).Order("id DESC").Find(&rounds).Error; e != nil {
 		engine.Errorf("[game processor] unable to find rounds: %s", e.Error())
 		return
 	}
 
 	if len(rounds) >= 1 == false {
 		engine.Warnf("[game processor] user left before game began, deleting useless history")
-		engine.db.Unscoped().Delete(&history)
+		engine.Unscoped().Delete(&history)
 		return
 	}
 
-	if e := engine.db.Model(&history[0]).Update("exit_round_id", rounds[0].ID).Error; e != nil {
+	if e := engine.Model(&history[0]).Update("exit_round_id", rounds[0].ID).Error; e != nil {
 		engine.Errorf("[game processor] unable to update history record: %s", e.Error())
 		return
 	}
@@ -136,8 +122,16 @@ func (engine *GameProcessor) playerLeft(msg Message, wg *sync.WaitGroup) {
 	engine.Debugf("[game processor] player left, updated history record: %s", history[0].Uuid)
 }
 
-func (engine *GameProcessor) updatePopulation(game *models.Game, amt int) {
-	if e := engine.db.Model(&game).Update("population", game.Population+amt).Error; e != nil {
+func (engine *GameProcessor) updatePopulation(game *models.Game) {
+	count, membership := 0, models.GameMembership{}
+	cursor := engine.Model(&membership).Where("game_id = ? AND status = ?", game.ID, defs.GameMembershipActiveStatus)
+
+	if e := cursor.Count(&count).Error; e != nil {
+		engine.Errorf("[game processor] unable to get game population count: %s", e.Error())
+		return
+	}
+
+	if e := engine.Model(&game).Update("population", count).Error; e != nil {
 		engine.Errorf("[game processor] unable to update game population: %s", e.Error())
 		return
 	}

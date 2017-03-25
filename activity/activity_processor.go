@@ -17,9 +17,9 @@ const VerbDeleted = "deleted"
 
 type ActivityProcessor struct {
 	*log.Logger
-	Stream chan Message
+	*gorm.DB
 
-	db *gorm.DB
+	Stream chan Message
 }
 
 func (engine *ActivityProcessor) create(message Message, out chan<- error, waitlist semaphore, def *sync.WaitGroup) {
@@ -38,7 +38,7 @@ func (engine *ActivityProcessor) create(message Message, out chan<- error, waitl
 
 	defer def.Done()
 
-	if err := engine.db.Create(&item).Error; err != nil {
+	if err := engine.Create(&item).Error; err != nil {
 		out <- err
 
 		// release our token by receiving from the channel
@@ -51,7 +51,7 @@ func (engine *ActivityProcessor) create(message Message, out chan<- error, waitl
 		Approval: statusPending,
 	}
 
-	if err := engine.db.Create(&schedule).Error; err != nil {
+	if err := engine.Create(&schedule).Error; err != nil {
 		out <- err
 		// release our token by receiving from the channel
 		<-waitlist
@@ -75,7 +75,7 @@ func (engine *ActivityProcessor) destroy(message Message, out chan<- error, wait
 	defer finish()
 
 	references := make([]struct{ ID uint }, 0)
-	cursor := engine.db.Table("activity").Select("id").Where("object_url = ?", message.Object.Url())
+	cursor := engine.Table("activity").Select("id").Where("object_url = ?", message.Object.Url())
 
 	if err := cursor.Scan(&references).Error; err != nil {
 		out <- err
@@ -87,12 +87,12 @@ func (engine *ActivityProcessor) destroy(message Message, out chan<- error, wait
 		ids[index] = activity.ID
 	}
 
-	if err := engine.db.Unscoped().Delete(models.DisplaySchedule{}, "activity in (?)", ids).Error; err != nil {
+	if err := engine.Unscoped().Delete(models.DisplaySchedule{}, "activity in (?)", ids).Error; err != nil {
 		out <- err
 		return
 	}
 
-	if err := engine.db.Unscoped().Delete(models.Activity{}, "id in (?)", ids).Error; err != nil {
+	if err := engine.Unscoped().Delete(models.Activity{}, "id in (?)", ids).Error; err != nil {
 		out <- err
 		return
 	}
@@ -100,19 +100,12 @@ func (engine *ActivityProcessor) destroy(message Message, out chan<- error, wait
 	out <- nil
 }
 
-func (engine *ActivityProcessor) Begin(config ProcessorConfig) {
+func (engine *ActivityProcessor) Begin(wg *sync.WaitGroup) {
+	defer wg.Done()
+
 	var deferred sync.WaitGroup
 	makers := make(chan error)
 	waitlist := make(semaphore, 20)
-
-	database, err := gorm.Open("mysql", config.DB.String())
-
-	if err != nil {
-		panic(err)
-	}
-
-	engine.db = database
-	defer engine.db.Close()
 
 	listen := func() {
 		for err := range makers {

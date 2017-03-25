@@ -3,14 +3,16 @@ package main
 import "os"
 import "fmt"
 import "flag"
+import "sync"
 import "net/http"
 
+import "github.com/jinzhu/gorm"
 import "github.com/joho/godotenv"
 import "github.com/labstack/gommon/log"
+import "github.com/go-sql-driver/mysql"
 
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
-import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/routes"
@@ -23,15 +25,6 @@ func main() {
 	if err != nil {
 		fmt.Printf("bad env: %s\n", err.Error())
 		return
-	}
-
-	dbconf := db.Config{
-		os.Getenv("DB_USERNAME"),
-		os.Getenv("DB_PASSWORD"),
-		os.Getenv("DB_HOSTNAME"),
-		os.Getenv("DB_DATABASE"),
-		os.Getenv("DB_PORT"),
-		os.Getenv("DB_DEBUG") == "true",
 	}
 
 	port, help := os.Getenv("PORT"), false
@@ -54,6 +47,23 @@ func main() {
 	logger := log.New("miritos")
 	logger.SetLevel(0)
 	logger.SetHeader("[${time_rfc3339} ${level} ${short_file}]")
+
+	dbc := mysql.Config{
+		User:                    os.Getenv("DB_USERNAME"),
+		Passwd:                  os.Getenv("DB_PASSWORD"),
+		Net:                     "tcp",
+		Addr:                    fmt.Sprintf("%s:%s", os.Getenv("DB_HOSTNAME"), os.Getenv("DB_PORT")),
+		DBName:                  os.Getenv("DB_DATABASE"),
+		AllowCleartextPasswords: true,
+		ParseTime:               true,
+	}
+
+	db, err := gorm.Open("mysql", dbc.FormatDSN())
+
+	if err != nil {
+		logger.Fatalf("unable to load connect to datbase: %s", err.Error())
+		return
+	}
 
 	streams := map[string](chan activity.Message){
 		defs.ActivityStreamIdentifier: make(chan activity.Message, 100),
@@ -127,6 +137,7 @@ func main() {
 	mux.POST("/game-memberships", routes.CreateGameMembership, middleware.RequireUser)
 	mux.GET("/game-memberships", routes.FindGameMemberships, middleware.RequireUser)
 	mux.DELETE("/game-memberships/:id", routes.DestroyGameMembership, middleware.RequireUser)
+	mux.PATCH("/game-memberships/:id", routes.UpdateGameMembership, middleware.RequireUser)
 
 	mux.GET("/game-membership-history", routes.FindGameMembershipHistory, middleware.RequireUser)
 
@@ -138,14 +149,23 @@ func main() {
 	// create the server runtime and the activity processor runtime
 	runtime := net.ServerRuntime{
 		Logger:  logger,
-		Config:  net.RuntimeConfig{dbconf},
+		DB:      db,
 		Mux:     &mux,
 		Streams: streams,
 	}
 
 	processors := []activity.BackgroundProcessor{
-		&activity.ActivityProcessor{Logger: logger, Stream: streams[defs.ActivityStreamIdentifier]},
-		&activity.GameProcessor{Logger: logger, Stream: streams[defs.GamesStreamIdentifier], Exhaust: nil},
+		&activity.ActivityProcessor{
+			Logger: logger,
+			DB:     db,
+			Stream: streams[defs.ActivityStreamIdentifier],
+		},
+
+		&activity.GameProcessor{
+			Logger: logger,
+			DB:     db,
+			Stream: streams[defs.GamesStreamIdentifier],
+		},
 	}
 
 	if os.Getenv("SOCKETS_ENABLED") == "true" {
@@ -155,10 +175,14 @@ func main() {
 
 	http.Handle("/", &runtime)
 
+	wg := sync.WaitGroup{}
+
 	for _, processor := range processors {
-		go processor.Begin(activity.ProcessorConfig{dbconf})
+		wg.Add(1)
+		go processor.Begin(&wg)
 	}
 
 	logger.Infof("[charcoal api] starting on port %s", port)
 	http.ListenAndServe(fmt.Sprintf(":%s", port), nil)
+	wg.Wait()
 }
