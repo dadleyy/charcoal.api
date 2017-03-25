@@ -10,10 +10,6 @@ import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
-const GameManagerInvalidPresident = "INVALID_PRESIDENT"
-const GameManagerInvalidVicePresident = "INVALID_VICE_PRESIDENT"
-const GameManagerInvalidAsshole = "INVALID_ASSHOLE"
-
 type GameManager struct {
 	*gorm.DB
 	*log.Logger
@@ -121,8 +117,9 @@ func (m *GameManager) UpdateRound(round *models.GameRound, rankings url.Values) 
 
 func (m *GameManager) IsMember(user models.User) bool {
 	member, game := models.GameMembership{}, m.Game
+	cursor := m.Where("user_id = ? and game_id = ?", user.ID, game.ID)
 
-	if e := m.Where("user_id = ? and game_id = ?", user.ID, game.ID).First(&member).Error; e != nil {
+	if e := cursor.Where("status = ?", defs.GameMembershipActiveStatus).First(&member).Error; e != nil {
 		return false
 	}
 
@@ -140,8 +137,8 @@ func (m *GameManager) RemoveMember(member models.GameMembership) error {
 		return e
 	}
 
-	if e := m.Delete(&member).Error; e != nil {
-		m.Warnf("unable to remove member: %s", e.Error())
+	if e := m.Model(&member).Update("status", defs.GameMembershipInactiveStatus).Error; e != nil {
+		m.Errorf("[game manager] unable to remove member: %s", e.Error())
 		return e
 	}
 
@@ -156,19 +153,42 @@ func (m *GameManager) RemoveMember(member models.GameMembership) error {
 }
 
 func (m *GameManager) AddUser(user models.User) (models.GameMembership, error) {
-	member := models.GameMembership{UserID: user.ID, GameID: m.Game.ID}
+	member := models.GameMembership{}
 
 	if m.IsMember(user) {
 		return models.GameMembership{}, fmt.Errorf("already a member of the game")
 	}
 
-	if e := m.Create(&member).Error; e != nil {
-		return models.GameMembership{}, e
+	publish := func() {
+		stream, ok := m.Streams[defs.GamesStreamIdentifier]
+		verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
+
+		if ok == true {
+			stream <- activity.Message{&user, &m.Game, verb}
+		}
 	}
 
-	if stream, ok := m.Streams["games"]; ok {
-		verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
-		stream <- activity.Message{&user, &m.Game, verb}
+	// At this point, no matter what happens we will want to recalculate the population of the game.
+	defer publish()
+
+	// If we already have a membership record associated w/ the game and user, just update it so that it reflects an
+	// active status and carry on.
+	if m.Where("user_id = ? AND game_id = ?", user.ID, m.Game.ID).First(&member).RecordNotFound() != true {
+		if e := m.Model(&member).Update("status", defs.GameMembershipActiveStatus).Error; e != nil {
+			return models.GameMembership{}, e
+		}
+
+		return member, nil
+	}
+
+	member = models.GameMembership{
+		UserID: user.ID,
+		GameID: m.Game.ID,
+		Status: defs.GameMembershipActiveStatus,
+	}
+
+	if e := m.Create(&member).Error; e != nil {
+		return models.GameMembership{}, e
 	}
 
 	return member, nil

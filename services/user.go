@@ -10,11 +10,8 @@ import "github.com/jinzhu/gorm"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
-
-const UserManagerErrorUnauthorizedDomain = "unauthorized-domain"
-const UserManagerErrorDuplicate = "duplicate-user"
-const UserManagerUsernameRE = "^[a-zA-Z0-9\\-_]{6,20}$"
 
 type UserManager struct {
 	*gorm.DB
@@ -22,7 +19,7 @@ type UserManager struct {
 }
 
 func (manager *UserManager) ValidUsername(username string) bool {
-	re := regexp.MustCompile(UserManagerUsernameRE)
+	re := regexp.MustCompile(defs.UserManagerUsernameRE)
 	return re.MatchString(username)
 }
 
@@ -44,11 +41,11 @@ func (manager *UserManager) ValidUser(user *models.User) (bool, []error) {
 	errors := make([]error, 0)
 
 	if manager.ValidDomain(user.Email) != true {
-		errors = append(errors, fmt.Errorf("reason:%s", UserManagerErrorUnauthorizedDomain))
+		errors = append(errors, fmt.Errorf("reason:%s", defs.ErrUserManagerUnauthorizedDomain))
 	}
 
 	if dupe, err := manager.IsDuplicate(user); dupe || err != nil {
-		errors = append(errors, fmt.Errorf("reason:%s", UserManagerErrorDuplicate))
+		errors = append(errors, fmt.Errorf("reason:%s", defs.ErrUserManagerDuplicate))
 	}
 
 	return len(errors) == 0, errors

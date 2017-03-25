@@ -7,18 +7,13 @@ import "net/http"
 import "github.com/jinzhu/gorm"
 import "github.com/labstack/gommon/log"
 
-import "github.com/dadleyy/charcoal.api/db"
 import "github.com/dadleyy/charcoal.api/activity"
 import "github.com/dadleyy/charcoal.api/filestore"
 
-type RuntimeConfig struct {
-	DB db.Config
-}
-
 type ServerRuntime struct {
 	*log.Logger
+	*gorm.DB
 
-	Config  RuntimeConfig
 	Streams map[string](chan activity.Message)
 	Mux     *Multiplexer
 }
@@ -38,20 +33,12 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 
 	fs := filestore.S3FileStore{}
 
-	database, err := gorm.Open("mysql", server.Config.DB.String())
-
-	if err != nil {
-		return RequestRuntime{}, err
-	}
-
-	database.LogMode(server.Config.DB.Debug == true)
-
 	runtime := RequestRuntime{
 		Request:   request,
 		UrlParams: params,
 		FileSaver: fs,
 		Logger:    server.Logger,
-		DB:        database,
+		DB:        server.DB,
 
 		streams: server.Streams,
 		bucket:  bucket,

@@ -10,6 +10,7 @@ import "github.com/jinzhu/gorm"
 import "golang.org/x/oauth2/google"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 
 const EndpointGoogleInfo = "https://www.googleapis.com/oauth2/v2/userinfo"
@@ -118,7 +119,7 @@ func (manager *GoogleAuthentication) Process(client *models.Client, code string)
 	usrmgr := UserManager{manager.DB, manager.Logger}
 
 	if usrmgr.ValidDomain(info.Email) != true {
-		return GoogleAuthenticationResult{}, fmt.Errorf(UserManagerErrorUnauthorizedDomain)
+		return GoogleAuthenticationResult{}, fmt.Errorf(defs.ErrUserManagerUnauthorizedDomain)
 	}
 
 	if err := usrmgr.FindOrCreate(&result.User); err != nil {

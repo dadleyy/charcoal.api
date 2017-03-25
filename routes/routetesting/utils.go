@@ -50,7 +50,13 @@ func NewRequest(method string, template string, real string, reader io.Reader) *
 
 	stub.Header.Add("Content-Type", "application/json")
 
-	server := net.ServerRuntime{logger, net.RuntimeConfig{testutils.DBConfig()}, streams, nil}
+	server := net.ServerRuntime{
+		Logger:  logger,
+		DB:      database,
+		Streams: streams,
+		Mux:     nil,
+	}
+
 	route := net.Route{Method: method, Path: template}
 	params, _ := route.Match(method, real)
 	request, _ := server.Request(stub, &params)
