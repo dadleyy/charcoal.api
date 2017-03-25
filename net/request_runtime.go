@@ -145,5 +145,4 @@ func (runtime *RequestRuntime) Blueprint(scopes ...*gorm.DB) Blueprint {
 }
 
 func (runtime *RequestRuntime) Close() {
-	runtime.DB.Close()
 }

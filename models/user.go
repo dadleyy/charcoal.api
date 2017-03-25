@@ -31,10 +31,11 @@ func (user *User) BeforeCreate(tx *gorm.DB) error {
 		return fmt.Errorf("received nil reference")
 	}
 
-	if user.Username == "" {
-		user.Username = namesgenerator.GetRandomName(0)
+	if user.Username != "" {
+		return user.Common.BeforeCreate(tx)
 	}
 
+	user.Username = namesgenerator.GetRandomName(0)
 	return user.Common.BeforeCreate(tx)
 }
 

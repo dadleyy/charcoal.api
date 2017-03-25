@@ -13,6 +13,7 @@ import "github.com/dadleyy/charcoal.api/activity"
 type GameManager struct {
 	*gorm.DB
 	*log.Logger
+
 	Streams map[string](chan<- activity.Message)
 	Game    models.Game
 }
@@ -37,7 +38,7 @@ func (m *GameManager) EndGame() error {
 		return e
 	}
 
-	stream, exists := m.Streams["games"]
+	stream, exists := m.Streams[defs.GamesStreamIdentifier]
 
 	if exists != true {
 		return nil
