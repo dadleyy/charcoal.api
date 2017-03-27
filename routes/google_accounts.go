@@ -4,7 +4,7 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
 
-func FindGoogleAccounts(runtime *net.RequestRuntime) error {
+func FindGoogleAccounts(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var accounts []models.GoogleAccount
 	blueprint := runtime.Blueprint()
 
@@ -20,14 +20,9 @@ func FindGoogleAccounts(runtime *net.RequestRuntime) error {
 	total, err := blueprint.Apply(&accounts)
 
 	if err != nil {
-		return err
+		runtime.Errorf("[google accounts] failed blueprint lookup: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	for _, account := range accounts {
-		runtime.AddResult(account)
-	}
-
-	runtime.SetMeta("toal", total)
-
-	return nil
+	return runtime.SendResults(total, accounts)
 }

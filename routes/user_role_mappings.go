@@ -7,32 +7,33 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
 
-func DestroyUserRoleMapping(runtime *net.RequestRuntime) error {
+func DestroyUserRoleMapping(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_PHOTO_ID"))
+		return runtime.LogicError("invalid-id")
 	}
 
 	var mapping models.UserRoleMapping
 
 	if err := runtime.Where("id = ?", id).First(&mapping).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		runtime.Warnf("[destroy mapping] unable to find mapping: %s", err.Error())
+		return runtime.LogicError("not-found")
 	}
 
 	if err := runtime.Unscoped().Delete(&mapping).Error; err != nil {
-		runtime.Debugf("unable to delete role mapping: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("CANT_DELETE"))
+		runtime.Debugf("[del mapping] unable to delete role mapping: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	return nil
 }
 
-func CreateUserRoleMapping(runtime *net.RequestRuntime) error {
+func CreateUserRoleMapping(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return err
+		return runtime.LogicError("invalid-body")
 	}
 
 	validator := body.Validator()
@@ -55,34 +56,32 @@ func CreateUserRoleMapping(runtime *net.RequestRuntime) error {
 	uid, err := strconv.Atoi(user)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_USER"))
+		return runtime.LogicError("missing-user")
 	}
 
 	rid, err := strconv.Atoi(role)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_ROLE"))
+		return runtime.LogicError("missing-role")
 	}
 
-	mapping := models.UserRoleMapping{Role: uint(rid), User: uint(uid)}
-	duplicate := 0
+	mapping, duplicate := models.UserRoleMapping{Role: uint(rid), User: uint(uid)}, 0
 
 	cursor := runtime.Model(&mapping).Where("user = ? AND role = ?", uid, rid)
 
 	if _ = cursor.Count(&duplicate); duplicate >= 1 {
-		return runtime.AddError(fmt.Errorf("MAPPING_EXISTS"))
+		return runtime.LogicError("duplicate")
 	}
 
 	if err := runtime.Create(&mapping).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_CREATE"))
+		runtime.Errorf("[create mapping] failed created: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	runtime.AddResult(mapping)
-
-	return nil
+	return runtime.SendResults(1, []models.UserRoleMapping{mapping})
 }
 
-func FindUserRoleMappings(runtime *net.RequestRuntime) error {
+func FindUserRoleMappings(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var maps []models.UserRoleMapping
 	blueprint := runtime.Blueprint()
 
@@ -98,14 +97,9 @@ func FindUserRoleMappings(runtime *net.RequestRuntime) error {
 	total, err := blueprint.Apply(&maps)
 
 	if err != nil {
-		return err
+		runtime.Errorf("[find mappings] unable to apply blueprint: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	for _, item := range maps {
-		runtime.AddResult(item)
-	}
-
-	runtime.SetMeta("toal", total)
-
-	return nil
+	return runtime.SendResults(total, maps)
 }

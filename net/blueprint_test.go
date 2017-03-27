@@ -4,6 +4,7 @@ import "testing"
 import "net/url"
 import "github.com/labstack/gommon/log"
 
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/testutils"
 
@@ -20,7 +21,7 @@ func Test_Net_Blueprint_LimitUnset(t *testing.T) {
 
 	l := bp.Limit()
 
-	if l == BlueprintDefaultLimit {
+	if l == defs.BlueprintDefaultLimit {
 		return
 	}
 
@@ -35,7 +36,7 @@ func Test_Net_Blueprint_LimitTooLarge(t *testing.T) {
 
 	l := bp.Limit()
 
-	if l == BlueprintMaxLimit {
+	if l == defs.BlueprintMaxLimit {
 		return
 	}
 
@@ -50,7 +51,7 @@ func Test_Net_Blueprint_LimitBadParse(t *testing.T) {
 
 	l := bp.Limit()
 
-	if l == BlueprintDefaultLimit {
+	if l == defs.BlueprintDefaultLimit {
 		return
 	}
 
@@ -65,7 +66,7 @@ func Test_Net_Blueprint_LimitNegative(t *testing.T) {
 
 	l := bp.Limit()
 
-	if l == BlueprintMinLimit {
+	if l == defs.BlueprintMinLimit {
 		return
 	}
 

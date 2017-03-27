@@ -25,7 +25,6 @@ type RequestRuntime struct {
 	User   models.User
 
 	streams map[string](chan activity.Message)
-	bucket  ResponseBucket
 }
 
 func (runtime *RequestRuntime) Form() (*forms.Data, error) {
@@ -38,61 +37,43 @@ func (runtime *RequestRuntime) IsAdmin() bool {
 	return uman.IsAdmin(&runtime.User)
 }
 
-func (runtime *RequestRuntime) AddResult(r Result) {
-	runtime.bucket.results = append(runtime.bucket.results, r)
+func (runtime *RequestRuntime) Redirect(url string) *ResponseBucket {
+	return &ResponseBucket{Redirect: url}
 }
 
-func (runtime *RequestRuntime) Redirect(url string) {
-	runtime.bucket.redirect = url
+func (runtime *RequestRuntime) Proxy(url string) *ResponseBucket {
+	return &ResponseBucket{Proxy: url}
 }
 
-func (runtime *RequestRuntime) Proxy(url string) {
-	runtime.bucket.proxy = url
+func (runtime *RequestRuntime) SendErrors(list ...error) *ResponseBucket {
+	return &ResponseBucket{Errors: list}
 }
 
-func (runtime *RequestRuntime) AddError(list ...error) error {
-	if len(list) == 0 {
-		return nil
-	}
-
-	msgs := make([]string, 0, len(list))
-
-	for _, e := range list {
-		runtime.bucket.errors = append(runtime.bucket.errors, e)
-		msgs = append(msgs, e.Error())
-	}
-
-	return fmt.Errorf(strings.Join(msgs, " | "))
-}
-
-func (runtime *RequestRuntime) appendErrors(identifier string, values ...string) error {
+func (runtime *RequestRuntime) appendErrors(identifier string, values ...string) *ResponseBucket {
 	result := make([]error, 0, len(values))
 
 	for _, f := range values {
 		result = append(result, fmt.Errorf("%s:%s", identifier, f))
 	}
 
-	return runtime.AddError(result...)
+	return runtime.SendErrors(result...)
 }
 
-func (runtime *RequestRuntime) LogicError(reasons ...string) error {
+func (runtime *RequestRuntime) LogicError(reasons ...string) *ResponseBucket {
 	return runtime.appendErrors("reason", reasons...)
 }
 
-func (runtime *RequestRuntime) FieldError(fields ...string) error {
+func (runtime *RequestRuntime) FieldError(fields ...string) *ResponseBucket {
 	return runtime.appendErrors("field", fields...)
 }
 
-func (runtime *RequestRuntime) ServerError() error {
-	return runtime.AddError(fmt.Errorf("reason:server-error"))
+func (runtime *RequestRuntime) ServerError() *ResponseBucket {
+	return runtime.SendErrors(fmt.Errorf("reason:server-error"))
 }
 
-func (runtime *RequestRuntime) SetMeta(key string, val interface{}) {
-	runtime.bucket.meta[key] = val
-}
-
-func (runtime *RequestRuntime) SetTotal(total int) {
-	runtime.SetMeta("count", total)
+func (runtime *RequestRuntime) SendResults(total int, results interface{}) *ResponseBucket {
+	meta := map[string]interface{}{"total": total}
+	return &ResponseBucket{Results: results, Meta: meta}
 }
 
 func (runtime *RequestRuntime) Publish(msg activity.Message) {

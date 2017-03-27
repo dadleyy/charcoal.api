@@ -18,11 +18,11 @@ func hash(password string) (string, error) {
 	return string(result), nil
 }
 
-func CreateUser(runtime *net.RequestRuntime) error {
+func CreateUser(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(err)
+		return runtime.LogicError("bad-request")
 	}
 
 	validator := body.Validator()
@@ -48,7 +48,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 			errors = append(errors, fmt.Errorf("field:%s", key))
 		}
 
-		return runtime.AddError(errors...)
+		return runtime.SendErrors(errors...)
 	}
 
 	password, err := hash(body.Get("password"))
@@ -72,7 +72,7 @@ func CreateUser(runtime *net.RequestRuntime) error {
 
 	if ok, errors := usrmgr.ValidUser(&user); ok != true {
 		runtime.Debugf("[create user] attempt to sign up w/ invalid domain: %s", email)
-		return runtime.AddError(errors...)
+		return runtime.SendErrors(errors...)
 	}
 
 	if usrmgr.ValidUsername(body.Get("username")) != true {
@@ -93,13 +93,12 @@ func CreateUser(runtime *net.RequestRuntime) error {
 	}
 
 	runtime.Debugf("[create user] associated user[%d] with client[%d]", user.ID, runtime.Client.ID)
-	runtime.AddResult(user.Public())
-	runtime.SetMeta("token", token.Token)
-
-	return nil
+	result := runtime.SendResults(1, []interface{}{user.Public()})
+	result.Set("token", token.Token)
+	return result
 }
 
-func UpdateUser(runtime *net.RequestRuntime) error {
+func UpdateUser(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
@@ -121,29 +120,21 @@ func UpdateUser(runtime *net.RequestRuntime) error {
 
 	if errors := usrmgr.ApplyUpdates(&runtime.User, body.Values); len(errors) >= 1 {
 		runtime.Debugf("update to user[%d] failed - %v", id, errors)
-		return runtime.AddError(errors...)
+		return runtime.SendErrors(errors...)
 	}
 
-	runtime.AddResult(runtime.User.Public())
-	return nil
+	return runtime.SendResults(1, []interface{}{runtime.User.Public()})
 }
 
-func FindUser(runtime *net.RequestRuntime) error {
-	var users []models.User
-	blue := runtime.Blueprint()
+func FindUser(runtime *net.RequestRuntime) *net.ResponseBucket {
+	blue, users := runtime.Blueprint(), []models.User{}
 
 	count, err := blue.Apply(&users)
 
 	if err != nil {
-		runtime.Debugf("failed applying blueprint: %s", err.Error())
+		runtime.Errorf("[find users] failed applying blueprint: %s", err.Error())
 		return runtime.ServerError()
 	}
 
-	runtime.SetTotal(count)
-
-	for _, u := range users {
-		runtime.AddResult(u.Public())
-	}
-
-	return nil
+	return runtime.SendResults(count, users)
 }

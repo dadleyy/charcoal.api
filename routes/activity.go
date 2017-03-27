@@ -6,7 +6,7 @@ import "time"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 
-func FindActivity(runtime *net.RequestRuntime) error {
+func FindActivity(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var results []models.Activity
 	blueprint := runtime.Blueprint()
 
@@ -14,19 +14,14 @@ func FindActivity(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Debugf("bad activity lookup query: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
+		return runtime.SendErrors(fmt.Errorf("BAD_QUERY"))
 	}
 
-	for _, item := range results {
-		runtime.AddResult(item)
-	}
-
-	runtime.SetMeta("total", total)
-
-	return nil
+	meta := map[string]interface{}{"total": total}
+	return &net.ResponseBucket{Results: results, Meta: meta}
 }
 
-func FindLiveActivity(runtime *net.RequestRuntime) error {
+func FindLiveActivity(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var schedules []models.DisplaySchedule
 	today := time.Now()
 
@@ -39,7 +34,7 @@ func FindLiveActivity(runtime *net.RequestRuntime) error {
 	// select distinct activities
 	if err != nil {
 		runtime.Debugf("unable to load current feed: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED"))
+		return runtime.SendErrors(fmt.Errorf("FAILED"))
 	}
 
 	ids := make([]uint, len(schedules))
@@ -52,14 +47,8 @@ func FindLiveActivity(runtime *net.RequestRuntime) error {
 
 	if err := runtime.Where("id in (?)", ids).Find(&activities).Error; err != nil {
 		runtime.Debugf("unable to load current feed: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("FAILED"))
+		return runtime.SendErrors(fmt.Errorf("FAILED"))
 	}
 
-	for _, act := range activities {
-		runtime.AddResult(act.Public())
-	}
-
-	runtime.SetMeta("total", count)
-
-	return nil
+	return runtime.SendResults(count, activities)
 }

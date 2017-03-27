@@ -29,7 +29,7 @@ func Test_Routes_Auth_PasswordLogin_NoClient(t *testing.T) {
 	ctx.Database.Create(&token)
 	defer ctx.Database.Unscoped().Delete(&token)
 
-	if err := PasswordLogin(&ctx.Request); err != nil {
+	if err := PasswordLogin(ctx.Request); err != nil {
 		return
 	}
 
@@ -58,12 +58,11 @@ func Test_Routes_Auth_PasswordLogin_NonSystem(t *testing.T) {
 	defer ctx.Database.Unscoped().Delete(&token)
 
 	ctx.Request.Client = client
+	r := PasswordLogin(ctx.Request)
 
-	if err := PasswordLogin(&ctx.Request); err != nil {
-		return
+	if len(r.Errors) == 0 {
+		t.Fatalf("No error but client was not set on request runtime!")
 	}
-
-	t.Fatalf("No error but client was not set on request runtime!")
 }
 
 func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
@@ -90,10 +89,10 @@ func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
 	defer ctx.Database.Unscoped().Delete(&token)
 
 	ctx.Request.Client = client
+	r := PasswordLogin(ctx.Request)
 
-	if err := PasswordLogin(&ctx.Request); err != nil {
-		t.Fatalf("valid login failed: %s", err.Error())
-		return
+	if len(r.Errors) >= 1 {
+		t.Fatalf("valid login failed: %v", r)
 	}
 }
 
@@ -121,10 +120,9 @@ func Test_Routes_Auth_PasswordLogin_SystemBadPassword(t *testing.T) {
 	defer ctx.Database.Unscoped().Delete(&token)
 
 	ctx.Request.Client = client
+	r := PasswordLogin(ctx.Request)
 
-	if err := PasswordLogin(&ctx.Request); err != nil {
-		return
+	if len(r.Errors) == 0 {
+		t.Fatalf("invalid password should have failed.")
 	}
-
-	t.Fatalf("invalid password should have failed.")
 }

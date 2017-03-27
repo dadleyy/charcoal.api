@@ -1,6 +1,6 @@
 package net
 
-type HandlerFunc func(*RequestRuntime) error
+type HandlerFunc func(*RequestRuntime) *ResponseBucket
 type MiddlewareFunc func(HandlerFunc) HandlerFunc
 
 type Multiplexer struct {

@@ -7,35 +7,26 @@ import "github.com/albrow/forms"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/activity"
 
-const emailDomainRestriction = "restricted_email_domains"
-
-func FindSystemEmailDomains(runtime *net.RequestRuntime) error {
+func FindSystemEmailDomains(runtime *net.RequestRuntime) *net.ResponseBucket {
 	blueprint := runtime.Blueprint()
 	var domains []models.SystemEmailDomain
 
 	total, err := blueprint.Apply(&domains)
 
 	if err != nil {
-		runtime.Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())
-		return runtime.AddError(fmt.Errorf(defs.ErrFailedQuery))
+		runtime.Errorf("[system domains find] blueprint err: %s", err.Error())
+		return runtime.LogicError("bad-request")
 	}
 
-	for _, domains := range domains {
-		runtime.AddResult(domains)
-	}
-
-	runtime.SetMeta("total", total)
-
-	return nil
+	return runtime.SendResults(total, domains)
 }
 
-func CreateSystemEmailDomain(runtime *net.RequestRuntime) error {
+func CreateSystemEmailDomain(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(err)
+		return runtime.LogicError("invalid-request")
 	}
 
 	validator := body.Validator()
@@ -45,11 +36,13 @@ func CreateSystemEmailDomain(runtime *net.RequestRuntime) error {
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
 	if validator.HasErrors() == true {
+		errors := []error{}
+
 		for _, m := range validator.Messages() {
-			runtime.AddError(fmt.Errorf(m))
+			errors = append(errors, fmt.Errorf("field:%s", m))
 		}
 
-		return nil
+		return runtime.SendErrors(errors...)
 	}
 
 	domain := models.SystemEmailDomain{Domain: body.Get("domain")}
@@ -57,94 +50,90 @@ func CreateSystemEmailDomain(runtime *net.RequestRuntime) error {
 	existing := 0
 
 	if err := cursor.Where("domain = ?", domain.Domain).Count(&existing).Error; err != nil || existing >= 1 {
-		return runtime.AddError(fmt.Errorf(defs.ErrDuplicateEntry))
+		return runtime.LogicError("duplicate")
 	}
 
 	if err := cursor.Create(&domain).Error; err != nil {
-		return runtime.AddError(err)
+		runtime.Errorf("[create system domain] unable to create: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	runtime.AddResult(domain)
-	return nil
+	return runtime.SendResults(1, []models.SystemEmailDomain{domain})
 }
 
-func DestroySystemEmailDomain(runtime *net.RequestRuntime) error {
+func DestroySystemEmailDomain(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_DOMAIN_ID"))
+		return runtime.LogicError("invalid-id")
 	}
 
 	var domain models.SystemEmailDomain
 
 	if err := runtime.First(&domain, id).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.LogicError("not-found")
 	}
 
 	if err := runtime.Delete(&domain).Error; err != nil {
-		return runtime.AddError(err)
+		runtime.Errorf("[delete sys domain] unable to delete domain: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	return nil
 }
 
-func UpdateSystem(runtime *net.RequestRuntime) error {
+func UpdateSystem(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var settings models.SystemSettings
 
 	if err := runtime.FirstOrCreate(&settings, models.SystemSettings{}).Error; err != nil {
-		return runtime.AddError(err)
+		runtime.Errorf("[update system] error: %s", err.Error())
+		return runtime.LogicError("not-found")
 	}
 
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(err)
+		return runtime.LogicError("bad-request")
 	}
 
 	updates := make(map[string]interface{})
-	restriction := body.KeyExists(emailDomainRestriction)
+	restriction := body.KeyExists(defs.EmailDomainRestriction)
 
-	if value := body.Get(emailDomainRestriction); restriction && (value != "true" && value != "false") {
-		return runtime.AddError(fmt.Errorf("INVALID_EMAIL_RESTRICTION"))
+	if value := body.Get(defs.EmailDomainRestriction); restriction && (value != "true" && value != "false") {
+		return runtime.LogicError("invalid-restriction-value")
 	}
 
 	if restriction {
-		value, _ := strconv.ParseBool(body.Get(emailDomainRestriction))
-		updates["restricted_email_domains"] = value
+		value, _ := strconv.ParseBool(body.Get(defs.EmailDomainRestriction))
+		updates[defs.EmailDomainRestriction] = value
 	}
 
 	if len(updates) == 0 {
-		runtime.AddResult(settings)
 		return nil
 	}
 
 	cursor := runtime.Model(&settings).Where("id = ?", settings.ID)
 
 	if err := cursor.Updates(updates).Error; err != nil {
-		return runtime.AddError(err)
+		runtime.Errorf("[update system] unable to update: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	runtime.AddResult(settings)
-	return nil
+	return runtime.SendResults(1, []models.SystemSettings{settings})
 }
 
-func PrintSystem(runtime *net.RequestRuntime) error {
+func PrintSystem(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var settings models.SystemSettings
 
-	if c := runtime.Client; c.ID >= 1 {
-		runtime.Publish(activity.Message{&c, &c, "sockets:check"})
-	}
-
 	if admin := runtime.IsAdmin(); admin != true {
-		runtime.Debugf("non-admin access of system route: %d", runtime.User.ID)
-		runtime.AddResult("OK")
-		return nil
+		runtime.Warnf("non-admin access of system route: %d", runtime.User.ID)
+		return runtime.SendResults(1, "ok")
 	}
 
 	if err := runtime.First(&settings).Error; err != nil {
-		return runtime.AddError(err)
+		runtime.Errorf("[system] unable to find settings: %s", err.Error())
+		return runtime.LogicError("not-found")
 	}
 
-	runtime.AddResult(settings)
-	return nil
+	return runtime.SendResults(1, []models.SystemSettings{settings})
 }

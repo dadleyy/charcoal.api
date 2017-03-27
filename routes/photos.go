@@ -1,6 +1,5 @@
 package routes
 
-import "fmt"
 import "image"
 import "bytes"
 import "io/ioutil"
@@ -21,53 +20,53 @@ const MAX_PHOTO_HEIGHT = 2048
 
 const defaultMemory = 32 << 20
 
-func CreatePhoto(runtime *net.RequestRuntime) error {
+func CreatePhoto(runtime *net.RequestRuntime) *net.ResponseBucket {
 	data, err := forms.Parse(runtime.Request)
 
 	// bad form file - error out
 	if err != nil {
-		return runtime.AddError(err)
+		return runtime.LogicError("bad-request")
 	}
 
 	validator := data.Validator()
 	validator.Require("label")
 
 	if validator.HasErrors() {
-		return runtime.AddError(fmt.Errorf("MISSING_LABEL"))
+		return runtime.LogicError("bad-label")
 	}
 
 	file := data.GetFile("photo")
 
 	if file == nil {
-		return runtime.AddError(fmt.Errorf("BAD_FILE"))
+		return runtime.LogicError("missing-photo-file")
 	}
 
 	mime := file.Header.Get("Content-Type")
 
 	if len(mime) == 0 {
-		return runtime.AddError(fmt.Errorf("BAD_FILE_CONTENT_TYPE"))
+		return runtime.LogicError("invalid-file")
 	}
 
 	content, err := file.Open()
 	defer content.Close()
 
 	if err != nil {
-		runtime.Debugf("unable to open uploaded multipart file")
-		return runtime.AddError(fmt.Errorf("BAD_FILE"))
+		runtime.Warnf("[create photo] unable to open uploaded multipart file")
+		return runtime.LogicError("invalid-file")
 	}
 
 	buffer, err := ioutil.ReadAll(content)
 
 	// bad form file - error out
 	if err != nil || len(buffer) == 0 {
-		return runtime.AddError(err)
+		return runtime.LogicError("bad-file")
 	}
 
 	label := data.Get("label")
 
 	// bad label - error out
 	if len(label) < MIN_PHOTO_LABEL_LENGTH {
-		return runtime.AddError(fmt.Errorf("MISSING_LABEL"))
+		return runtime.LogicError("invalid-label")
 	}
 
 	reader := bytes.NewReader(buffer)
@@ -77,14 +76,14 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 
 	if err != nil {
 		runtime.Errorf("unable to decode image: %s", err.Error())
-		return runtime.AddError(err)
+		return runtime.LogicError("invalid-image-type")
 	}
 
 	width, height := image.Width, image.Height
 
 	if width == 0 || height == 0 || width > MAX_PHOTO_WIDTH || height > MAX_PHOTO_HEIGHT {
 		runtime.Debugf("bad image sizes")
-		return runtime.AddError(fmt.Errorf("BAD_IMAGE_SIZES"))
+		return runtime.LogicError("invalid-image-size")
 	}
 
 	// attempt to use the runtime to persist the file uploaded
@@ -98,8 +97,8 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 	}
 
 	if err := photos.Persist(buffer, mime, &photo); err != nil {
-		runtime.Debugf("failed persisting: %s", err.Error())
-		return runtime.AddError(err)
+		runtime.Errorf("[create photo] failed persisting: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	if runtime.User.ID >= 1 {
@@ -108,60 +107,59 @@ func CreatePhoto(runtime *net.RequestRuntime) error {
 		runtime.Save(&photo)
 	}
 
-	runtime.AddResult(photo.Public())
-
+	// publish this event to the activity stream
 	if runtime.User.ID >= 1 {
-		// publish this event to the activity stream
 		runtime.Publish(activity.Message{&runtime.User, &photo, activity.VerbCreated})
-		return nil
+		return runtime.SendResults(1, photo)
 	}
 
-	runtime.Debugf("publishing photo upload w/ client not user")
 	runtime.Publish(activity.Message{&runtime.Client, &photo, "created"})
-
-	return nil
+	return runtime.SendResults(1, photo)
 }
 
-func ViewPhoto(runtime *net.RequestRuntime) error {
+func ViewPhoto(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_PHOTO_ID"))
+		return runtime.LogicError("invalid-id")
 	}
 
 	var photo models.Photo
 
 	if err := runtime.First(&photo, id).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		runtime.Errorf("[view photo] unable to find photo: %s", err.Error())
+		return runtime.LogicError("invalid-id")
 	}
 
 	var file models.File
 
 	if err := runtime.First(&file, photo.File).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		runtime.Errorf("[view photo] unable to find photo file: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	url, err := runtime.DownloadUrl(&file)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_DOWNLOAD_URL"))
+		runtime.Errorf("[view photo] unable to find download url: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	runtime.Proxy(url)
-	return nil
+	return runtime.Proxy(url)
 }
 
-func DestroyPhoto(runtime *net.RequestRuntime) error {
+func DestroyPhoto(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_PHOTO_ID"))
+		return runtime.LogicError("not-found")
 	}
 
 	var photo models.Photo
 
 	if err := runtime.First(&photo, id).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		runtime.Errorf("[destroy photo] error deleting photo: %s", err.Error())
+		return runtime.LogicError("not-found")
 	}
 
 	uman := services.UserManager{runtime.DB, runtime.Logger}
@@ -169,35 +167,31 @@ func DestroyPhoto(runtime *net.RequestRuntime) error {
 
 	// if we arent an admin, and the photo has an author, make sure its the current user
 	if admin != true && photo.Author.Valid && photo.Author.Int64 != int64(runtime.User.ID) {
-		runtime.Debugf("user %d attempted to delete photo %d w/o permission", runtime.User.ID, photo.Author.Int64)
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		runtime.Warnf("user %d attempted to delete photo %d w/o permission", runtime.User.ID, photo.Author.Int64)
+		return runtime.LogicError("not-found")
 	}
 
 	photos := runtime.Photos()
 
 	if err := photos.Destroy(&photo); err != nil {
-		return runtime.AddError(err)
+		runtime.Errorf("[delete photo] unable to delete photo: %s", err.Error())
+		return runtime.ServerError()
 	}
 
 	runtime.Publish(activity.Message{&runtime.Client, &photo, activity.VerbDeleted})
 	return nil
 }
 
-func FindPhotos(runtime *net.RequestRuntime) error {
+func FindPhotos(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var results []models.Photo
 	blueprint := runtime.Blueprint()
 
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		runtime.Debugf("bad photo lookup: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
+		runtime.Errorf("[find photos] bad photo lookup: %s", err.Error())
+		return runtime.LogicError("bad-request")
 	}
 
-	for _, item := range results {
-		runtime.AddResult(item.Public())
-	}
-
-	runtime.SetMeta("total", total)
-	return nil
+	return runtime.SendResults(total, results)
 }

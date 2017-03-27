@@ -8,11 +8,11 @@ import "github.com/dadleyy/charcoal.api/routes/routetesting"
 func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_And_NoClient(t *testing.T) {
 	ctx := routetesting.NewFind("client-admins")
 
-	if err := FindClientAdmins(&ctx.Request); err != nil {
-		return
-	}
+	r := FindClientAdmins(ctx.Request)
 
-	t.Fatalf("should not have passed w/o error")
+	if len(r.Errors) == 0 {
+		t.Fatalf("should not have passed w/o error")
+	}
 }
 
 func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_With_Client(t *testing.T) {
@@ -25,11 +25,11 @@ func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_With_Client(t *testing.T)
 	ctx := routetesting.NewFind("client-admins")
 	ctx.Request.Client = client
 
-	if err := FindClientAdmins(&ctx.Request); err != nil {
-		return
-	}
+	r := FindClientAdmins(ctx.Request)
 
-	t.Fatalf("should not have passed w/o error")
+	if len(r.Errors) == 0 {
+		t.Fatalf("should not have passed w/o error")
+	}
 }
 
 func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
@@ -52,9 +52,10 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
-	if err := FindClientAdmins(&ctx.Request); err != nil {
-		t.Fatalf("error even though user is admin: %s", err.Error())
-		return
+	r := FindClientAdmins(ctx.Request)
+
+	if len(r.Errors) >= 1 {
+		t.Fatalf("error even though user is admin")
 	}
 }
 
@@ -78,8 +79,9 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
-	if err := FindClientAdmins(&ctx.Request); err != nil {
-		t.Fatalf("error even though user is admin: %s", err.Error())
-		return
+	r := FindClientAdmins(ctx.Request)
+
+	if len(r.Errors) >= 1 {
+		t.Fatalf("error even though user is admin: %s")
 	}
 }

@@ -32,11 +32,10 @@ func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
-	err := UpdateClient(&ctx.Request)
+	result := UpdateClient(ctx.Request)
 
-	if err != nil {
-		t.Fatalf("god user was unable to update client: %s", err.Error())
-		return
+	if len(result.Errors) >= 1 {
+		t.Fatalf("god user was unable to update client: %v", result)
 	}
 }
 
@@ -63,11 +62,10 @@ func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
-	err := UpdateClient(&ctx.Request)
+	result := UpdateClient(ctx.Request)
 
-	if err != nil {
-		t.Fatalf("client admin was unable to update client: %s", err.Error())
-		return
+	if len(result.Errors) >= 1 {
+		t.Fatalf("god user was unable to update client: %v", result)
 	}
 }
 
@@ -98,11 +96,10 @@ func Test_Routes_Clients_UpdateClient_OtherClientAuthorizedUser(t *testing.T) {
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
-	err := UpdateClient(&ctx.Request)
+	result := UpdateClient(ctx.Request)
 
-	if err != nil {
-		t.Fatalf("client admin was unable to update their client from another: %s", err.Error())
-		return
+	if len(result.Errors) >= 1 {
+		t.Fatalf("client admin was unable to update their client from another: %v", result)
 	}
 }
 
@@ -124,10 +121,9 @@ func Test_Routes_Clients_UpdateClient_UnauthorizedUser(t *testing.T) {
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
-	err := UpdateClient(&ctx.Request)
+	result := UpdateClient(ctx.Request)
 
-	if err == nil {
+	if result != nil && len(result.Errors) == 0 {
 		t.Fatalf("invalid user able to update client")
-		return
 	}
 }

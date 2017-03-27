@@ -10,12 +10,7 @@ import "github.com/gedex/inflector"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/util"
-
-const BlueprintDefaultLimit = 100
-const BlueprintMaxLimit = 500
-const BlueprintMinLimit = 1
-const BlueprintFilterStart = "filter["
-const BlueprintFilterEnd = "]"
+import "github.com/dadleyy/charcoal.api/defs"
 
 type Blueprint struct {
 	*gorm.DB
@@ -44,20 +39,20 @@ func (r *BlueprintForeignReference) WhereField() string {
 
 func (print *Blueprint) Limit() int {
 	if i, err := strconv.Atoi(print.values.Get("limit")); err == nil {
-		return util.MaxInt(util.MinInt(BlueprintMaxLimit, i), BlueprintMinLimit)
+		return util.MaxInt(util.MinInt(defs.BlueprintMaxLimit, i), defs.BlueprintMinLimit)
 	}
 
-	return BlueprintDefaultLimit
+	return defs.BlueprintDefaultLimit
 }
 
 func (print *Blueprint) Apply(out interface{}) (int, error) {
 	var total int
-	limit, page := BlueprintDefaultLimit, 0
+	limit, page := defs.BlueprintDefaultLimit, 0
 
 	cursor := print.DB
 
 	if i, err := strconv.Atoi(print.values.Get("limit")); err == nil {
-		limit = util.MinInt(BlueprintMaxLimit, i)
+		limit = util.MinInt(defs.BlueprintMaxLimit, i)
 	}
 
 	if i, err := strconv.Atoi(print.values.Get("page")); err == nil {
@@ -68,14 +63,14 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 	table := scope.TableName()
 
 	for key := range print.values {
-		filterable := strings.HasPrefix(key, BlueprintFilterStart) && strings.HasSuffix(key, BlueprintFilterEnd)
+		filterable := strings.HasPrefix(key, defs.BlueprintFilterStart) && strings.HasSuffix(key, defs.BlueprintFilterEnd)
 		value := strings.SplitN(print.values.Get(key), "(", 2)
 
 		if filterable == false || len(value) != 2 || strings.HasSuffix(value[1], ")") != true {
 			continue
 		}
 
-		column := strings.TrimSuffix(strings.TrimPrefix(key, BlueprintFilterStart), BlueprintFilterEnd)
+		column := strings.TrimSuffix(strings.TrimPrefix(key, defs.BlueprintFilterStart), defs.BlueprintFilterEnd)
 		operation, target := value[0], strings.TrimSuffix(value[1], ")")
 		full := fmt.Sprintf("%s.%s", table, column)
 

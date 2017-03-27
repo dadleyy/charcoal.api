@@ -1,26 +1,25 @@
 package routes
 
 import "os"
-import "fmt"
 import "strings"
 
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/services/mg"
 
-func MailgunUploadHook(runtime *net.RequestRuntime) error {
+func MailgunUploadHook(runtime *net.RequestRuntime) *net.ResponseBucket {
 	secret := os.Getenv("MAILGUN_WEBHOOK_SECRET")
 	key := os.Getenv("MAILGUN_API_KEY")
 	query := runtime.URL.Query()
 
 	if v, ok := query["secret"]; !ok || len(v) != 1 || v[0] != secret {
-		runtime.Debugf("invalid attempt on mailgun webhook: %s", query["secret"])
-		return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
+		runtime.Warnf("[mailgun] invalid attempt on mailgun webhook: %s", query["secret"])
+		return runtime.LogicError("unauthorized")
 	}
 
 	body, err := net.ParseBody(runtime.Request, 150000000)
 
 	if err != nil {
-		return err
+		return runtime.LogicError("invalid-body")
 	}
 
 	client := mg.Client{key}
@@ -28,7 +27,7 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	location := body.Get("message-url")
 
 	if valid := len(location) >= 2; valid != true {
-		return fmt.Errorf("BAD_MESSAGE_URL")
+		return runtime.LogicError("invalid-location")
 	}
 
 	message, err := client.Retreive(location)
@@ -36,13 +35,13 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 	var processor mg.ActivityProcessor
 	start := strings.Split(message.Subject, ":")[0]
 
-	runtime.Debugf("received mailgun message: subject[\"%s\"] sender[%s]", message.Subject, message.From)
+	runtime.Debugf("[mailgun] received message: subject[\"%s\"] sender[%s]", message.Subject, message.From)
 
 	switch start {
 	case "image", "photo":
 		processor = &mg.ImageProcessor{runtime.DB, runtime.Photos(), key}
 	default:
-		return fmt.Errorf("INVALID_SUBJECT_LINE")
+		return runtime.LogicError("invalid-subject")
 	}
 
 	outputs := make(chan mg.ProcessedItem)
@@ -55,7 +54,7 @@ func MailgunUploadHook(runtime *net.RequestRuntime) error {
 		}
 
 		message := item.Message
-		runtime.Debugf("successfully activity for object \"%s\", publishing...", message.Object.Url())
+		runtime.Debugf("[mailgun] successfully activity for object \"%s\", publishing...", message.Object.Url())
 		runtime.Publish(message)
 	}
 

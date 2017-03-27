@@ -7,13 +7,16 @@ import "golang.org/x/crypto/bcrypt"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 
-func PrintAuth(runtime *net.RequestRuntime) error {
-	runtime.AddResult(runtime.User.Public())
-	runtime.SetMeta("admin", runtime.IsAdmin())
-	return nil
+func PrintAuth(runtime *net.RequestRuntime) *net.ResponseBucket {
+	meta := map[string]interface{}{"admin": runtime.IsAdmin()}
+
+	return &net.ResponseBucket{
+		Results: []interface{}{runtime.User.Public()},
+		Meta:    meta,
+	}
 }
 
-func PasswordLogin(runtime *net.RequestRuntime) error {
+func PasswordLogin(runtime *net.RequestRuntime) *net.ResponseBucket {
 	if runtime.Client.System != true {
 		return runtime.LogicError("invalid-client")
 	}
@@ -42,7 +45,7 @@ func PasswordLogin(runtime *net.RequestRuntime) error {
 			errors = append(errors, fmt.Errorf("field:%s", key))
 		}
 
-		return runtime.AddError(errors...)
+		return runtime.SendErrors(errors...)
 	}
 
 	user, token := models.User{Email: body.Get("email")}, models.ClientToken{}
@@ -62,43 +65,39 @@ func PasswordLogin(runtime *net.RequestRuntime) error {
 		return runtime.LogicError("invalid-login")
 	}
 
-	runtime.AddResult(token)
-	return nil
+	return &net.ResponseBucket{Results: []interface{}{token}}
 }
 
-func PrintUserRoles(runtime *net.RequestRuntime) error {
-	runtime.Debugf("looking for user roles associated w/ user[%d]", runtime.User.ID)
-	var maps []models.UserRoleMapping
+func PrintUserRoles(runtime *net.RequestRuntime) *net.ResponseBucket {
+	maps, roles := []models.UserRoleMapping{}, []models.UserRole{}
+
+	runtime.Debugf("[user role lookup] looking for user roles associated w/ user[%d]", runtime.User.ID)
 
 	if err := runtime.Where("user = ?", runtime.User.ID).Find(&maps).Error; err != nil {
 		runtime.Warnf("failed mapping lookup: %s", err.Error())
 		return runtime.ServerError()
 	}
 
+	// no user role mappings
 	if len(maps) == 0 {
-		return nil
+		return &net.ResponseBucket{}
 	}
 
 	ids := make([]int64, len(maps))
-	var roles []models.UserRole
 
 	for i, mapping := range maps {
 		ids[i] = int64(mapping.Role)
 	}
 
 	if err := runtime.Where(ids).Find(&roles).Error; err != nil {
-		runtime.Warnf("unable to associate to roles: %s", err.Error())
+		runtime.Errorf("unable to associate to roles: %s", err.Error())
 		return runtime.ServerError()
 	}
 
-	for _, role := range roles {
-		runtime.AddResult(role.Public())
-	}
-
-	return nil
+	return &net.ResponseBucket{Results: roles}
 }
 
-func PrintClientTokens(runtime *net.RequestRuntime) error {
+func PrintClientTokens(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var tokens []models.ClientToken
 
 	cursor := runtime.Where("client_id = ?", runtime.Client.ID)
@@ -109,9 +108,5 @@ func PrintClientTokens(runtime *net.RequestRuntime) error {
 		return runtime.ServerError()
 	}
 
-	for _, t := range tokens {
-		runtime.AddResult(t)
-	}
-
-	return nil
+	return &net.ResponseBucket{Results: tokens}
 }

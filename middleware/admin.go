@@ -6,11 +6,11 @@ import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/services"
 
 func RequireAdmin(handler net.HandlerFunc) net.HandlerFunc {
-	check := func(runtime *net.RequestRuntime) error {
+	check := func(runtime *net.RequestRuntime) *net.ResponseBucket {
 		uman := services.UserManager{runtime.DB, runtime.Logger}
 
 		if uman.IsAdmin(&runtime.User) != true || runtime.Client.System != true {
-			return runtime.AddError(fmt.Errorf(defs.ErrUnauthorizedAdmin))
+			return runtime.SendErrors(fmt.Errorf(defs.ErrUnauthorizedAdmin))
 		}
 
 		runtime.Debugf("user checks out as admin, continuing...")

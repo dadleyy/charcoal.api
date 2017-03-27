@@ -4,21 +4,20 @@ import "net/http"
 import "encoding/json"
 
 type JsonRenderer struct {
-	bucket *ResponseBucket
 }
 
 type commonResult struct {
-	Status string `json:"status"`
-	Meta map[string]interface{} `json:"meta"`
+	Status string                 `json:"status"`
+	Meta   map[string]interface{} `json:"meta"`
 }
 
-func (renderer JsonRenderer) Render(response http.ResponseWriter) error {
+func (renderer JsonRenderer) Render(bucket *ResponseBucket, response http.ResponseWriter) error {
 	headers := response.Header()
 	headers["Content-Type"] = []string{"application/json"}
 
 	writer := json.NewEncoder(response)
 
-	if errors := renderer.bucket.errors; len(errors) >= 1 {
+	if errors := bucket.Errors; len(errors) >= 1 {
 		elist := make([]string, len(errors))
 
 		for i, e := range errors {
@@ -28,7 +27,7 @@ func (renderer JsonRenderer) Render(response http.ResponseWriter) error {
 		result := struct {
 			commonResult
 			Errors []string `json:"errors"`
-		}{commonResult{"ERRORED", renderer.bucket.meta}, elist}
+		}{commonResult{"ERRORED", bucket.Meta}, elist}
 
 		response.WriteHeader(http.StatusBadRequest)
 		if err := writer.Encode(result); err != nil {
@@ -41,8 +40,8 @@ func (renderer JsonRenderer) Render(response http.ResponseWriter) error {
 	response.WriteHeader(http.StatusOK)
 	result := struct {
 		commonResult
-		Results []Result `json:"results"`
-	}{commonResult{"SUCCESS", renderer.bucket.meta}, renderer.bucket.results}
+		Results interface{} `json:"results"`
+	}{commonResult{"SUCCESS", bucket.Meta}, bucket.Results}
 
 	if err := writer.Encode(result); err != nil {
 		return err
@@ -50,4 +49,3 @@ func (renderer JsonRenderer) Render(response http.ResponseWriter) error {
 
 	return nil
 }
-

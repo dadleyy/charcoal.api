@@ -1,26 +1,16 @@
 package routes
 
-import "fmt"
-
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 
-func FindRoles(runtime *net.RequestRuntime) error {
-	blueprint := runtime.Blueprint()
-	var roles []models.UserRole
-
+func FindRoles(runtime *net.RequestRuntime) *net.ResponseBucket {
+	blueprint, roles := runtime.Blueprint(), []models.UserRole{}
 	total, err := blueprint.Apply(&roles)
 
 	if err != nil {
-		runtime.Debugf("ERR_BAD_ROLE_LOOKUP: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("BAD_QUERY"))
+		runtime.Warnf("[find roles] badd lookup: %s", err.Error())
+		return runtime.LogicError("bad-request")
 	}
 
-	for _, role := range roles {
-		runtime.AddResult(role)
-	}
-
-	runtime.SetMeta("total", total)
-
-	return nil
+	return runtime.SendResults(total, roles)
 }

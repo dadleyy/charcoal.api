@@ -15,7 +15,7 @@ import "github.com/dadleyy/charcoal.api/testutils"
 type TestRouteUtil struct {
 	Database *gorm.DB
 	Server   net.ServerRuntime
-	Request  net.RequestRuntime
+	Request  *net.RequestRuntime
 }
 
 func NewFind(template string) *TestRouteUtil {
@@ -59,7 +59,7 @@ func NewRequest(method string, template string, real string, reader io.Reader) *
 
 	route := net.Route{Method: method, Path: template}
 	params, _ := route.Match(method, real)
-	request, _ := server.Request(stub, &params)
+	request := server.Request(stub, &params)
 
 	return &TestRouteUtil{database, server, request}
 }

@@ -22,15 +22,7 @@ type ServerRuntime struct {
 //
 // Given http.Request and UrlParam references, this function will return the request context
 // that will ultimately be sent down the handlerfunc chain matched by the multiplexer.
-func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (RequestRuntime, error) {
-	errors := make([]error, 0)
-	results := make([]Result, 0)
-	meta := make(map[string]interface{})
-
-	bucket := ResponseBucket{errors, results, meta, "", ""}
-
-	meta["time"] = time.Now()
-
+func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) *RequestRuntime {
 	fs := filestore.S3FileStore{}
 
 	runtime := RequestRuntime{
@@ -41,10 +33,9 @@ func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) (
 		DB:        server.DB,
 
 		streams: server.Streams,
-		bucket:  bucket,
 	}
 
-	return runtime, nil
+	return &runtime
 }
 
 // ServeHTTP
@@ -58,51 +49,34 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 		return
 	}
 
-	// not found
-	if found == false {
-		server.Logger.Debugf("error matching route: %s", request.URL.Path)
-		response.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(response, "not found")
-		return
-	}
-
 	// build the request runtime
-	runtime, err := server.Request(request, &params)
+	result := &ResponseBucket{Errors: []error{fmt.Errorf("not-found")}}
 
-	// attempt to prepare a db connection for this request and error out if
-	// something goes wrong along the way.
-	if err != nil {
-		server.Logger.Debugf("error matching route: %s", request.URL.Path)
-		response.WriteHeader(http.StatusNotFound)
-		fmt.Fprintf(response, "not found")
-		return
+	if found == true {
+		runtime := server.Request(request, &params)
+		defer runtime.Close()
+		result = handler(runtime)
 	}
 
-	// once this function finishes we're done with the request.
-	defer runtime.Close()
-
-	var renderer BucketRenderer
-
-	switch request.Header.Get("accepts") {
-	default:
-		renderer = JsonRenderer{&runtime.bucket}
+	if result == nil {
+		result = &ResponseBucket{}
 	}
 
-	if err := handler(&runtime); err != nil {
-		server.Logger.Debugf("error handling route: %s", err.Error())
-		renderer.Render(response)
-		return
+	if result.Meta == nil {
+		result.Meta = make(map[string]interface{})
 	}
 
-	if len(runtime.bucket.redirect) >= 1 {
+	result.Set("time", time.Now())
+
+	if len(result.Redirect) >= 1 {
 		outh := response.Header()
-		outh.Set("Location", runtime.bucket.redirect)
+		outh.Set("Location", result.Redirect)
 		response.WriteHeader(http.StatusTemporaryRedirect)
 		return
 	}
 
-	if len(runtime.bucket.proxy) >= 1 {
-		resp, err := http.Get(runtime.bucket.proxy)
+	if len(result.Proxy) >= 1 {
+		resp, err := http.Get(result.Proxy)
 
 		if err != nil {
 			server.Logger.Debugf("unable to download file: %s", err.Error())
@@ -116,13 +90,17 @@ func (server *ServerRuntime) ServeHTTP(response http.ResponseWriter, request *ht
 		outh.Set("Content-Type", resp.Header.Get("Content-Type"))
 
 		response.WriteHeader(resp.StatusCode)
-		server.Logger.Debugf("proxy-ing: \"%s\" | type[%s]", runtime.bucket.proxy, resp.Header.Get("Content-Type"))
-
 		defer resp.Body.Close()
-
 		io.Copy(response, resp.Body)
 		return
 	}
 
-	renderer.Render(response)
+	var renderer BucketRenderer
+
+	switch request.Header.Get("accepts") {
+	default:
+		renderer = JsonRenderer{}
+	}
+
+	renderer.Render(result, response)
 }

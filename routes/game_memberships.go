@@ -6,7 +6,7 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 
-func DestroyGameMembership(runtime *net.RequestRuntime) error {
+func DestroyGameMembership(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
@@ -43,7 +43,7 @@ func DestroyGameMembership(runtime *net.RequestRuntime) error {
 	return nil
 }
 
-func CreateGameMembership(runtime *net.RequestRuntime) error {
+func CreateGameMembership(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := runtime.Form()
 
 	if err != nil {
@@ -84,11 +84,10 @@ func CreateGameMembership(runtime *net.RequestRuntime) error {
 		return runtime.LogicError("invalid-membership")
 	}
 
-	runtime.AddResult(membership)
-	return nil
+	return runtime.SendResults(1, membership)
 }
 
-func UpdateGameMembership(runtime *net.RequestRuntime) error {
+func UpdateGameMembership(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
@@ -143,22 +142,16 @@ func UpdateGameMembership(runtime *net.RequestRuntime) error {
 	return nil
 }
 
-func FindGameMemberships(runtime *net.RequestRuntime) error {
+func FindGameMemberships(runtime *net.RequestRuntime) *net.ResponseBucket {
 	cursor, results := runtime.DB, make([]models.GameMembership, 0)
 	blueprint := runtime.Blueprint(cursor)
 
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		runtime.Debugf("invalid blueprint apply: %s", err.Error())
-		return err
+		runtime.Errorf("[membership search] invalid blueprint apply: %s", err.Error())
+		return runtime.ServerError()
 	}
 
-	for _, r := range results {
-		runtime.AddResult(r)
-	}
-
-	runtime.SetTotal(total)
-
-	return nil
+	return runtime.SendResults(total, results)
 }

@@ -8,17 +8,17 @@ import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
 
-func DeleteClientAdmin(runtime *net.RequestRuntime) error {
+func DeleteClientAdmin(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_ID"))
+		return runtime.SendErrors(fmt.Errorf("BAD_ID"))
 	}
 
 	var record models.ClientAdmin
 
 	if err := runtime.First(&record, id).Error; err != nil {
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.SendErrors(fmt.Errorf("NOT_FOUND"))
 	}
 
 	authorized := runtime.IsAdmin()
@@ -31,29 +31,29 @@ func DeleteClientAdmin(runtime *net.RequestRuntime) error {
 		if err := cursor.Count(&count).Error; err != nil || count == 0 {
 			message := "[del client admin] unauthorized attempt to remove client admin user[%d] record[%d]: %v"
 			runtime.Warnf(message, runtime.User.ID, id, err)
-			return runtime.AddError(fmt.Errorf("UNAUTHORIZED"))
+			return runtime.SendErrors(fmt.Errorf("UNAUTHORIZED"))
 		}
 	}
 
 	if record.UserID == runtime.User.ID {
-		return runtime.AddError(fmt.Errorf("CANNOT_REMOVE_SELF"))
+		return runtime.SendErrors(fmt.Errorf("CANNOT_REMOVE_SELF"))
 	}
 
 	if err := runtime.Model(&models.ClientAdmin{}).Delete(&record).Error; err != nil {
 		runtime.Errorf("[del client admin] destroy client admin error: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
+		return runtime.SendErrors(fmt.Errorf("SERVER_ERROR"))
 	}
 
 	runtime.Debugf("[del client admin] succesfully removed user[%d] as admin of [%d]", record.UserID, record.ClientID)
 
-	return nil
+	return &net.ResponseBucket{}
 }
 
-func CreateClientAdmin(runtime *net.RequestRuntime) error {
+func CreateClientAdmin(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(err)
+		return runtime.SendErrors(err)
 	}
 
 	validator := body.Validator()
@@ -62,18 +62,20 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
 	if validator.HasErrors() == true {
+		errors := []error{}
+
 		for _, m := range validator.Messages() {
-			runtime.AddError(fmt.Errorf(m))
+			errors = append(errors, fmt.Errorf("field:%s", m))
 		}
 
-		return nil
+		return runtime.SendErrors(errors...)
 	}
 
 	// attempt to parse out the user id from the body
 	user, err := strconv.Atoi(body.Get("user_id"))
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("INVALID_USER"))
+		return runtime.SendErrors(fmt.Errorf("INVALID_USER"))
 	}
 
 	// by default, we're only allowed to add users to the admin list of the current client
@@ -135,12 +137,10 @@ func CreateClientAdmin(runtime *net.RequestRuntime) error {
 		}
 	}
 
-	runtime.AddResult(mapping)
-
-	return nil
+	return &net.ResponseBucket{Results: []interface{}{mapping}}
 }
 
-func FindClientAdmins(runtime *net.RequestRuntime) error {
+func FindClientAdmins(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var results []models.ClientAdmin
 	blueprint := runtime.Blueprint()
 
@@ -167,15 +167,10 @@ func FindClientAdmins(runtime *net.RequestRuntime) error {
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		runtime.Debugf("BAD_LOOKUP: %s", err.Error())
+		runtime.Errorf("[find admins] bad blueprint: %s", err.Error())
 		return runtime.ServerError()
 	}
 
-	for _, item := range results {
-		runtime.AddResult(item)
-	}
-
-	runtime.SetMeta("total", total)
-
-	return nil
+	meta := map[string]interface{}{"total": total}
+	return &net.ResponseBucket{Results: []interface{}{results}, Meta: meta}
 }

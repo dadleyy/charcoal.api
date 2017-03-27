@@ -4,15 +4,12 @@ import "strings"
 import "encoding/base64"
 
 import "github.com/dadleyy/charcoal.api/net"
-
-const ERR_BAD_RUNTIME = "BAD_RUNTIME"
-const ERR_MISSING_CLIENT_ID = "MISSING_CLIENT_ID"
-const ERR_BAD_CLIENT_ID = "BAD_CLIENT_ID"
+import "github.com/dadleyy/charcoal.api/defs"
 
 func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
-	inject := func(runtime *net.RequestRuntime) error {
+	inject := func(runtime *net.RequestRuntime) *net.ResponseBucket {
 		headers := runtime.Header
-		auth := headers.Get("X-CLIENT-AUTH")
+		auth := headers.Get(defs.ClientTokenHeader)
 
 		if len(auth) < 1 {
 			return handler(runtime)
@@ -38,16 +35,20 @@ func InjectClient(handler net.HandlerFunc) net.HandlerFunc {
 			return handler(runtime)
 		}
 
-		runtime.SetMeta("client", runtime.Client)
+		result := handler(runtime)
 
-		return handler(runtime)
+		if result != nil {
+			result.Set("client", runtime.Client)
+		}
+
+		return result
 	}
 
 	return inject
 }
 
 func RequireClient(handler net.HandlerFunc) net.HandlerFunc {
-	require := func(runtime *net.RequestRuntime) error {
+	require := func(runtime *net.RequestRuntime) *net.ResponseBucket {
 		if valid := runtime.Client.ID >= 1; valid == true {
 			return handler(runtime)
 		}

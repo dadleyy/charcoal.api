@@ -9,7 +9,7 @@ import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
 
-func UpdateGame(runtime *net.RequestRuntime) error {
+func UpdateGame(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 	body, err := forms.Parse(runtime.Request)
 
@@ -35,16 +35,14 @@ func UpdateGame(runtime *net.RequestRuntime) error {
 		return runtime.ServerError()
 	}
 
-	runtime.AddResult(manager.Game)
-
-	return nil
+	return runtime.SendResults(1, []models.Game{manager.Game})
 }
 
-func CreateGame(runtime *net.RequestRuntime) error {
+func CreateGame(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(err)
+		return runtime.SendErrors(err)
 	}
 
 	name := namesgenerator.GetRandomName(0)
@@ -57,7 +55,7 @@ func CreateGame(runtime *net.RequestRuntime) error {
 
 	if err := runtime.Create(&game).Error; err != nil {
 		runtime.Errorf("[create game] failed saving new game: %s", err.Error())
-		return runtime.AddError(err)
+		return runtime.ServerError()
 	}
 
 	membership := models.GameMembership{
@@ -74,12 +72,10 @@ func CreateGame(runtime *net.RequestRuntime) error {
 	verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
 	runtime.Publish(activity.Message{&runtime.User, &game, verb})
 
-	runtime.AddResult(game)
-
-	return nil
+	return runtime.SendResults(1, []models.Game{game})
 }
 
-func DestroyGame(runtime *net.RequestRuntime) error {
+func DestroyGame(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
@@ -111,22 +107,16 @@ func DestroyGame(runtime *net.RequestRuntime) error {
 	return nil
 }
 
-func FindGames(runtime *net.RequestRuntime) error {
+func FindGames(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var results []models.Game
 	blueprint := runtime.Blueprint()
 
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		fmt.Errorf("failed game lookup: %s", err.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		fmt.Errorf("[find games] failed game lookup: %s", err.Error())
+		return runtime.LogicError("bad-request")
 	}
 
-	for _, item := range results {
-		runtime.AddResult(item)
-	}
-
-	runtime.SetTotal(total)
-
-	return nil
+	return runtime.SendResults(total, results)
 }

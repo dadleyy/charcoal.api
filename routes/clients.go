@@ -7,7 +7,7 @@ import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
 import "github.com/dadleyy/charcoal.api/util"
 
-func FindClients(runtime *net.RequestRuntime) error {
+func FindClients(runtime *net.RequestRuntime) *net.ResponseBucket {
 	blueprint := runtime.Blueprint()
 	var clients []models.Client
 
@@ -18,20 +18,15 @@ func FindClients(runtime *net.RequestRuntime) error {
 		return runtime.ServerError()
 	}
 
-	for _, client := range clients {
-		runtime.AddResult(client)
-	}
-
-	runtime.SetMeta("total", total)
-
-	return nil
+	meta := map[string]interface{}{"total": total}
+	return &net.ResponseBucket{Results: clients, Meta: meta}
 }
 
-func UpdateClient(runtime *net.RequestRuntime) error {
+func UpdateClient(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_ID"))
+		return runtime.SendErrors(fmt.Errorf("BAD_ID"))
 	}
 
 	if god := runtime.IsAdmin(); god != true {
@@ -70,8 +65,7 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 	}
 
 	if len(updates) == 0 {
-		runtime.AddResult(client)
-		return nil
+		return &net.ResponseBucket{Results: []interface{}{client}}
 	}
 
 	if err := runtime.Model(&client).Updates(updates).Error; err != nil {
@@ -79,16 +73,14 @@ func UpdateClient(runtime *net.RequestRuntime) error {
 		return runtime.ServerError()
 	}
 
-	runtime.AddResult(client)
-
-	return nil
+	return &net.ResponseBucket{Results: []interface{}{client}}
 }
 
-func CreateClient(runtime *net.RequestRuntime) error {
+func CreateClient(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
-		return runtime.AddError(fmt.Errorf("BAD_REQUEST"))
+		return runtime.SendErrors(fmt.Errorf("BAD_REQUEST"))
 	}
 
 	validator := body.Validator()
@@ -100,11 +92,13 @@ func CreateClient(runtime *net.RequestRuntime) error {
 	// if the validator picked up errors, add them to the request
 	// runtime and then return
 	if validator.HasErrors() == true {
+		errors := []error{}
+
 		for _, m := range validator.Messages() {
-			runtime.AddError(fmt.Errorf(m))
+			errors = append(errors, fmt.Errorf("field:%s", m))
 		}
 
-		return nil
+		return runtime.SendErrors(errors...)
 	}
 
 	client := models.Client{
@@ -132,16 +126,15 @@ func CreateClient(runtime *net.RequestRuntime) error {
 
 	if err := runtime.Create(&admin).Error; err != nil {
 		runtime.Errorf("[create client] failed automatically creating admin for client %d: %s", client.ID, err.Error())
-		return runtime.AddError(err)
+		return runtime.SendErrors(err)
 	}
 
 	manager := services.UserClientManager{runtime.DB}
 
 	if _, err := manager.Associate(&runtime.User, &client); err != nil {
 		runtime.Errorf("[create client] err auto token user[%d]-client[%d]: %s", runtime.User.ID, client.ID, err.Error())
-		return runtime.AddError(err)
+		return runtime.SendErrors(err)
 	}
 
-	runtime.AddResult(client)
-	return nil
+	return &net.ResponseBucket{Results: []interface{}{client}}
 }

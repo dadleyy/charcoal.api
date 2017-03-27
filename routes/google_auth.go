@@ -5,23 +5,18 @@ import "fmt"
 import "net/url"
 
 import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/services"
 
-const ErrBadAuthCode = "BAD_AUTH_CODE"
-const ErrNoClientAssociated = "NO_ASSOICATED_CLIENT"
-const ErrMissingClientRedirect = "NO_REDIRECT_URI"
-const ErrMissingAuthEndpoint = "BAD_AUTH_ENDPOINT"
-const ErrInvalidGoogleResponse = "BAD_GOOGLE_RESPONSE"
-
-func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
+func GoogleOauthRedirect(runtime *net.RequestRuntime) *net.ResponseBucket {
 	clientid := os.Getenv("GOOGLE_CLIENT_ID")
 	redir := os.Getenv("GOOGLE_REDIRECT_URL")
 	fin, err := url.Parse(services.EndpointGoogleAuth)
 
 	if err != nil {
-		runtime.Errorf("trouble parsing google auth endpoint: %s", services.EndpointGoogleAuth)
-		return runtime.AddError(fmt.Errorf("SERVER_ERROR"))
+		runtime.Errorf("[google redir] trouble parsing google auth endpoint: %s", services.EndpointGoogleAuth)
+		return runtime.ServerError()
 	}
 
 	query := runtime.URL.Query()
@@ -29,19 +24,19 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 	requester := query.Get("client_id")
 
 	if len(requester) == 0 {
-		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
+		return runtime.LogicError("invalid-client")
 	}
 
 	var client models.Client
 
 	if err := runtime.Where("client_id = ?", requester).First(&client).Error; err != nil {
-		runtime.Errorf("invalid client id used in google auth: %s", clientid)
-		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
+		runtime.Errorf("[google redir] invalid client id used in google auth: %s", clientid)
+		return runtime.LogicError(defs.ErrGoogleNoClientAssociated)
 	}
 
 	if len(client.RedirectUri) == 0 {
-		runtime.Errorf("client %d (%s) is missing a redirect uri", client.ID, client.Name)
-		return runtime.AddError(fmt.Errorf(ErrMissingClientRedirect))
+		runtime.Errorf("[google redir] client %d (%s) is missing a redirect uri", client.ID, client.Name)
+		return runtime.LogicError(defs.ErrGoogleMissingClientRedirect)
 	}
 
 	queries := make(url.Values)
@@ -59,11 +54,10 @@ func GoogleOauthRedirect(runtime *net.RequestRuntime) error {
 
 	fin.RawQuery = queries.Encode()
 
-	runtime.Redirect(fin.String())
-	return nil
+	return runtime.Redirect(fin.String())
 }
 
-func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
+func GoogleOauthReceiveCode(runtime *net.RequestRuntime) *net.ResponseBucket {
 	query := runtime.URL.Query()
 
 	// extract the code sent from google and the "state" which is the client id originally sent
@@ -72,26 +66,25 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 	state := query.Get("state")
 
 	if len(state) == 0 {
-		runtime.Errorf("unable to find state sent back from google")
-		return runtime.AddError(fmt.Errorf(ErrInvalidGoogleResponse))
+		runtime.Errorf("[google receive code] unable to find state sent back from google")
+		return runtime.LogicError(defs.ErrGoogleInvalidGoogleResponse)
 	}
 
 	var client models.Client
 
 	if err := runtime.Where("client_id = ?", state).First(&client).Error; err != nil {
-		runtime.Errorf("invalid client id used in google auth: %s", state)
-		return runtime.AddError(fmt.Errorf(ErrNoClientAssociated))
+		runtime.Errorf("[google receive code] invalid client id used in google auth: %s", state)
+		return runtime.LogicError(defs.ErrGoogleNoClientAssociated)
 	}
 
 	if len(client.RedirectUri) == 0 {
-		runtime.Errorf("unable to find auth code sent from google")
-		return runtime.AddError(fmt.Errorf(ErrBadAuthCode))
+		runtime.Errorf("[google receive code] unable to find auth code sent from google")
+		return runtime.LogicError(defs.ErrGoogleBadAuthCode)
 	}
 
 	if len(code) == 0 {
-		runtime.Errorf("unable to find auth code sent from google")
-		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
-		return nil
+		runtime.Errorf("[google receive code] unable to find auth code sent from google")
+		return runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
 	}
 
 	authman := services.GoogleAuthentication{runtime.DB, runtime.Logger}
@@ -99,22 +92,20 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) error {
 	result, err := authman.Process(&client, code)
 
 	if err != nil {
-		runtime.Errorf("unable to authenticate client /w code: %s", err.Error())
-		runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
-		return nil
+		runtime.Errorf("[google receive code] unable to authenticate client /w code: %s", err.Error())
+		return runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
 	}
 
 	fin, err := url.Parse(result.RedirectUri())
 
 	if err != nil {
-		return runtime.AddError(err)
+		runtime.Warnf("[google receive code] invalid redirect uri for client[%d]: %s", client.ID, err.Error())
+		return runtime.LogicError("invalid-redirect-uri")
 	}
 
 	queries := make(url.Values)
 	queries.Set("token", result.Token())
 	fin.RawQuery = queries.Encode()
 
-	runtime.Redirect(fin.String())
-
-	return nil
+	return runtime.Redirect(fin.String())
 }

@@ -6,7 +6,7 @@ import "github.com/albrow/forms"
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/models"
 
-func CreateGameRound(runtime *net.RequestRuntime) error {
+func CreateGameRound(runtime *net.RequestRuntime) *net.ResponseBucket {
 	body, err := forms.Parse(runtime.Request)
 
 	if err != nil {
@@ -46,12 +46,10 @@ func CreateGameRound(runtime *net.RequestRuntime) error {
 		return runtime.ServerError()
 	}
 
-	runtime.AddResult(round.Public())
-
-	return nil
+	return runtime.SendResults(1, []models.GameRound{round})
 }
 
-func UpdateGameRound(runtime *net.RequestRuntime) error {
+func UpdateGameRound(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
@@ -85,26 +83,25 @@ func UpdateGameRound(runtime *net.RequestRuntime) error {
 	}
 
 	if e := manager.UpdateRound(&round, body.Values); e != nil {
-		return runtime.AddError(e)
+		runtime.Errorf("[update game round] unable to update: %s", e.Error())
+		return runtime.ServerError()
 	}
 
-	runtime.AddResult(round.Public())
-
-	return nil
+	return runtime.SendResults(1, []models.GameRound{round})
 }
 
-func DestroyGameRound(runtime *net.RequestRuntime) error {
+func DestroyGameRound(runtime *net.RequestRuntime) *net.ResponseBucket {
 	id, ok := runtime.IntParam("id")
 
 	if ok != true {
-		return runtime.AddError(fmt.Errorf("BAD_ID"))
+		return runtime.SendErrors(fmt.Errorf("bad-id"))
 	}
 
 	var round models.GameRound
 
 	if e := runtime.First(&round, id).Error; e != nil {
 		runtime.Infof("round not found: %d (%s)", id, e.Error())
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.SendErrors(fmt.Errorf("not-found"))
 	}
 
 	manager, err := runtime.Game(round.GameID)
@@ -116,33 +113,27 @@ func DestroyGameRound(runtime *net.RequestRuntime) error {
 
 	if manager.IsMember(runtime.User) == false {
 		runtime.Infof("user %d not member of game %d", runtime.User.ID, round.GameID)
-		return runtime.AddError(fmt.Errorf("NOT_FOUND"))
+		return runtime.SendErrors(fmt.Errorf("not-found"))
 	}
 
 	if e := runtime.Delete(&round).Error; e != nil {
-		runtime.Infof("failed deletion of round %d: %s", round.ID, e.Error())
-		return runtime.AddError(fmt.Errorf("FAILED_DELETE"))
+		runtime.Errorf("[delete game round] failed deletion of round %d: %s", round.ID, e.Error())
+		return runtime.ServerError()
 	}
 
 	return nil
 }
 
-func FindGameRounds(runtime *net.RequestRuntime) error {
+func FindGameRounds(runtime *net.RequestRuntime) *net.ResponseBucket {
 	cursor, results := runtime.Model(&models.GameRound{}), make([]models.GameRound, 0)
 
 	blueprint := runtime.Blueprint(cursor)
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		runtime.Debugf("invalid blueprint apply: %s", err.Error())
-		return err
+		runtime.Warnf("[find rounds] invalid blueprint apply: %s", err.Error())
+		return runtime.LogicError("bad-request")
 	}
 
-	for _, r := range results {
-		runtime.AddResult(r.Public())
-	}
-
-	runtime.SetTotal(total)
-
-	return nil
+	return runtime.SendResults(total, results)
 }
