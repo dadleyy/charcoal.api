@@ -51,7 +51,7 @@ func (m *GameManager) EndGame() error {
 		return nil
 	}
 
-	verb := defs.GameProcessorVerbPrefix + defs.GameProcessorGameEnded
+	verb := fmt.Sprintf("%s:%s", defs.GamesStreamIdentifier, defs.GameProcessorGameEnded)
 	stream <- activity.Message{&owner, &m.Game, verb}
 
 	return nil
@@ -88,13 +88,15 @@ func (m *GameManager) UpdateRound(round *models.GameRound, rankings url.Values) 
 
 		id, err := strconv.ParseInt(value[0], 10, 64)
 
+		// If we have a value that is not null and there is an error parsing the int, we have an invalid value
 		if len(value[0]) >= 1 && value[0] != "null" && err != nil {
-			m.Infof("invalid value for %s: %v (%v)", rank, value, err)
+			m.Infof("[game processor] invalid value for %s: %v (%v)", rank, value, err)
 			return fmt.Errorf("invalid value for %s: %v", rank, value)
 		}
 
-		m.Debugf("will be performing update on %d: %s -> [%v]", round.ID, rank, value[0])
+		m.Debugf("[game processor] will be performing update on %d: %s -> [%v]", round.ID, rank, value[0])
 
+		// Clearing out the value
 		if err != nil {
 			updates[rank] = nil
 			continue
@@ -111,6 +113,12 @@ func (m *GameManager) UpdateRound(round *models.GameRound, rankings url.Values) 
 
 	if e := m.Model(round).Update(updates).Error; e != nil {
 		return e
+	}
+
+	if s, ok := m.Streams[defs.GamesStatsStreamIdentifier]; ok == true {
+		m.Debugf("[game service] publishing to stats stream")
+		verb := fmt.Sprintf("%s:%s", defs.GamesStatsStreamIdentifier, defs.GameStatsRoundUpdate)
+		s <- activity.Message{Verb: verb, Object: round}
 	}
 
 	return nil
@@ -146,7 +154,7 @@ func (m *GameManager) RemoveMember(member models.GameMembership) error {
 	m.Debugf("removed member: %d from game %d", member.UserID, m.Game.ID)
 
 	if stream, ok := m.Streams[defs.GamesStreamIdentifier]; ok {
-		verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserLeft
+		verb := fmt.Sprintf("%s:%s", defs.GamesStreamIdentifier, defs.GameProcessorUserLeft)
 		stream <- activity.Message{&user, &m.Game, verb}
 	}
 
@@ -162,7 +170,7 @@ func (m *GameManager) AddUser(user models.User) (models.GameMembership, error) {
 
 	publish := func() {
 		stream, ok := m.Streams[defs.GamesStreamIdentifier]
-		verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
+		verb := fmt.Sprintf("%s:%s", defs.GamesStreamIdentifier, defs.GameProcessorUserJoined)
 
 		if ok == true {
 			stream <- activity.Message{&user, &m.Game, verb}

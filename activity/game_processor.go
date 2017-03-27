@@ -1,5 +1,6 @@
 package activity
 
+import "fmt"
 import "sync"
 import "strings"
 import "github.com/jinzhu/gorm"
@@ -23,11 +24,12 @@ func (engine *GameProcessor) Begin(wg *sync.WaitGroup) {
 		return
 	}
 
+	engine.Debugf("[games processor] starting game processor")
 	internal := sync.WaitGroup{}
 
 	for message := range engine.Stream {
 		engine.Debugf("[game bg processor] received message: %s", message.Verb)
-		event := strings.TrimPrefix(message.Verb, defs.GameProcessorVerbPrefix)
+		event := strings.TrimPrefix(message.Verb, fmt.Sprintf("%s:", defs.GamesStreamIdentifier))
 
 		internal.Add(1)
 
@@ -136,4 +138,5 @@ func (engine *GameProcessor) updatePopulation(game *models.Game) {
 		return
 	}
 
+	engine.Debugf("[game processor] population updated!")
 }

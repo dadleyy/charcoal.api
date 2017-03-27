@@ -106,8 +106,9 @@ func (runtime *RequestRuntime) Game(id uint) (*services.GameManager, error) {
 	}
 
 	streams := map[string](chan<- activity.Message){
-		defs.SocketsStreamIdentifier: runtime.streams[defs.SocketsStreamIdentifier],
-		defs.GamesStreamIdentifier:   runtime.streams[defs.GamesStreamIdentifier],
+		defs.SocketsStreamIdentifier:    runtime.streams[defs.SocketsStreamIdentifier],
+		defs.GamesStreamIdentifier:      runtime.streams[defs.GamesStreamIdentifier],
+		defs.GamesStatsStreamIdentifier: runtime.streams[defs.GamesStatsStreamIdentifier],
 	}
 
 	manager := services.GameManager{runtime.DB, runtime.Logger, streams, g}
