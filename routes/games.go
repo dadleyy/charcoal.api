@@ -69,7 +69,7 @@ func CreateGame(runtime *net.RequestRuntime) *net.ResponseBucket {
 		return runtime.ServerError()
 	}
 
-	verb := defs.GameProcessorVerbPrefix + defs.GameProcessorUserJoined
+	verb := fmt.Sprintf("%s:%s", defs.GamesStreamIdentifier, defs.GameProcessorUserJoined)
 	runtime.Publish(activity.Message{&runtime.User, &game, verb})
 
 	return runtime.SendResults(1, []models.Game{game})

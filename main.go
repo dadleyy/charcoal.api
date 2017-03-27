@@ -66,9 +66,10 @@ func main() {
 	}
 
 	streams := map[string](chan activity.Message){
-		defs.ActivityStreamIdentifier: make(chan activity.Message, 100),
-		defs.SocketsStreamIdentifier:  make(chan activity.Message, 100),
-		defs.GamesStreamIdentifier:    make(chan activity.Message, 100),
+		defs.ActivityStreamIdentifier:   make(chan activity.Message, 100),
+		defs.SocketsStreamIdentifier:    make(chan activity.Message, 100),
+		defs.GamesStreamIdentifier:      make(chan activity.Message, 100),
+		defs.GamesStatsStreamIdentifier: make(chan activity.Message, 100),
 	}
 
 	// create our multiplexer and add our routes
@@ -162,6 +163,12 @@ func main() {
 			Logger: logger,
 			DB:     db,
 			Stream: streams[defs.GamesStreamIdentifier],
+		},
+
+		&activity.GameStatsProcessor{
+			Logger: logger,
+			DB:     db,
+			Stream: streams[defs.GamesStatsStreamIdentifier],
 		},
 	}
 

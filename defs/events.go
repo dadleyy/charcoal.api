@@ -1,11 +1,13 @@
 package defs
 
 const (
-	ActivityStreamIdentifier = "activity"
-	SocketsStreamIdentifier  = "sockets"
-	GamesStreamIdentifier    = "games"
+	ActivityStreamIdentifier   = "activity"
+	SocketsStreamIdentifier    = "sockets"
+	GamesStreamIdentifier      = "games"
+	GamesStatsStreamIdentifier = "game-stats"
 
-	GameProcessorVerbPrefix = "games:"
+	GameStatsRoundUpdate = "round-updated"
+
 	GameProcessorUserJoined = "user-joined"
 	GameProcessorUserLeft   = "user-left"
 	GameProcessorGameEnded  = "game-ended"
