@@ -82,6 +82,6 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
 	r := FindClientAdmins(ctx.Request)
 
 	if len(r.Errors) >= 1 {
-		t.Fatalf("error even though user is admin: %s")
+		t.Fatalf("error even though user is admin: %s", r.Errors[0].Error())
 	}
 }

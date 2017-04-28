@@ -114,7 +114,7 @@ func FindGames(runtime *net.RequestRuntime) *net.ResponseBucket {
 	total, err := blueprint.Apply(&results)
 
 	if err != nil {
-		fmt.Errorf("[find games] failed game lookup: %s", err.Error())
+		runtime.Errorf("[find games] failed game lookup: %s", err.Error())
 		return runtime.LogicError("bad-request")
 	}
 

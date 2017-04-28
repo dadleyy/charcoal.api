@@ -84,7 +84,7 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) *net.ResponseBucket {
 
 	if len(code) == 0 {
 		runtime.Errorf("[google receive code] unable to find auth code sent from google")
-		return runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
+		return runtime.Redirect(fmt.Sprintf("%s?error=bad_code", client.RedirectUri))
 	}
 
 	authman := services.GoogleAuthentication{runtime.DB, runtime.Logger}
@@ -93,7 +93,7 @@ func GoogleOauthReceiveCode(runtime *net.RequestRuntime) *net.ResponseBucket {
 
 	if err != nil {
 		runtime.Errorf("[google receive code] unable to authenticate client /w code: %s", err.Error())
-		return runtime.Redirect(fmt.Sprint("%s?error=bad_code", client.RedirectUri))
+		return runtime.Redirect(fmt.Sprintf("%s?error=bad_code", client.RedirectUri))
 	}
 
 	fin, err := url.Parse(result.RedirectUri())

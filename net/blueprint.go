@@ -101,7 +101,7 @@ func (print *Blueprint) Apply(out interface{}) (int, error) {
 
 	direction := "ASC"
 
-	if o := print.values.Get("sort_order"); o == "desc" || o == "desc" {
+	if o := print.values.Get("sort_order"); o == "desc" {
 		direction = "DESC"
 	}
 

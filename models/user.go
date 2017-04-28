@@ -6,10 +6,10 @@ import "github.com/docker/docker/pkg/namesgenerator"
 
 type User struct {
 	Common
-	Name     string `json:"name",omitempty`
-	Email    string `json:"email",omitempty`
-	Password string `json:"password",omitempty`
-	Username string `json:"password",omitempty`
+	Name     string `json:"name,omitempty"`
+	Email    string `json:"email,omitempty"`
+	Password string `json:"password,omitempty"`
+	Username string `json:"password,omitempty"`
 
 	GameMemberships []GameMembership `json:"-"`
 

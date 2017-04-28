@@ -6,7 +6,7 @@ func TestMaxInt(t *testing.T) {
 	r := MaxInt(1, 100)
 
 	if r != 100 {
-		t.Log("expected 100 but received: %d", r)
+		t.Logf("expected 100 but received: %d", r)
 		t.Fail()
 	}
 }
