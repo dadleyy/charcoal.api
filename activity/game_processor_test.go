@@ -40,6 +40,7 @@ func Test_Activity_GameProcessor_JoinedMessage(t *testing.T) {
 
 	db.Create(&mem)
 	defer db.Unscoped().Delete(&mem)
+	defer db.Unscoped().Where("game_id = ?", game.ID).Delete(models.GameMembershipHistory{})
 
 	stream <- Message{&user, &game, fmt.Sprintf("%s:%s", defs.GamesStreamIdentifier, defs.GameProcessorUserJoined)}
 	wg := sync.WaitGroup{}
@@ -94,7 +95,7 @@ func Test_Activity_GameProcessor_LeftMessage(t *testing.T) {
 
 	history := models.GameMembershipHistory{UserID: user.ID, GameID: game.ID}
 	db.Create(&history)
-	defer db.Unscoped().Delete(&history)
+	defer db.Unscoped().Where("game_id = ?", game.ID).Delete(history)
 
 	mem := models.GameMembership{
 		UserID: user.ID,

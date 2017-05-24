@@ -39,6 +39,7 @@ func (engine *GameProcessor) Begin(wg *sync.WaitGroup) {
 		case defs.GameProcessorUserLeft:
 			engine.playerLeft(message, &internal)
 		default:
+			engine.Warnf("[game bg processor] missed: %s", event)
 			internal.Done()
 		}
 	}

@@ -98,7 +98,6 @@ func Test_Activity_GameStatsProcessor_UpdateStats(t *testing.T) {
 
 	for i, _ := range rounds {
 		db.Create(&rounds[i])
-		defer db.Unscoped().Delete(&rounds[i])
 	}
 
 	wg := sync.WaitGroup{}
@@ -114,20 +113,28 @@ func Test_Activity_GameStatsProcessor_UpdateStats(t *testing.T) {
 
 	wg.Wait()
 
+	defer db.Unscoped().Where("game_id = ?", game.ID).Delete(models.GameRound{})
+
 	if e := db.Where("game_id = ?", game.ID).Find(&memberships).Error; e != nil {
 		t.Fatalf(e.Error())
 		return
 	}
 
-	if memberships[0].Assholeships != 5 {
-		t.Fatalf("expected 4 assholeships but found: %d", memberships[0].Assholeships)
+	firstMember, secondMember, thirdMember := models.GameMembership{}, models.GameMembership{}, models.GameMembership{}
+
+	db.Where("user_id = ?", ids[0]).Find(&firstMember)
+	db.Where("user_id = ?", ids[1]).Find(&secondMember)
+	db.Where("user_id = ?", ids[2]).Find(&thirdMember)
+
+	if firstMember.Assholeships != 5 {
+		t.Fatalf("user[%d] expected 5 assholeships but found: %d", ids[0], firstMember.Assholeships)
 	}
 
-	if memberships[1].Presidencies != 5 {
-		t.Fatalf("expected 4 assholeships but found: %d", memberships[0].Assholeships)
+	if secondMember.Presidencies != 5 {
+		t.Fatalf("user[%d] expected 5 presidencies but found: %d", ids[1], secondMember.Presidencies)
 	}
 
-	if memberships[2].VicePresidencies != 3 {
-		t.Fatalf("expected 4 assholeships but found: %d", memberships[0].Assholeships)
+	if thirdMember.VicePresidencies != 3 {
+		t.Fatalf("user[%d] expected 3 vice presidencies but found: %d", ids[2], thirdMember.VicePresidencies)
 	}
 }
