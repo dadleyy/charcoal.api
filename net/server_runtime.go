@@ -22,15 +22,15 @@ type ServerRuntime struct {
 //
 // Given http.Request and UrlParam references, this function will return the request context
 // that will ultimately be sent down the handlerfunc chain matched by the multiplexer.
-func (server *ServerRuntime) Request(request *http.Request, params *UrlParams) *RequestRuntime {
+func (server *ServerRuntime) Request(request *http.Request, params UrlParamReader) *RequestRuntime {
 	fs := filestore.S3FileStore{}
 
 	runtime := RequestRuntime{
-		Request:   request,
-		UrlParams: params,
-		FileSaver: fs,
-		Logger:    server.Logger,
-		DB:        server.DB,
+		Request:        request,
+		UrlParamReader: params,
+		FileSaver:      fs,
+		Logger:         server.Logger,
+		DB:             server.DB,
 
 		streams: server.Streams,
 	}

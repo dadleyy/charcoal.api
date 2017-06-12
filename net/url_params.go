@@ -2,6 +2,11 @@ package net
 
 import "strconv"
 
+type UrlParamReader interface {
+	StringParam(string) (string, bool)
+	IntParam(string) (int, bool)
+}
+
 type UrlParams struct {
 	params map[string]string
 }

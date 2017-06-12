@@ -6,7 +6,7 @@ import "github.com/dadleyy/charcoal.api/testutils"
 import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
 func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_And_NoClient(t *testing.T) {
-	ctx := routetesting.NewFind("client-admins")
+	ctx := routetesting.NewFind(&routetesting.TestRouteParams{})
 
 	r := FindClientAdmins(ctx.Request)
 
@@ -22,7 +22,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_BadUser_With_Client(t *testing.T)
 	testutils.CreateClient(&client, "client-admins-find-1", false)
 	defer db.Unscoped().Delete(&client)
 
-	ctx := routetesting.NewFind("client-admins")
+	ctx := routetesting.NewFind(&routetesting.TestRouteParams{})
 	ctx.Request.Client = client
 
 	r := FindClientAdmins(ctx.Request)
@@ -48,7 +48,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidClientAdmin(t *testing.T) {
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 
-	ctx := routetesting.NewFind("client-admins")
+	ctx := routetesting.NewFind(&routetesting.TestRouteParams{})
 	ctx.Request.Client = client
 	ctx.Request.User = user
 
@@ -75,7 +75,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 
-	ctx := routetesting.NewFind("client-admins")
+	ctx := routetesting.NewFind(&routetesting.TestRouteParams{})
 	ctx.Request.Client = client
 	ctx.Request.User = user
 

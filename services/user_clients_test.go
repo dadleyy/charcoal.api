@@ -8,12 +8,6 @@ import "github.com/dadleyy/charcoal.api/testutils"
 func Test_Services_UserClients_Associate(t *testing.T) {
 	db := testutils.NewDB()
 
-	defer db.Exec("DELETE FROM users where id > 0")
-	defer db.Exec("DELETE FROM clients where id > 0")
-
-	defer db.Exec("DELETE FROM user_role_mappings where id > 0")
-	defer db.Exec("DELETE FROM client_tokens where id > 0")
-
 	mgr := UserClientManager{db}
 
 	client := models.Client{
@@ -27,6 +21,9 @@ func Test_Services_UserClients_Associate(t *testing.T) {
 
 	db.Create(&client)
 	db.Create(&user)
+
+	defer db.Unscoped().Delete(&client)
+	defer db.Unscoped().Delete(&user)
 
 	var c int
 
@@ -43,9 +40,12 @@ func Test_Services_UserClients_Associate(t *testing.T) {
 	}
 
 	cursor := db.Model(&models.ClientToken{}).Where("user_id = ? AND client_id = ?", user.ID, client.ID)
+	defer db.Unscoped().Where("user_id = ? AND client_id = ?", user.ID, client.ID).Delete(models.ClientToken{})
+
 	if _ = cursor.Count(&c).Error; c == 1 {
 		return
 	}
+	defer db.Unscoped().Delete(models.ClientToken{})
 
 	t.Fatalf("unable to find newly associted token")
 }

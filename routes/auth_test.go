@@ -10,7 +10,7 @@ import "github.com/dadleyy/charcoal.api/routes/routetesting"
 
 func Test_Routes_Auth_PasswordLogin_NoClient(t *testing.T) {
 	body := bytes.NewBuffer([]byte("{}"))
-	ctx := routetesting.NewPost("auth", body)
+	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
 
 	password, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
@@ -38,7 +38,7 @@ func Test_Routes_Auth_PasswordLogin_NoClient(t *testing.T) {
 
 func Test_Routes_Auth_PasswordLogin_NonSystem(t *testing.T) {
 	body := bytes.NewBuffer([]byte("{}"))
-	ctx := routetesting.NewPost("auth", body)
+	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
 
 	password, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
@@ -69,7 +69,7 @@ func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
 	email, password := "lt2@sizethree.cc", "password"
 	body := bytes.NewBuffer([]byte(fmt.Sprintf("{\"email\":\"%s\",\"password\":\"%s\"}", email, password)))
 
-	ctx := routetesting.NewPost("auth", body)
+	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
 
 	pw, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	user := models.User{Email: email, Password: string(pw)}
@@ -99,8 +99,7 @@ func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
 func Test_Routes_Auth_PasswordLogin_SystemBadPassword(t *testing.T) {
 	email, password := "lt2@sizethree.cc", "password"
 	body := bytes.NewBuffer([]byte(fmt.Sprintf("{\"email\":\"%s\",\"password\":\"fudge\"}", email)))
-
-	ctx := routetesting.NewPost("auth", body)
+	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
 
 	pw, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	user := models.User{Email: email, Password: string(pw)}

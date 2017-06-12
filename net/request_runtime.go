@@ -16,7 +16,7 @@ import "github.com/dadleyy/charcoal.api/filestore"
 
 type RequestRuntime struct {
 	*http.Request
-	*UrlParams
+	UrlParamReader
 	*log.Logger
 	*gorm.DB
 	filestore.FileSaver

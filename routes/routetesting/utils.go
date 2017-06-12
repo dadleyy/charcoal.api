@@ -2,6 +2,8 @@ package routetesting
 
 import "io"
 import "bytes"
+import "strconv"
+import "net/url"
 import "net/http"
 
 import "github.com/jinzhu/gorm"
@@ -18,20 +20,34 @@ type TestRouteUtil struct {
 	Request  *net.RequestRuntime
 }
 
-func NewFind(template string) *TestRouteUtil {
+type TestRouteParams struct {
+	url.Values
+}
+
+func (params *TestRouteParams) IntParam(key string) (int, bool) {
+	v := params.Get(key)
+	i, e := strconv.Atoi(v)
+	return i, e == nil
+}
+
+func (params *TestRouteParams) StringParam(key string) (string, bool) {
+	return params.Get(key), false
+}
+
+func NewFind(params *TestRouteParams) *TestRouteUtil {
 	reader := bytes.NewBuffer([]byte{})
-	return NewRequest("GET", template, template, reader)
+	return NewRequest("GET", params, reader)
 }
 
-func NewPost(template string, reader io.Reader) *TestRouteUtil {
-	return NewRequest("POST", template, template, reader)
+func NewPost(params *TestRouteParams, reader io.Reader) *TestRouteUtil {
+	return NewRequest("POST", params, reader)
 }
 
-func NewPatch(template string, real string, reader io.Reader) *TestRouteUtil {
-	return NewRequest("PATCH", template, real, reader)
+func NewPatch(params *TestRouteParams, reader io.Reader) *TestRouteUtil {
+	return NewRequest("PATCH", params, reader)
 }
 
-func NewRequest(method string, template string, real string, reader io.Reader) *TestRouteUtil {
+func NewRequest(method string, params *TestRouteParams, reader io.Reader) *TestRouteUtil {
 	database := testutils.NewDB()
 
 	logger := log.New("miritos")
@@ -46,7 +62,7 @@ func NewRequest(method string, template string, real string, reader io.Reader) *
 	close(streams["games"])
 	close(streams["sockets"])
 
-	stub, _ := http.NewRequest(method, real, reader)
+	stub, _ := http.NewRequest(method, "/blah", reader)
 
 	stub.Header.Add("Content-Type", "application/json")
 
@@ -57,9 +73,7 @@ func NewRequest(method string, template string, real string, reader io.Reader) *
 		Mux:     nil,
 	}
 
-	route := net.Route{Method: method, Path: template}
-	params, _ := route.Match(method, real)
-	request := server.Request(stub, &params)
+	request := server.Request(stub, params)
 
 	return &TestRouteUtil{database, server, request}
 }

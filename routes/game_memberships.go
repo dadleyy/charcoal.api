@@ -16,14 +16,14 @@ func DestroyGameMembership(runtime *net.RequestRuntime) *net.ResponseBucket {
 	var membership models.GameMembership
 
 	if err := runtime.First(&membership, id).Error; err != nil {
-		runtime.Debugf("error looking for membership: %s", err.Error())
+		runtime.Debugf("[delete membership] error looking for membership: %s", err.Error())
 		return runtime.LogicError("not-found")
 	}
 
 	manager, err := runtime.Game(membership.GameID)
 
 	if err != nil {
-		runtime.Warnf("unable to load game manager: %s", err.Error())
+		runtime.Warnf("[delete membership] unable to load game manager: %s", err.Error())
 		return runtime.LogicError("not-found")
 	}
 
@@ -31,12 +31,17 @@ func DestroyGameMembership(runtime *net.RequestRuntime) *net.ResponseBucket {
 	m, c, o := membership.UserID, runtime.User.ID, manager.Game.OwnerID
 
 	if runtime.IsAdmin() == false && m != c && c != o {
-		runtime.Debugf("cannot delete membership - user[%d] isn't owner", runtime.User.ID)
+		runtime.Warnf("[delete membership] cannot delete membership - user[%d] isn't owner", runtime.User.ID)
 		return runtime.LogicError("bad-user")
 	}
 
 	if e := manager.RemoveMember(membership); e != nil {
-		runtime.Debugf("problem deleting membership: %s", e.Error())
+		runtime.Errorf("[delete membership] problem deleting membership: %s", e.Error())
+		return runtime.ServerError()
+	}
+
+	if e := runtime.Delete(&membership).Error; e != nil {
+		runtime.Errorf("[delete membership] problem deleting membership: %s", e.Error())
 		return runtime.ServerError()
 	}
 
