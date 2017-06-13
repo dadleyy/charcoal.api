@@ -18,6 +18,7 @@ type TestRouteUtil struct {
 	Database *gorm.DB
 	Server   net.ServerRuntime
 	Request  *net.RequestRuntime
+	Streams  map[string](chan activity.Message)
 }
 
 type TestRouteParams struct {
@@ -58,10 +59,6 @@ func NewRequest(method string, params *TestRouteParams, reader io.Reader) *TestR
 		"sockets":  make(chan activity.Message),
 	}
 
-	close(streams["activity"])
-	close(streams["games"])
-	close(streams["sockets"])
-
 	stub, _ := http.NewRequest(method, "/blah", reader)
 
 	stub.Header.Add("Content-Type", "application/json")
@@ -75,5 +72,5 @@ func NewRequest(method string, params *TestRouteParams, reader io.Reader) *TestR
 
 	request := server.Request(stub, params)
 
-	return &TestRouteUtil{database, server, request}
+	return &TestRouteUtil{database, server, request, streams}
 }

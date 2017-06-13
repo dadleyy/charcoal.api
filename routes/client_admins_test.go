@@ -71,7 +71,7 @@ func Test_Routes_ClientAdmins_FindClientAdmins_ValidGodUser(t *testing.T) {
 	db.Create(&user)
 	defer db.Unscoped().Delete(&user)
 
-	mapping := models.UserRoleMapping{User: user.ID, Role: 1}
+	mapping := models.UserRoleMapping{UserID: user.ID, RoleID: 1}
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 

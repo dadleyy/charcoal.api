@@ -181,12 +181,12 @@ func (manager *UserManager) IsAdmin(target *models.User) bool {
 
 	var maps []models.UserRoleMapping
 
-	if err := manager.Where("user = ?", target.ID).Find(&maps).Error; err != nil {
+	if err := manager.Where("user_id = ?", target.ID).Find(&maps).Error; err != nil {
 		return false
 	}
 
 	for _, mapping := range maps {
-		if mapping.Role == 1 {
+		if mapping.RoleID == 1 {
 			return true
 		}
 	}

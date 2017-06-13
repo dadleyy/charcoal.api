@@ -2,6 +2,6 @@ package models
 
 type UserRoleMapping struct {
 	Common
-	User uint `json:"user"`
-	Role uint `json:"role"`
+	UserID uint `json:"user_id"`
+	RoleID uint `json:"role_id"`
 }

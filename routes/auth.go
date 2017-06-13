@@ -73,7 +73,7 @@ func PrintUserRoles(runtime *net.RequestRuntime) *net.ResponseBucket {
 
 	runtime.Debugf("[user role lookup] looking for user roles associated w/ user[%d]", runtime.User.ID)
 
-	if err := runtime.Where("user = ?", runtime.User.ID).Find(&maps).Error; err != nil {
+	if err := runtime.Where("user_id = ?", runtime.User.ID).Find(&maps).Error; err != nil {
 		runtime.Warnf("failed mapping lookup: %s", err.Error())
 		return runtime.ServerError()
 	}
@@ -86,7 +86,7 @@ func PrintUserRoles(runtime *net.RequestRuntime) *net.ResponseBucket {
 	ids := make([]int64, len(maps))
 
 	for i, mapping := range maps {
-		ids[i] = int64(mapping.Role)
+		ids[i] = int64(mapping.RoleID)
 	}
 
 	if err := runtime.Where(ids).Find(&roles).Error; err != nil {

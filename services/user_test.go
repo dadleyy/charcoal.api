@@ -50,7 +50,7 @@ func Test_Services_Users_IsAdminTrue(t *testing.T) {
 	user := models.User{Email: dupe}
 	db.Create(&user)
 
-	mapping := models.UserRoleMapping{Role: 1, User: user.ID}
+	mapping := models.UserRoleMapping{RoleID: 1, UserID: user.ID}
 	db.Create(&mapping)
 
 	defer db.Unscoped().Delete(&user)

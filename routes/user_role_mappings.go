@@ -50,8 +50,8 @@ func CreateUserRoleMapping(runtime *net.RequestRuntime) *net.ResponseBucket {
 		return nil
 	}
 
-	user := body.Get("user")
-	role := body.Get("role")
+	user := body.Get("user_id")
+	role := body.Get("role_id")
 
 	uid, err := strconv.Atoi(user)
 
@@ -65,9 +65,9 @@ func CreateUserRoleMapping(runtime *net.RequestRuntime) *net.ResponseBucket {
 		return runtime.LogicError("missing-role")
 	}
 
-	mapping, duplicate := models.UserRoleMapping{Role: uint(rid), User: uint(uid)}, 0
+	mapping, duplicate := models.UserRoleMapping{RoleID: uint(rid), UserID: uint(uid)}, 0
 
-	cursor := runtime.Model(&mapping).Where("user = ? AND role = ?", uid, rid)
+	cursor := runtime.Model(&mapping).Where("user_id = ? AND role_id = ?", uid, rid)
 
 	if _ = cursor.Count(&duplicate); duplicate >= 1 {
 		return runtime.LogicError("duplicate")
@@ -90,7 +90,7 @@ func FindUserRoleMappings(runtime *net.RequestRuntime) *net.ResponseBucket {
 	// if this is not an admin user, make sure we are limiting to the current user
 	if uman.IsAdmin(&runtime.User) != true {
 		runtime.Debugf("user is not admin, limiting role maps search to current user")
-		blueprint = runtime.Blueprint(runtime.Where("user = ?", runtime.User.ID))
+		blueprint = runtime.Blueprint(runtime.Where("user_id = ?", runtime.User.ID))
 	}
 
 	// limit this query to to current user only
