@@ -45,6 +45,10 @@ func NewPost(params *TestRouteParams, reader io.Reader) *TestRouteUtil {
 	return NewRequest("POST", params, reader)
 }
 
+func NewDelete(params *TestRouteParams, reader io.Reader) *TestRouteUtil {
+	return NewRequest("DELETE", params, reader)
+}
+
 func NewPatch(params *TestRouteParams, reader io.Reader) *TestRouteUtil {
 	return NewRequest("PATCH", params, reader)
 }
