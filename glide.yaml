@@ -1,4 +1,4 @@
-package: github.com/sizethree/miritos.api
+package: github.com/dadleyy/charcoal.api
 import:
 - package: github.com/SermoDigital/jose
   subpackages:
