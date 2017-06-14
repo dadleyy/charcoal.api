@@ -5,6 +5,7 @@ import "bytes"
 import "testing"
 import "net/url"
 import "github.com/dadleyy/charcoal.api/net"
+import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/testing/utils"
 import "github.com/dadleyy/charcoal.api/testing/routing"
@@ -26,6 +27,113 @@ func Test_Routes_GameMemberships(t *testing.T) {
 	}
 	db.Create(&game)
 	defer db.Unscoped().Delete(&game)
+
+	t.Run("update membership", func(update *testing.T) {
+		update.Run("update valid status w/ valid membership", func(sub *testing.T) {
+			membership := models.GameMembership{UserID: user.ID, GameID: game.ID, Status: "ACTIVE"}
+			db.Create(&membership)
+			defer db.Unscoped().Delete(&membership)
+
+			json := fmt.Sprintf("{\"status\": \"%s\"}", defs.GameMembershipInactiveStatus)
+			reader, params := bytes.NewReader([]byte(json)), testrouting.TestRouteParams{Values: make(url.Values)}
+			params.Set("id", fmt.Sprintf("%d", membership.ID))
+			ctx := testrouting.NewPatch(&params, reader)
+			ctx.Request.User = user
+			go func() { <-ctx.Streams["games"] }()
+			r := UpdateGameMembership(ctx.Request)
+
+			if r != nil {
+				sub.Fatalf("expected nil response but received %v", r)
+			}
+
+			var m models.GameMembership
+			db.Where("game_id = ? AND user_id = ?", game.ID, user.ID).First(&m)
+
+			if m.Status != defs.GameMembershipInactiveStatus {
+				sub.Fatalf("expected %s status but received %v", defs.GameMembershipInactiveStatus, m)
+			}
+		})
+
+		update.Run("updating another members status", func(other *testing.T) {
+			other.Run("update valid status as admin", func(sub *testing.T) {
+				player := models.User{Email: "game-members-other@sizethree.cc"}
+				db.Create(&player)
+				defer db.Unscoped().Delete(&player)
+
+				roleMapping := models.UserRoleMapping{UserID: user.ID, RoleID: 1}
+				db.Create(&roleMapping)
+				defer db.Unscoped().Delete(&roleMapping)
+
+				membership := models.GameMembership{UserID: player.ID, GameID: game.ID, Status: "ACTIVE"}
+				db.Create(&membership)
+				defer db.Unscoped().Delete(&membership)
+
+				json := fmt.Sprintf("{\"status\": \"%s\"}", defs.GameMembershipInactiveStatus)
+				reader, params := bytes.NewReader([]byte(json)), testrouting.TestRouteParams{Values: make(url.Values)}
+				params.Set("id", fmt.Sprintf("%d", membership.ID))
+
+				ctx := testrouting.NewPatch(&params, reader)
+				ctx.Request.User = user
+				go func() { <-ctx.Streams["games"] }()
+				r := UpdateGameMembership(ctx.Request)
+
+				if r != nil {
+					sub.Fatalf("expected nil response but received %v", r)
+				}
+
+				var m models.GameMembership
+				db.Where("game_id = ? AND user_id = ?", game.ID, player.ID).First(&m)
+
+				if m.Status != defs.GameMembershipInactiveStatus {
+					sub.Fatalf("expected %s status but received %v", defs.GameMembershipInactiveStatus, m)
+				}
+			})
+
+			other.Run("update valid status as non-admin", func(sub *testing.T) {
+				player := models.User{Email: "game-members-other@sizethree.cc"}
+				db.Create(&player)
+				defer db.Unscoped().Delete(&player)
+
+				membership := models.GameMembership{UserID: player.ID, GameID: game.ID, Status: "ACTIVE"}
+				db.Create(&membership)
+				defer db.Unscoped().Delete(&membership)
+
+				json := fmt.Sprintf("{\"status\": \"%s\"}", defs.GameMembershipInactiveStatus)
+				reader, params := bytes.NewReader([]byte(json)), testrouting.TestRouteParams{Values: make(url.Values)}
+				params.Set("id", fmt.Sprintf("%d", membership.ID))
+
+				ctx := testrouting.NewPatch(&params, reader)
+				ctx.Request.User = user
+				r := UpdateGameMembership(ctx.Request)
+
+				if r == nil || len(r.Errors) != 1 {
+					sub.Fatalf("expected error response but received %v", r)
+				}
+			})
+		})
+
+		update.Run("update invalid status w/ valid membership", func(sub *testing.T) {
+			membership := models.GameMembership{UserID: user.ID, GameID: game.ID, Status: "ACTIVE"}
+			db.Create(&membership)
+			defer db.Unscoped().Delete(&membership)
+
+			json := fmt.Sprintf("{\"status\": \"%s\"}", "garbage")
+			reader, params := bytes.NewReader([]byte(json)), testrouting.TestRouteParams{Values: make(url.Values)}
+			params.Set("id", fmt.Sprintf("%d", membership.ID))
+			ctx := testrouting.NewPatch(&params, reader)
+			ctx.Request.User = user
+			go func() { <-ctx.Streams["games"] }()
+			r := UpdateGameMembership(ctx.Request)
+
+			if r == nil {
+				sub.Fatalf("expected error response but received nil")
+			}
+
+			if len(r.Errors) != 1 {
+				sub.Fatalf("expected error response but received: %v", r)
+			}
+		})
+	})
 
 	t.Run("delete membership", func(del *testing.T) {
 		player := models.User{Email: "game-members-delete-test@test.charcoal.sizethree.cc"}
