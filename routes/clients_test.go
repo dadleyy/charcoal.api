@@ -6,8 +6,8 @@ import "testing"
 import "net/url"
 
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
-import "github.com/dadleyy/charcoal.api/routes/routetesting"
+import "github.com/dadleyy/charcoal.api/testing/utils"
+import "github.com/dadleyy/charcoal.api/testing/routing"
 
 func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 	reader := bytes.NewReader([]byte("{\"name\": \"updated-name\"}"))
@@ -28,9 +28,9 @@ func Test_Routes_Clients_UpdateClient_GodUser(t *testing.T) {
 	testutils.CreateClient(&client, "clients-test-1", true)
 	defer db.Unscoped().Delete(&client)
 
-	params := routetesting.TestRouteParams{make(url.Values)}
+	params := testrouting.TestRouteParams{make(url.Values)}
 	params.Set("id", fmt.Sprintf("%d", client.ID))
-	ctx := routetesting.NewPatch(&params, reader)
+	ctx := testrouting.NewPatch(&params, reader)
 
 	ctx.Request.Client = client
 	ctx.Request.User = user
@@ -60,9 +60,9 @@ func Test_Routes_Clients_UpdateClient_AuthorizedUser(t *testing.T) {
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 
-	params := routetesting.TestRouteParams{make(url.Values)}
+	params := testrouting.TestRouteParams{make(url.Values)}
 	params.Set("id", fmt.Sprintf("%d", client.ID))
-	ctx := routetesting.NewPatch(&params, reader)
+	ctx := testrouting.NewPatch(&params, reader)
 
 	ctx.Request.Client = client
 	ctx.Request.User = user
@@ -94,9 +94,9 @@ func Test_Routes_Clients_UpdateClient_OtherClientAuthorizedUser(t *testing.T) {
 	db.Create(&mapping)
 	defer db.Unscoped().Delete(&mapping)
 
-	params := routetesting.TestRouteParams{make(url.Values)}
+	params := testrouting.TestRouteParams{make(url.Values)}
 	params.Set("id", fmt.Sprintf("%d", target.ID))
-	ctx := routetesting.NewPatch(&params, reader)
+	ctx := testrouting.NewPatch(&params, reader)
 
 	// use the other client as the request runtime
 	ctx.Request.Client = client
@@ -122,9 +122,9 @@ func Test_Routes_Clients_UpdateClient_UnauthorizedUser(t *testing.T) {
 	testutils.CreateClient(&client, "clients-test-4", true)
 	defer db.Unscoped().Delete(&client)
 
-	params := routetesting.TestRouteParams{make(url.Values)}
+	params := testrouting.TestRouteParams{make(url.Values)}
 	params.Set("id", fmt.Sprintf("%d", client.ID))
-	ctx := routetesting.NewPatch(&params, reader)
+	ctx := testrouting.NewPatch(&params, reader)
 
 	ctx.Request.Client = client
 	ctx.Request.User = user

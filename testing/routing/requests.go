@@ -1,6 +1,7 @@
-package routetesting
+package testrouting
 
 import "io"
+import "os"
 import "bytes"
 import "strconv"
 import "net/url"
@@ -12,7 +13,7 @@ import _ "github.com/jinzhu/gorm/dialects/mysql"
 
 import "github.com/dadleyy/charcoal.api/net"
 import "github.com/dadleyy/charcoal.api/activity"
-import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/testing/utils"
 
 type TestRouteUtil struct {
 	Database *gorm.DB
@@ -52,6 +53,10 @@ func NewRequest(method string, params *TestRouteParams, reader io.Reader) *TestR
 	database := testutils.NewDB()
 
 	logger := log.New("miritos")
+
+	if enableLogging := os.Getenv("TEST_LOGGING_ENABLED"); enableLogging != "true" {
+		logger.SetLevel(log.OFF)
+	}
 
 	streams := map[string](chan activity.Message){
 		"activity": make(chan activity.Message),

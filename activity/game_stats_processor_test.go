@@ -8,7 +8,7 @@ import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/testing/utils"
 
 func Test_Activity_GameStatsProcessor_UpdateStats(t *testing.T) {
 	db, logger, stream := testutils.NewDB(), log.New("miritos"), make(chan Message, 1)

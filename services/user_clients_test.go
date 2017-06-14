@@ -3,7 +3,7 @@ package services
 import "testing"
 import "github.com/dadleyy/charcoal.api/util"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/testing/utils"
 
 func Test_Services_UserClients_Associate(t *testing.T) {
 	db := testutils.NewDB()

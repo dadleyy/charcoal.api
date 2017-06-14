@@ -5,12 +5,12 @@ import "bytes"
 import "testing"
 import "golang.org/x/crypto/bcrypt"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
-import "github.com/dadleyy/charcoal.api/routes/routetesting"
+import "github.com/dadleyy/charcoal.api/testing/utils"
+import "github.com/dadleyy/charcoal.api/testing/routing"
 
 func Test_Routes_Auth_PasswordLogin_NoClient(t *testing.T) {
 	body := bytes.NewBuffer([]byte("{}"))
-	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
+	ctx := testrouting.NewPost(&testrouting.TestRouteParams{}, body)
 
 	password, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
@@ -38,7 +38,7 @@ func Test_Routes_Auth_PasswordLogin_NoClient(t *testing.T) {
 
 func Test_Routes_Auth_PasswordLogin_NonSystem(t *testing.T) {
 	body := bytes.NewBuffer([]byte("{}"))
-	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
+	ctx := testrouting.NewPost(&testrouting.TestRouteParams{}, body)
 
 	password, _ := bcrypt.GenerateFromPassword([]byte("password"), bcrypt.DefaultCost)
 
@@ -69,7 +69,7 @@ func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
 	email, password := "lt2@sizethree.cc", "password"
 	body := bytes.NewBuffer([]byte(fmt.Sprintf("{\"email\":\"%s\",\"password\":\"%s\"}", email, password)))
 
-	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
+	ctx := testrouting.NewPost(&testrouting.TestRouteParams{}, body)
 
 	pw, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	user := models.User{Email: email, Password: string(pw)}
@@ -99,7 +99,7 @@ func Test_Routes_Auth_PasswordLogin_SystemGoodPassword(t *testing.T) {
 func Test_Routes_Auth_PasswordLogin_SystemBadPassword(t *testing.T) {
 	email, password := "lt2@sizethree.cc", "password"
 	body := bytes.NewBuffer([]byte(fmt.Sprintf("{\"email\":\"%s\",\"password\":\"fudge\"}", email)))
-	ctx := routetesting.NewPost(&routetesting.TestRouteParams{}, body)
+	ctx := testrouting.NewPost(&testrouting.TestRouteParams{}, body)
 
 	pw, _ := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	user := models.User{Email: email, Password: string(pw)}

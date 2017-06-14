@@ -6,7 +6,7 @@ import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/testing/utils"
 
 func makebp(values url.Values) Blueprint {
 	db := testutils.NewDB()

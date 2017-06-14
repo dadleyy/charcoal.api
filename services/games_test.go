@@ -7,7 +7,7 @@ import "github.com/labstack/gommon/log"
 import "github.com/dadleyy/charcoal.api/defs"
 import "github.com/dadleyy/charcoal.api/models"
 import "github.com/dadleyy/charcoal.api/activity"
-import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/testing/utils"
 
 type gameServiceTestContext struct {
 	*gorm.DB

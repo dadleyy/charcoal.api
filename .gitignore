@@ -4,6 +4,7 @@
 *.a
 *.so
 .env
+.envrc
 .env-test
 .env-*
 /env

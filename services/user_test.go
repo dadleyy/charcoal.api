@@ -4,7 +4,7 @@ import "testing"
 import "github.com/labstack/gommon/log"
 
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
+import "github.com/dadleyy/charcoal.api/testing/utils"
 
 func Test_Services_Users_IsDuplicateTrue(t *testing.T) {
 	db := testutils.NewDB()

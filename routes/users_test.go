@@ -1,14 +1,14 @@
 package routes
 
-// import "fmt"
+import "fmt"
 import "bytes"
 import "testing"
 import "net/url"
 import "encoding/json"
 
 import "github.com/dadleyy/charcoal.api/models"
-import "github.com/dadleyy/charcoal.api/testutils"
-import "github.com/dadleyy/charcoal.api/routes/routetesting"
+import "github.com/dadleyy/charcoal.api/testing/utils"
+import "github.com/dadleyy/charcoal.api/testing/routing"
 
 func createTestRequestBuffer(t interface{}) *bytes.Buffer {
 	b, _ := json.Marshal(t)
@@ -24,7 +24,7 @@ func Test_Routes_Users_CreateUser_Save(t *testing.T) {
 	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user-test-1"}
 	clientName := "users-create-1"
 
-	context := routetesting.NewPost(&routetesting.TestRouteParams{}, createTestRequestBuffer(body))
+	context := testrouting.NewPost(&testrouting.TestRouteParams{}, createTestRequestBuffer(body))
 
 	testutils.CreateClient(&context.Request.Client, clientName, true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -60,8 +60,8 @@ func Test_Routes_Users_CreateUser_BadPassword(t *testing.T) {
 		Name     string `json:"name"`
 	}{"dope-2@charcoal.sizethree.cc", "password 123", "thename"})
 
-	params := routetesting.TestRouteParams{Values: make(url.Values)}
-	context := routetesting.NewPost(&params, body)
+	params := testrouting.TestRouteParams{Values: make(url.Values)}
+	context := testrouting.NewPost(&params, body)
 
 	testutils.CreateClient(&context.Request.Client, "bad-password", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -82,7 +82,7 @@ func Test_Routes_Users_CreateUser_DuplicateUsername(t *testing.T) {
 	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user-test-1"}
 	one := models.User{Email: body.Email + ".diff", Username: body.Username}
 
-	context := routetesting.NewPost(&routetesting.TestRouteParams{}, createTestRequestBuffer(body))
+	context := testrouting.NewPost(&testrouting.TestRouteParams{}, createTestRequestBuffer(body))
 
 	testutils.CreateClient(&context.Request.Client, "dupe-username", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -97,8 +97,6 @@ func Test_Routes_Users_CreateUser_DuplicateUsername(t *testing.T) {
 	}
 }
 
-/*
-
 func Test_Routes_Users_CreateUser_DuplicateEmail(t *testing.T) {
 	body := struct {
 		Email    string `json:"email"`
@@ -108,7 +106,7 @@ func Test_Routes_Users_CreateUser_DuplicateEmail(t *testing.T) {
 	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user-test-1"}
 	one := models.User{Email: body.Email, Username: body.Username + "-diff"}
 
-	context := routetesting.NewPost(&routetesting.TestRouteParams{}, createTestRequestBuffer(body))
+	context := testrouting.NewPost(&testrouting.TestRouteParams{}, createTestRequestBuffer(body))
 
 	testutils.CreateClient(&context.Request.Client, "dupe-email", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -131,7 +129,7 @@ func Test_Routes_Users_CreateUser_BadUsername(t *testing.T) {
 		Username string `json:"username"`
 	}{"dope-1@charcoal.sizethree.cc", "password123", "thename", "user @ test-1"}
 
-	context := routetesting.NewPost(&routetesting.TestRouteParams{}, createTestRequestBuffer(body))
+	context := testrouting.NewPost(&testrouting.TestRouteParams{}, createTestRequestBuffer(body))
 
 	testutils.CreateClient(&context.Request.Client, "bad-username", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -160,10 +158,10 @@ func Test_Routes_Users_UpdateUser_Unauthorized(t *testing.T) {
 		Username string `json:"username"`
 	}{"user-update-1-1"}
 
-	params := routetesting.TestRouteParams{}
-	params.Set("id", user.ID)
+	params := testrouting.TestRouteParams{Values: make(url.Values)}
+	params.Set("id", fmt.Sprintf("%d", user.ID))
 
-	context := routetesting.NewPatch(&params, createTestRequestBuffer(body))
+	context := testrouting.NewPatch(&params, createTestRequestBuffer(body))
 
 	testutils.CreateClient(&context.Request.Client, "update-username", true)
 	defer context.Database.Unscoped().Delete(&context.Request.Client)
@@ -192,9 +190,9 @@ func Test_Routes_Users_UpdateUser_GoodUsername(t *testing.T) {
 		Username string `json:"username"`
 	}{"user-update-2-2"}
 
-	params := routetesting.TestRouteParams{}
-	params.Set("id", user.ID)
-	context := routetesting.NewPatch(&params, createTestRequestBuffer(body))
+	params := testrouting.TestRouteParams{Values: make(url.Values)}
+	params.Set("id", fmt.Sprintf("%d", user.ID))
+	context := testrouting.NewPatch(&params, createTestRequestBuffer(body))
 
 	context.Request.User = user
 
@@ -225,9 +223,9 @@ func Test_Routes_Users_UpdateUser_BadUsername(t *testing.T) {
 		Username string `json:"username"`
 	}{"user-update-3 with spaces"}
 
-	params := routetesting.TestRouteParams{}
-	params.Set("id", user.ID)
-	context := routetesting.NewPatch(&params, createTestRequestBuffer(body))
+	params := testrouting.TestRouteParams{Values: make(url.Values)}
+	params.Set("id", fmt.Sprintf("%d", user.ID))
+	context := testrouting.NewPatch(&params, createTestRequestBuffer(body))
 
 	context.Request.User = user
 
@@ -265,9 +263,9 @@ func Test_Routes_Users_UpdateUser_DuplicateUsername(t *testing.T) {
 		Username string `json:"username"`
 	}{"user-update-4-1"}
 
-	params := routetesting.TestRouteParams{}
-	params.Set("id", user.ID)
-	context := routetesting.NewPatch(&params, createTestRequestBuffer(body))
+	params := testrouting.TestRouteParams{Values: make(url.Values)}
+	params.Set("id", fmt.Sprintf("%d", two.ID))
+	context := testrouting.NewPatch(&params, createTestRequestBuffer(body))
 
 	context.Request.User = two
 
@@ -305,9 +303,9 @@ func Test_Routes_Users_UpdateUser_DuplicateEmail(t *testing.T) {
 		Email string `json:"email"`
 	}{one.Email}
 
-	params := routetesting.TestRouteParams{}
-	params.Set("id", user.ID)
-	context := routetesting.NewPatch(&params, createTestRequestBuffer(body))
+	params := testrouting.TestRouteParams{Values: make(url.Values)}
+	params.Set("id", fmt.Sprintf("%d", two.ID))
+	context := testrouting.NewPatch(&params, createTestRequestBuffer(body))
 
 	context.Request.User = two
 
@@ -320,5 +318,3 @@ func Test_Routes_Users_UpdateUser_DuplicateEmail(t *testing.T) {
 		t.Fatalf("should NOT have been able to update user w/ duplicate username")
 	}
 }
-
-*/
