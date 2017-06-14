@@ -19,8 +19,11 @@ script:
   - openssl rsa -in private.pem -outform PEM -pubout -out public.pem
   - export JWT_PUBLIC_KEY=$(pwd)/public.pem
   - export JWT_PRIVATE_KEY=$(pwd)/private.pem
-  - go test -p=1 -v $(go list ./... | grep -vi 'vendor\|testing\|defs')
+  - ./auto/travis/test.sh
   - go vet $(go list ./... | grep -vi 'vendor\|testing')
 
 after_script:
   - mysql -u $DB_USERNAME -h $DB_HOSTNAME --password=$DB_PASSWORD $DB_DATABASE < ./auto/db_clean.sql
+
+after_success:
+  - bash <(curl -s https://codecov.io/bash)
