@@ -13,11 +13,11 @@ import "github.com/go-sql-driver/mysql"
 
 import _ "github.com/jinzhu/gorm/dialects/mysql"
 
-import "github.com/dadleyy/charcoal.api/net"
-import "github.com/dadleyy/charcoal.api/defs"
-import "github.com/dadleyy/charcoal.api/routes"
-import "github.com/dadleyy/charcoal.api/activity"
-import "github.com/dadleyy/charcoal.api/middleware"
+import "github.com/dadleyy/charcoal.api/charcoal/bg"
+import "github.com/dadleyy/charcoal.api/charcoal/net"
+import "github.com/dadleyy/charcoal.api/charcoal/defs"
+import "github.com/dadleyy/charcoal.api/charcoal/routes"
+import "github.com/dadleyy/charcoal.api/charcoal/middleware"
 
 func main() {
 	err := godotenv.Load()
@@ -65,11 +65,11 @@ func main() {
 		return
 	}
 
-	streams := map[string](chan activity.Message){
-		defs.ActivityStreamIdentifier:   make(chan activity.Message, 100),
-		defs.SocketsStreamIdentifier:    make(chan activity.Message, 100),
-		defs.GamesStreamIdentifier:      make(chan activity.Message, 100),
-		defs.GamesStatsStreamIdentifier: make(chan activity.Message, 100),
+	streams := map[string](chan bg.Message){
+		defs.ActivityStreamIdentifier:   make(chan bg.Message, 100),
+		defs.SocketsStreamIdentifier:    make(chan bg.Message, 100),
+		defs.GamesStreamIdentifier:      make(chan bg.Message, 100),
+		defs.GamesStatsStreamIdentifier: make(chan bg.Message, 100),
 	}
 
 	// create our multiplexer and add our routes
@@ -152,20 +152,20 @@ func main() {
 		Streams: streams,
 	}
 
-	processors := []activity.BackgroundProcessor{
-		&activity.ActivityProcessor{
+	processors := []bg.BackgroundProcessor{
+		&bg.ActivityProcessor{
 			Logger: logger,
 			DB:     db,
 			Stream: streams[defs.ActivityStreamIdentifier],
 		},
 
-		&activity.GameProcessor{
+		&bg.GameProcessor{
 			Logger: logger,
 			DB:     db,
 			Stream: streams[defs.GamesStreamIdentifier],
 		},
 
-		&activity.GameStatsProcessor{
+		&bg.GameStatsProcessor{
 			Logger: logger,
 			DB:     db,
 			Stream: streams[defs.GamesStatsStreamIdentifier],
